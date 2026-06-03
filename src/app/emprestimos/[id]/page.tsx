@@ -96,6 +96,8 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
             saldoDevedor={saldoDevedor}
             clientePhone={cliente?.phone ?? ""}
             clienteNome={cliente?.nome ?? ""}
+            taxaJuros={e.taxaJuros}
+            dataInicio={e.dataInicio}
           />
         </div>
 

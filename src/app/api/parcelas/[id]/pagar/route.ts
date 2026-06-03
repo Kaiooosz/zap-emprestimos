@@ -8,7 +8,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!parcela) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const modo: ModoPagamento = body.modo ?? "COMPLETO";
-  const valorPago = body.valorPago ?? parcela.valorDevido;
-  const result = store.parcelas.pagar(id, valorPago, modo);
+  const valorPago            = body.valorPago ?? parcela.valorDevido;
+  const extras = {
+    descontoAntecipado: body.descontoAntecipado,
+    diasAntecipados:    body.diasAntecipados,
+  };
+
+  const result = store.parcelas.pagar(id, valorPago, modo, extras);
   return NextResponse.json(result);
 }

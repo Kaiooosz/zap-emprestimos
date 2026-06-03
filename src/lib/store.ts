@@ -10,7 +10,7 @@ export type StatusParcela = "PENDENTE" | "PAGO" | "ATRASADO" | "PARCIAL";
 export type CategoriaContaPagar = "ALUGUEL" | "SALARIO" | "IMPOSTO" | "SERVICO" | "MARKETING" | "TECNOLOGIA" | "OUTROS";
 export type TipoProduto = "EMPRESTIMO" | "DESCONTO_CHEQUE" | "RENOVACAO" | "VENDA" | "ALUGUEL" | "ASSINATURA";
 export type ModalidadeJuros = "SIMPLES" | "POR_PARCELA";
-export type ModoPagamento = "COMPLETO" | "SOMENTE_JUROS" | "QUITACAO_TOTAL";
+export type ModoPagamento = "COMPLETO" | "SOMENTE_JUROS" | "QUITACAO_TOTAL" | "ANTECIPADO";
 export type TipoCliente = "PESSOA_FISICA" | "PESSOA_JURIDICA";
 export type TipoGarantia = "IMOVEL" | "VEICULO" | "CHEQUE" | "NOTA_PROMISSORIA" | "FIADOR" | "OUTRO";
 
@@ -78,13 +78,15 @@ export interface Parcela {
   emprestimoId: string;
   numero: number;
   valorDevido: number;
-  valorPrincipal: number;    // parcela de principal
-  valorJuros: number;        // parcela de juros
+  valorPrincipal: number;     // parcela de principal
+  valorJuros: number;         // parcela de juros
   valorPago?: number;
   dataVencimento: string;
   dataPagamento?: string;
   status: StatusParcela;
   modoPagamento?: ModoPagamento;
+  descontoAntecipado?: number; // valor de desconto dado no pagamento antecipado
+  diasAntecipados?: number;    // quantos dias antes do vencimento foi pago
 }
 
 export interface ContaPagar {
@@ -289,11 +291,38 @@ export const store = {
         .sort((a, b) => a.numero - b.numero),
     get: (id: string) => _parcelas.find((p) => p.id === id),
 
-    // Pagamento completo (normal)
-    pagar: (id: string, valorPago: number, modo: ModoPagamento = "COMPLETO"): Parcela | null => {
+    // Registra pagamento (suporta 4 modos + extras para antecipado)
+    pagar: (
+      id: string,
+      valorPago: number,
+      modo: ModoPagamento = "COMPLETO",
+      extras?: { descontoAntecipado?: number; diasAntecipados?: number }
+    ): Parcela | null => {
       const idx = _parcelas.findIndex((p) => p.id === id);
       if (idx < 0) return null;
       const parcela = _parcelas[idx];
+
+      if (modo === "ANTECIPADO") {
+        // Pagamento antecipado com desconto pro-rata nos juros
+        _parcelas[idx] = {
+          ...parcela,
+          valorPago,
+          dataPagamento: new Date().toISOString(),
+          status: "PAGO",
+          modoPagamento: "ANTECIPADO",
+          descontoAntecipado: extras?.descontoAntecipado,
+          diasAntecipados:    extras?.diasAntecipados,
+        };
+        const empId2 = parcela.emprestimoId;
+        const empParcs2 = _parcelas.filter((p) => p.emprestimoId === empId2);
+        if (empParcs2.every((p) => p.status === "PAGO")) {
+          const eIdx2 = _emprestimos.findIndex((e) => e.id === empId2);
+          if (eIdx2 >= 0) _emprestimos[eIdx2].status = "QUITADO";
+        }
+        const emp2 = _emprestimos.find((e) => e.id === empId2);
+        if (emp2) recalcularScoreCliente(emp2.clienteId);
+        return _parcelas[idx];
+      }
 
       if (modo === "SOMENTE_JUROS") {
         // Paga apenas os juros — adia o principal para a próxima parcela
