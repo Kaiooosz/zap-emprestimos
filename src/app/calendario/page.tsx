@@ -107,7 +107,7 @@ export default function CalendarioPage({ searchParams }: { searchParams: Promise
         {/* Próximos vencimentos */}
         <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200">
-            <h2 className="text-sm font-semibold text-white">Proximos Vencimentos</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Proximos Vencimentos</h2>
           </div>
           <div className="divide-y divide-[#1e3a5f]/50">
             {proximos.map((p) => (

@@ -42,7 +42,7 @@ export default function RelatoriosPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Status dos contratos */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Status dos Contratos</h2>
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Status dos Contratos</h2>
           <div className="space-y-3">
             <BarRow label="Ativos" value={porStatus.ATIVO} total={emprestimos.length} color="bg-blue-500" />
             <BarRow label="Quitados" value={porStatus.QUITADO} total={emprestimos.length} color="bg-emerald-500" />
@@ -52,7 +52,7 @@ export default function RelatoriosPage() {
 
         {/* Adimplência */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Adimplencia</h2>
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Adimplencia</h2>
           <div className="flex items-center justify-center py-4">
             <div className="relative h-28 w-28">
               <svg viewBox="0 0 36 36" className="h-28 w-28 -rotate-90">
@@ -66,7 +66,7 @@ export default function RelatoriosPage() {
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <p className="text-2xl font-bold text-blue-700">{taxaAdimplencia}%</p>
-                <p className="text-xs text-slate-400">adimplente</p>
+                <p className="text-xs text-slate-500">adimplente</p>
               </div>
             </div>
           </div>
@@ -85,14 +85,14 @@ export default function RelatoriosPage() {
         {/* Top clientes por score */}
         <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200">
-            <h2 className="text-sm font-semibold text-white">Ranking de Clientes</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Ranking de Clientes</h2>
           </div>
           <div className="divide-y divide-[#1e3a5f]/50">
             {clientes.slice(0, 6).map((c, i) => (
               <div key={c.id} className="flex items-center gap-3 px-5 py-3">
                 <span className="text-xs font-bold text-slate-500 w-4">{i + 1}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{c.nome}</p>
+                  <p className="text-sm font-medium text-slate-900 truncate">{c.nome}</p>
                 </div>
                 <span className={`text-sm font-bold tabular-nums ${c.score >= 80 ? "text-emerald-400" : c.score >= 60 ? "text-blue-400" : c.score >= 40 ? "text-amber-400" : "text-red-400"}`}>
                   {c.score}
@@ -126,7 +126,7 @@ function BarRow({ label, value, total, color }: { label: string; value: number; 
     <div>
       <div className="flex justify-between text-xs mb-1">
         <span className="text-slate-400">{label}</span>
-        <span className="font-semibold text-white">{value}</span>
+        <span className="font-semibold text-slate-900">{value}</span>
       </div>
       <div className="h-2 rounded-full bg-slate-700 overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />

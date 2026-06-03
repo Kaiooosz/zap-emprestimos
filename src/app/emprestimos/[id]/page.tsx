@@ -57,10 +57,10 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
             </h1>
             <StatusBadge status={e.status} />
             {e.temGarantia && (
-              <span className="text-xs bg-[#1a3555] text-slate-300 border border-slate-200 px-2 py-0.5 rounded-full">Com Garantia</span>
+              <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">Com Garantia</span>
             )}
             {e.temContrato && (
-              <span className="text-xs bg-[#1a3555] text-slate-300 border border-slate-200 px-2 py-0.5 rounded-full">Contrato Formal</span>
+              <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">Contrato Formal</span>
             )}
           </div>
           <p className="text-xs text-slate-500 mt-0.5">Cliente: {cliente?.nome ?? "—"}</p>
@@ -74,7 +74,7 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
             {infoCards.map((c) => (
               <div key={c.label} className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="text-xs font-medium text-slate-500">{c.label}</p>
-                <p className={`text-sm font-bold mt-0.5 break-words ${c.accent ? "text-white" : c.red ? "text-red-400" : "text-slate-300"}`}>{c.value}</p>
+                <p className={`text-sm font-bold mt-0.5 break-words text-slate-900"}`}>{c.value}</p>
               </div>
             ))}
           </div>
@@ -82,7 +82,7 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
           {/* Progresso */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-white">Progresso das Parcelas</p>
+              <p className="text-sm font-semibold text-slate-900">Progresso das Parcelas</p>
               <p className="text-xs text-slate-400">{pagas} de {e.numParcelas} pagas</p>
             </div>
             <div className="h-2 w-full rounded-full bg-slate-700 overflow-hidden">
@@ -104,11 +104,11 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
           <div className="space-y-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-xl bg-slate-100 flex items-center justify-center text-lg font-bold text-white shrink-0">
+                <div className="h-11 w-11 rounded-xl bg-slate-100 flex items-center justify-center text-lg font-bold text-slate-700 shrink-0">
                   {cliente.nome[0]}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-white truncate">{cliente.nome}</p>
+                  <p className="font-semibold text-slate-900 truncate">{cliente.nome}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{cliente.phone}</p>
                 </div>
               </div>
@@ -118,12 +118,12 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
               {cliente.garantia && (
                 <div className="rounded-lg bg-white border border-slate-200 p-3">
                   <p className="text-xs font-semibold text-slate-400 mb-1">Garantia do Cliente</p>
-                  <p className="text-xs text-slate-300">{cliente.tipoGarantia} — {cliente.descricaoGarantia ?? "—"}</p>
+                  <p className="text-xs text-slate-600">{cliente.tipoGarantia} — {cliente.descricaoGarantia ?? "—"}</p>
                   {cliente.valorGarantia && <p className="text-xs text-slate-500 mt-0.5">{formatarMoeda(cliente.valorGarantia)}</p>}
                 </div>
               )}
               <div className="flex gap-2">
-                <Link href={`/clientes/${cliente.id}`} className="flex-1 text-center text-xs text-slate-400 hover:text-slate-200 hover:underline">
+                <Link href={`/clientes/${cliente.id}`} className="flex-1 text-center text-xs text-slate-400 hover:text-blue-700 hover:underline">
                   Ver perfil completo
                 </Link>
                 <a

@@ -51,17 +51,17 @@ export default function EmprestimosPage() {
               <tr key={e.id} className="hover:bg-white/40 transition-colors group">
                 <td className="px-5 py-4">
                   <div>
-                    <p className="font-semibold text-white">{e.cliente?.nome ?? "—"}</p>
+                    <p className="font-semibold text-slate-900">{e.cliente?.nome ?? "—"}</p>
                     {e.cliente && <ScoreBadge score={e.cliente.score} />}
                   </div>
                 </td>
                 <td className="px-5 py-4">
-                  <p className="font-semibold text-white">{formatarMoeda(e.valorTotal)}</p>
+                  <p className="font-semibold text-slate-900">{formatarMoeda(e.valorTotal)}</p>
                   <p className="text-xs text-slate-400">Principal: {formatarMoeda(e.valorPrincipal)}</p>
                 </td>
                 <td className="px-5 py-4 text-slate-300 font-mono">{e.taxaJuros}%</td>
                 <td className="px-5 py-4">
-                  <p className="text-white">{e.parcelasPagas}/{e.numParcelas}</p>
+                  <p className="text-slate-900">{e.parcelasPagas}/{e.numParcelas}</p>
                   <div className="h-1 w-16 rounded-full bg-slate-700 mt-1">
                     <div className="h-full rounded-full bg-[#4a78c0]" style={{ width: `${(e.parcelasPagas / e.numParcelas) * 100}%` }} />
                   </div>

@@ -19,7 +19,7 @@ export function GraficoDesempenho({ dados }: { dados: EvolucaoMes[] }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">Desempenho Mensal</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Desempenho Mensal</h3>
         <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-500 hover:border-slate-200 hover:text-slate-300 transition-colors">
           <Download size={12} />
           Exportar Relatorio

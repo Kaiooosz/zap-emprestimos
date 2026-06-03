@@ -21,7 +21,7 @@ export function SolicitacoesRecentes({ parcelas }: SolicitacoesRecentesProps) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white">
       <div className="flex items-center justify-between px-5 pt-5 pb-4">
-        <h3 className="text-sm font-semibold text-white">Solicitacoes Recentes</h3>
+        <h3 className="text-sm font-semibold text-slate-900">Solicitacoes Recentes</h3>
         <Link
           href="/emprestimos/novo"
           className="flex items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-blue-800 transition-colors"
@@ -46,7 +46,7 @@ export function SolicitacoesRecentes({ parcelas }: SolicitacoesRecentesProps) {
                   <Icon size={13} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{p.clienteNome}</p>
+                  <p className="text-sm font-medium text-slate-900 truncate">{p.clienteNome}</p>
                   <p className={cn("text-xs font-medium", cfg.color.split(" ")[0])}>{cfg.label}</p>
                 </div>
                 <div className="text-right shrink-0">

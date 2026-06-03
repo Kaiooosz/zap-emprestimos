@@ -284,7 +284,7 @@ export default function NovoEmprestimoPage() {
                     <div className="col-span-2 rounded-xl bg-white border border-slate-200 p-4">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-400">Valor líquido entregue ao cliente</span>
-                        <span className="text-lg font-bold text-white">{formatarMoeda(valorNominal * (1 - taxaDesconto / 100))}</span>
+                        <span className="text-lg font-bold text-slate-900">{formatarMoeda(valorNominal * (1 - taxaDesconto / 100))}</span>
                       </div>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-xs text-slate-500">Desconto (seu lucro)</span>
@@ -307,10 +307,10 @@ export default function NovoEmprestimoPage() {
                     </div>
                     {custo > 0 && valor > 0 && (
                       <div className="rounded-xl bg-white border border-slate-200 p-4 grid grid-cols-2 gap-3">
-                        <div><p className="text-xs text-slate-500">Custo</p><p className="font-semibold text-white">{formatarMoeda(custo)}</p></div>
+                        <div><p className="text-xs text-slate-500">Custo</p><p className="font-semibold text-slate-900">{formatarMoeda(custo)}</p></div>
                         <div><p className="text-xs text-slate-500">Lucro bruto</p><p className="font-semibold text-emerald-400">{formatarMoeda(valor - custo)}</p></div>
-                        <div><p className="text-xs text-slate-500">Margem</p><p className="font-semibold text-white">{custo > 0 ? ((valor - custo) / custo * 100).toFixed(1) : 0}%</p></div>
-                        <div><p className="text-xs text-slate-500">Total c/ juros</p><p className="font-semibold text-white">{formatarMoeda(simResult.total)}</p></div>
+                        <div><p className="text-xs text-slate-500">Margem</p><p className="font-semibold text-slate-900">{custo > 0 ? ((valor - custo) / custo * 100).toFixed(1) : 0}%</p></div>
+                        <div><p className="text-xs text-slate-500">Total c/ juros</p><p className="font-semibold text-slate-900">{formatarMoeda(simResult.total)}</p></div>
                       </div>
                     )}
                   </>

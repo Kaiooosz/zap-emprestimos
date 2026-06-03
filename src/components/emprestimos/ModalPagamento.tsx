@@ -48,7 +48,7 @@ export function ModalPagamento({ parcela, saldoDevedor, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
           <div>
-            <h2 className="text-sm font-semibold text-white">Registrar Pagamento</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Registrar Pagamento</h2>
             <p className="text-xs text-slate-500 mt-0.5">Parcela {parcela.numero} · Vence {formatarData(parcela.dataVencimento)}</p>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300">
@@ -89,7 +89,7 @@ export function ModalPagamento({ parcela, saldoDevedor, onClose }: Props) {
               className={`w-full flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all ${modo === id ? "bg-slate-50 border-slate-500" : "border-slate-200 hover:border-slate-600"}`}>
               <Icon size={18} className={`mt-0.5 shrink-0 ${cor}`} />
               <div className="min-w-0">
-                <p className={`text-sm font-semibold ${modo === id ? "text-white" : "text-slate-300"}`}>{label}</p>
+                <p className={`text-sm font-semibold ${modo === id ? "text-slate-900" : "text-slate-500"}`}>{label}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
                 {modo === id && <p className="text-xs text-slate-500 mt-1">{detail}</p>}
                 {warn && modo === id && (
@@ -125,7 +125,7 @@ export function ModalPagamento({ parcela, saldoDevedor, onClose }: Props) {
         <div className="px-5 pb-5 space-y-3">
           <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-4 py-3">
             <span className="text-xs text-slate-400">Valor a receber</span>
-            <span className="text-lg font-bold text-white">
+            <span className="text-lg font-bold text-slate-900">
               {modo === "SOMENTE_JUROS" && formatarMoeda(parcela.valorJuros)}
               {modo === "COMPLETO"      && formatarMoeda(parcela.valorDevido)}
               {modo === "QUITACAO_TOTAL"&& formatarMoeda(valorQuitacao)}

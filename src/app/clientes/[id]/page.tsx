@@ -52,11 +52,11 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
         <div className="space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-xl font-bold text-white shrink-0">
+              <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-700 shrink-0">
                 {c.nome[0]}
               </div>
               <div>
-                <p className="font-bold text-white">{c.nome}</p>
+                <p className="font-bold text-slate-900">{c.nome}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{c.cpf ?? "Sem CPF"}</p>
                 <p className="text-xs text-slate-500">Desde {formatarData(c.createdAt)}</p>
               </div>
@@ -123,7 +123,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
           {/* Histórico de eventos */}
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-200">
-              <h2 className="text-sm font-semibold text-white">Historico de Pontuacao</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Historico de Pontuacao</h2>
               <p className="text-xs text-slate-500 mt-0.5">{scoreData.eventos.length} eventos · Score inicial: 500</p>
             </div>
             {scoreData.eventos.length === 0 ? (
@@ -156,7 +156,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
           {/* Empréstimos */}
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-              <h2 className="text-sm font-semibold text-white">Historico de Emprestimos</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Historico de Emprestimos</h2>
               <Link href={`/emprestimos/novo?clienteId=${c.id}`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 hover:underline">
                 <Plus size={12}/> Novo
               </Link>

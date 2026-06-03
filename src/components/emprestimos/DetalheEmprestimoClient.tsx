@@ -41,7 +41,7 @@ export function DetalheEmprestimoClient({ parcelas, saldoDevedor, clientePhone, 
 
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Parcelas</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Parcelas</h2>
           <span className="text-xs text-slate-500">Saldo devedor: <span className="text-slate-300 font-semibold">{formatarMoeda(saldoDevedor)}</span></span>
         </div>
 

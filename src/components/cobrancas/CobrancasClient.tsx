@@ -176,7 +176,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-sm font-medium text-white truncate">{p.clienteNome}</p>
+                        <p className="text-sm font-medium text-slate-900 truncate">{p.clienteNome}</p>
                         {disparados.has(p.id) && <span className="text-xs text-emerald-500 shrink-0">Enviado</span>}
                       </div>
                       <div className="flex items-center gap-2">
@@ -215,7 +215,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
         <div className="space-y-3">
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-200">
-              <h2 className="text-sm font-semibold text-white">Preview da Mensagem</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Preview da Mensagem</h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 {preview ? `Para: ${preview.clienteNome}` : "Clique em um cliente para ver"}
               </p>

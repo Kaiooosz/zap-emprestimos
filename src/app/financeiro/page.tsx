@@ -45,7 +45,7 @@ export default function FinanceiroPage() {
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs font-medium text-slate-400">Total de Contas</p>
-          <p className="text-lg font-bold text-white mt-0.5">{contas.length}</p>
+          <p className="text-lg font-bold text-slate-900 mt-0.5">{contas.length}</p>
         </div>
       </div>
 
