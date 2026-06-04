@@ -7,62 +7,88 @@ datasource db {
   provider = "postgresql"
 }
 
-// ─── Controle de Acesso ───────────────────────────────────────────────────────
+// ─── Acesso ───────────────────────────────────────────────────────────────────
 
 enum Role {
   ADMIN
-  COBRADOR
   OPERADOR
+  COBRADOR
 }
 
 model User {
   id           String   @id @default(cuid())
-  name         String
+  nome         String
   email        String   @unique
   phone        String?
   passwordHash String
   role         Role     @default(OPERADOR)
-  active       Boolean  @default(true)
+  ativo        Boolean  @default(true)
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   emprestimos Emprestimo[]
-  cobranças   Cobranca[]
 
   @@map("users")
 }
 
 // ─── Clientes ─────────────────────────────────────────────────────────────────
 
-model Cliente {
-  id          String   @id @default(cuid())
-  nome        String
-  cpf         String?  @unique
-  phone       String
-  email       String?
-  endereco    String?
-  cidade      String?
-  estado      String?
-  foto        String?
-  score       Int      @default(100)
-  observacoes String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum TipoCliente {
+  PESSOA_FISICA
+  PESSOA_JURIDICA
+}
 
-  emprestimos Emprestimo[]
-  vendas      Venda[]
-  contratos   Contrato[]
-  assinaturas Assinatura[]
+model Cliente {
+  id               String      @id @default(cuid())
+  tipo             TipoCliente @default(PESSOA_FISICA)
+  nome             String
+  cpf              String?
+  phone            String
+  email            String?
+  endereco         String?
+  cidade           String?
+  estado           String?
+  profissao        String?
+  rendaMensal      Decimal?    @db.Decimal(12, 2)
+  score            Int         @default(500)
+  temContrato      Boolean     @default(false)
+  garantia         Boolean     @default(false)
+  tipoGarantia     String?
+  valorGarantia    Decimal?    @db.Decimal(12, 2)
+  descGarantia     String?
+  referencia       String?
+  observacoes      String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  emprestimos    Emprestimo[]
+  scoreHistorico ScoreHistorico[]
 
   @@map("clientes")
 }
 
 // ─── Empréstimos ──────────────────────────────────────────────────────────────
 
-enum TipoEmprestimo {
+enum TipoProduto {
+  EMPRESTIMO
+  DIARIO
+  DESCONTO_CHEQUE
+  RENOVACAO
+  VENDA
+  ALUGUEL
+  ASSINATURA
+}
+
+enum TipoPeriodo {
   DIARIO
   SEMANAL
   QUINZENAL
   MENSAL
+}
+
+enum ModalidadeJuros {
+  SIMPLES
+  POR_PARCELA
 }
 
 enum StatusEmprestimo {
@@ -76,23 +102,36 @@ model Emprestimo {
   id               String           @id @default(cuid())
   clienteId        String
   operadorId       String
-  tipo             TipoEmprestimo   @default(MENSAL)
+  tipoProduto      TipoProduto      @default(EMPRESTIMO)
+  tipo             TipoPeriodo      @default(MENSAL)
+  modalidadeJuros  ModalidadeJuros  @default(SIMPLES)
   status           StatusEmprestimo @default(ATIVO)
   valorPrincipal   Decimal          @db.Decimal(12, 2)
-  taxaJuros        Decimal          @db.Decimal(6, 4)
+  taxaJuros        Decimal          @db.Decimal(6, 2)
   totalJuros       Decimal          @db.Decimal(12, 2)
   valorTotal       Decimal          @db.Decimal(12, 2)
   numParcelas      Int
   dataInicio       DateTime
   dataVencimento   DateTime
+  temGarantia      Boolean          @default(false)
+  tipoGarantia     String?
+  valorGarantia    Decimal?         @db.Decimal(12, 2)
+  temContrato      Boolean          @default(false)
   observacoes      String?
-  contratoUrl      String?
-  contratoAssinado Boolean          @default(false)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  // Campos específicos por tipo
+  valorNominalCheque Decimal?       @db.Decimal(12, 2)
+  dataCheque         DateTime?
+  custo              Decimal?       @db.Decimal(12, 2)
+  descricaoProduto   String?
+  valorMensal        Decimal?       @db.Decimal(12, 2)
+  diaVencimento      Int?
+  semDataFim         Boolean        @default(false)
+  plano              String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
-  cliente  Cliente    @relation(fields: [clienteId], references: [id])
-  operador User       @relation(fields: [operadorId], references: [id])
+  cliente  Cliente   @relation(fields: [clienteId], references: [id])
+  operador User      @relation(fields: [operadorId], references: [id])
   parcelas Parcela[]
 
   @@map("emprestimos")
@@ -107,204 +146,49 @@ enum StatusParcela {
   PARCIAL
 }
 
-model Parcela {
-  id             String        @id @default(cuid())
-  emprestimoId   String
-  numero         Int
-  valorDevido    Decimal       @db.Decimal(12, 2)
-  valorPago      Decimal?      @db.Decimal(12, 2)
-  dataVencimento DateTime
-  dataPagamento  DateTime?
-  status         StatusParcela @default(PENDENTE)
-  pixQrCode      String?
-  pixTxId        String?
-  comprovante    String?
-  createdAt      DateTime      @default(now())
+enum ModoPagamento {
+  COMPLETO
+  SOMENTE_JUROS
+  QUITACAO_TOTAL
+  ANTECIPADO
+  ABATIMENTO
+}
 
-  emprestimo Emprestimo @relation(fields: [emprestimoId], references: [id])
-  cobranças  Cobranca[]
+model Parcela {
+  id               String         @id @default(cuid())
+  emprestimoId     String
+  numero           Int
+  valorDevido      Decimal        @db.Decimal(12, 2)
+  valorPrincipal   Decimal        @db.Decimal(12, 2)
+  valorJuros       Decimal        @db.Decimal(12, 2)
+  valorPago        Decimal?       @db.Decimal(12, 2)
+  dataVencimento   DateTime
+  dataPagamento    DateTime?
+  status           StatusParcela  @default(PENDENTE)
+  modoPagamento    ModoPagamento?
+  desconto         Decimal?       @db.Decimal(12, 2)
+  createdAt        DateTime       @default(now())
+
+  emprestimo Emprestimo @relation(fields: [emprestimoId], references: [id], onDelete: Cascade)
 
   @@map("parcelas")
 }
 
-// ─── Cobranças em Campo ───────────────────────────────────────────────────────
+// ─── Score Histórico ──────────────────────────────────────────────────────────
 
-model Cobranca {
-  id         String   @id @default(cuid())
-  parcelaId  String
-  cobradorId String
-  latitude   Decimal? @db.Decimal(10, 8)
-  longitude  Decimal? @db.Decimal(11, 8)
-  observacao String?
-  createdAt  DateTime @default(now())
-
-  parcela  Parcela @relation(fields: [parcelaId], references: [id])
-  cobrador User    @relation(fields: [cobradorId], references: [id])
-
-  @@map("cobrancas")
-}
-
-// ─── Produtos e Vendas ────────────────────────────────────────────────────────
-
-enum StatusVenda {
-  ATIVA
-  QUITADA
-  CANCELADA
-}
-
-model Produto {
-  id         String   @id @default(cuid())
-  nome       String
-  descricao  String?
-  custo      Decimal  @db.Decimal(12, 2)
-  preco      Decimal  @db.Decimal(12, 2)
-  estoque    Int      @default(0)
-  createdAt  DateTime @default(now())
-
-  itens VendaItem[]
-
-  @@map("produtos")
-}
-
-model Venda {
-  id          String      @id @default(cuid())
+model ScoreHistorico {
+  id          String   @id @default(cuid())
   clienteId   String
-  status      StatusVenda @default(ATIVA)
-  valorTotal  Decimal     @db.Decimal(12, 2)
-  custoTotal  Decimal     @db.Decimal(12, 2)
-  lucro       Decimal     @db.Decimal(12, 2)
-  numParcelas Int         @default(1)
-  dataVenda   DateTime    @default(now())
-  observacoes String?
-  createdAt   DateTime    @default(now())
+  tipo        String
+  descricao   String
+  pontos      Int
+  scoreAntes  Int
+  scoreDepois Int
+  data        DateTime @default(now())
 
-  cliente  Cliente        @relation(fields: [clienteId], references: [id])
-  itens    VendaItem[]
-  parcelas ParcelaVenda[]
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
 
-  @@map("vendas")
-}
-
-model VendaItem {
-  id         String  @id @default(cuid())
-  vendaId    String
-  produtoId  String
-  quantidade Int
-  valorUnit  Decimal @db.Decimal(12, 2)
-  custoUnit  Decimal @db.Decimal(12, 2)
-
-  venda   Venda   @relation(fields: [vendaId], references: [id])
-  produto Produto @relation(fields: [produtoId], references: [id])
-
-  @@map("venda_itens")
-}
-
-model ParcelaVenda {
-  id             String        @id @default(cuid())
-  vendaId        String
-  numero         Int
-  valorDevido    Decimal       @db.Decimal(12, 2)
-  valorPago      Decimal?      @db.Decimal(12, 2)
-  dataVencimento DateTime
-  dataPagamento  DateTime?
-  status         StatusParcela @default(PENDENTE)
-  createdAt      DateTime      @default(now())
-
-  venda Venda @relation(fields: [vendaId], references: [id])
-
-  @@map("parcelas_venda")
-}
-
-// ─── Contratos / Aluguéis ─────────────────────────────────────────────────────
-
-enum TipoContrato {
-  ALUGUEL
-  SERVICO
-  OUTRO
-}
-
-enum StatusContrato {
-  ATIVO
-  ENCERRADO
-  INADIMPLENTE
-}
-
-model Contrato {
-  id            String         @id @default(cuid())
-  clienteId     String
-  tipo          TipoContrato   @default(ALUGUEL)
-  status        StatusContrato @default(ATIVO)
-  descricao     String
-  valorMensal   Decimal        @db.Decimal(12, 2)
-  diaVencimento Int
-  dataInicio    DateTime
-  dataFim       DateTime?
-  arquivoUrl    String?
-  createdAt     DateTime       @default(now())
-
-  cliente    Cliente             @relation(fields: [clienteId], references: [id])
-  pagamentos PagamentoContrato[]
-
-  @@map("contratos")
-}
-
-model PagamentoContrato {
-  id            String        @id @default(cuid())
-  contratoId    String
-  mes           Int
-  ano           Int
-  valorDevido   Decimal       @db.Decimal(12, 2)
-  valorPago     Decimal?      @db.Decimal(12, 2)
-  dataPagamento DateTime?
-  status        StatusParcela @default(PENDENTE)
-  createdAt     DateTime      @default(now())
-
-  contrato Contrato @relation(fields: [contratoId], references: [id])
-
-  @@map("pagamentos_contrato")
-}
-
-// ─── Assinaturas IPTV ─────────────────────────────────────────────────────────
-
-enum StatusAssinatura {
-  ATIVA
-  SUSPENSA
-  CANCELADA
-}
-
-model Assinatura {
-  id            String           @id @default(cuid())
-  clienteId     String
-  plano         String
-  valorMensal   Decimal          @db.Decimal(10, 2)
-  dataInicio    DateTime
-  dataRenovacao DateTime
-  status        StatusAssinatura @default(ATIVA)
-  servidor      String?
-  login         String?
-  senha         String?
-  createdAt     DateTime         @default(now())
-
-  cliente    Cliente               @relation(fields: [clienteId], references: [id])
-  pagamentos PagamentoAssinatura[]
-
-  @@map("assinaturas")
-}
-
-model PagamentoAssinatura {
-  id            String        @id @default(cuid())
-  assinaturaId  String
-  mes           Int
-  ano           Int
-  valorDevido   Decimal       @db.Decimal(10, 2)
-  valorPago     Decimal?      @db.Decimal(10, 2)
-  dataPagamento DateTime?
-  status        StatusParcela @default(PENDENTE)
-  createdAt     DateTime      @default(now())
-
-  assinatura Assinatura @relation(fields: [assinaturaId], references: [id])
-
-  @@map("pagamentos_assinatura")
+  @@map("score_historico")
 }
 
 // ─── Financeiro Interno ───────────────────────────────────────────────────────
@@ -328,7 +212,7 @@ enum StatusConta {
 model ContaPagar {
   id             String              @id @default(cuid())
   descricao      String
-  categoria      CategoriaContaPagar
+  categoria      CategoriaContaPagar @default(OUTROS)
   valor          Decimal             @db.Decimal(12, 2)
   dataVencimento DateTime
   dataPagamento  DateTime?
@@ -339,15 +223,24 @@ model ContaPagar {
   @@map("contas_pagar")
 }
 
-// ─── Score Histórico ──────────────────────────────────────────────────────────
+// ─── Configurações ────────────────────────────────────────────────────────────
 
-model ScoreHistorico {
-  id          String   @id @default(cuid())
-  clienteId   String
-  scoreAntes  Int
-  scoreDepois Int
-  motivo      String
-  createdAt   DateTime @default(now())
+model Config {
+  id    String @id @default("singleton")
+  data  Json
+  updatedAt DateTime @updatedAt
 
-  @@map("score_historico")
+  @@map("config")
+}
+
+// ─── Templates WhatsApp ───────────────────────────────────────────────────────
+
+model Template {
+  id       String @id @default(cuid())
+  nome     String
+  conteudo String @db.Text
+  ativo    Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("templates")
 }
