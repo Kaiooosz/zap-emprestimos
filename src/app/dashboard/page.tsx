@@ -102,6 +102,33 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Projecoes financeiras — 3 cards */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {[
+          {
+            label: "Lucro Previsto",
+            value: formatarMoeda(data.projecoes.lucroPrevisto),
+            sub: "Juros futuros a receber",
+          },
+          {
+            label: "Capital em Risco",
+            value: formatarMoeda(data.projecoes.capitalEmRisco),
+            sub: "Saldo devedor de inadimplentes",
+          },
+          {
+            label: "Recebido Ontem",
+            value: formatarMoeda(data.projecoes.recebidoOntem),
+            sub: `Media 30d: ${formatarMoeda(data.projecoes.mediaRecebimentoDiario)}/dia`,
+          },
+        ].map(({ label, value, sub }) => (
+          <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</p>
+            <p className="text-xl font-black text-slate-900 tabular-nums">{value}</p>
+            <p className="text-xs text-slate-400 mt-1.5">{sub}</p>
+          </div>
+        ))}
+      </div>
+
       {/* Linha 2 — 3+2 colunas */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Histórico + Vencimentos */}

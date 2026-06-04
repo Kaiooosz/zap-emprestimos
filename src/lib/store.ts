@@ -10,7 +10,7 @@ export type StatusParcela = "PENDENTE" | "PAGO" | "ATRASADO" | "PARCIAL";
 export type CategoriaContaPagar = "ALUGUEL" | "SALARIO" | "IMPOSTO" | "SERVICO" | "MARKETING" | "TECNOLOGIA" | "OUTROS";
 export type TipoProduto = "EMPRESTIMO" | "DESCONTO_CHEQUE" | "RENOVACAO" | "VENDA" | "ALUGUEL" | "ASSINATURA";
 export type ModalidadeJuros = "SIMPLES" | "POR_PARCELA";
-export type ModoPagamento = "COMPLETO" | "SOMENTE_JUROS" | "QUITACAO_TOTAL" | "ANTECIPADO";
+export type ModoPagamento = "COMPLETO" | "SOMENTE_JUROS" | "QUITACAO_TOTAL" | "ANTECIPADO" | "ABATIMENTO";
 export type TipoCliente = "PESSOA_FISICA" | "PESSOA_JURIDICA";
 export type TipoGarantia = "IMOVEL" | "VEICULO" | "CHEQUE" | "NOTA_PROMISSORIA" | "FIADOR" | "OUTRO";
 
@@ -37,6 +37,7 @@ export interface Cliente {
   valorGarantia?: number;
   descricaoGarantia?: string;
   observacoes?: string;
+  perfilId?: string;
   createdAt: string;
 }
 
@@ -87,6 +88,24 @@ export interface Parcela {
   modoPagamento?: ModoPagamento;
   descontoAntecipado?: number; // valor de desconto dado no pagamento antecipado
   diasAntecipados?: number;    // quantos dias antes do vencimento foi pago
+  jurosAtrasoAcumulado?: number; // juros de atraso calculados no momento do pagamento
+  principalAbatido?: number;     // quanto do principal foi abatido neste pagamento
+}
+
+// ─── Perfil Financeiro ────────────────────────────────────────────────────────
+
+export interface PerfilFinanceiro {
+  id: string;
+  nome: string;
+  modalidades: ("MODALIDADE_1" | "MODALIDADE_2")[];
+  taxaMensalPct: number;
+  regraAtraso: "A" | "B";
+  taxaDiariaAtrasoPct: number;
+  prazoMaxParcelado: number;
+  limiteEmprestimo: number;
+  permitirRenovacao: boolean;
+  maxRenovacoes: number;
+  descontoQuitacaoMaxPct: number;
 }
 
 export interface ContaPagar {
@@ -125,6 +144,48 @@ function daysFromNow(n: number) {
 function arr(n: number) { return Array.from({ length: n }); }
 
 // ─── Dados iniciais ───────────────────────────────────────────────────────────
+
+const _perfis: PerfilFinanceiro[] = [
+  {
+    id: "pf1",
+    nome: "Padrao",
+    modalidades: ["MODALIDADE_1", "MODALIDADE_2"],
+    taxaMensalPct: 10,
+    regraAtraso: "A",
+    taxaDiariaAtrasoPct: 1,
+    prazoMaxParcelado: 12,
+    limiteEmprestimo: 10000,
+    permitirRenovacao: true,
+    maxRenovacoes: 3,
+    descontoQuitacaoMaxPct: 10,
+  },
+  {
+    id: "pf2",
+    nome: "Premium",
+    modalidades: ["MODALIDADE_1", "MODALIDADE_2"],
+    taxaMensalPct: 8,
+    regraAtraso: "B",
+    taxaDiariaAtrasoPct: 0.5,
+    prazoMaxParcelado: 24,
+    limiteEmprestimo: 50000,
+    permitirRenovacao: true,
+    maxRenovacoes: 0,
+    descontoQuitacaoMaxPct: 20,
+  },
+  {
+    id: "pf3",
+    nome: "Risco Alto",
+    modalidades: ["MODALIDADE_1"],
+    taxaMensalPct: 15,
+    regraAtraso: "A",
+    taxaDiariaAtrasoPct: 1.5,
+    prazoMaxParcelado: 6,
+    limiteEmprestimo: 3000,
+    permitirRenovacao: false,
+    maxRenovacoes: 0,
+    descontoQuitacaoMaxPct: 5,
+  },
+];
 
 const _clientes: Cliente[] = [
   { id: "c1", nome: "João Silva",       tipo: "PESSOA_FISICA",   cpf: "123.456.789-01", phone: "(11) 99999-0001", email: "joao@email.com",     cidade: "São Paulo",   profissao: "Comerciante",  rendaMensal: 5000, score: 820, temContrato: true,  garantia: true,  tipoGarantia: "VEICULO",           valorGarantia: 15000, descricaoGarantia: "Honda Civic 2019", createdAt: daysAgo(120) },
@@ -291,16 +352,97 @@ export const store = {
         .sort((a, b) => a.numero - b.numero),
     get: (id: string) => _parcelas.find((p) => p.id === id),
 
-    // Registra pagamento (suporta 4 modos + extras para antecipado)
+    // Registra pagamento (suporta 4 modos + ABATIMENTO)
     pagar: (
       id: string,
       valorPago: number,
       modo: ModoPagamento = "COMPLETO",
-      extras?: { descontoAntecipado?: number; diasAntecipados?: number }
+      extras?: { descontoAntecipado?: number; diasAntecipados?: number; valorRecebido?: number }
     ): Parcela | null => {
       const idx = _parcelas.findIndex((p) => p.id === id);
       if (idx < 0) return null;
       const parcela = _parcelas[idx];
+
+      if (modo === "ABATIMENTO") {
+        const valorRecebido = extras?.valorRecebido ?? valorPago;
+        const hoje = new Date();
+
+        // Calcula juros de atraso se parcela atrasada
+        let jurosAtraso = 0;
+        if (parcela.status === "ATRASADO") {
+          const diasAtraso = Math.max(0, Math.floor((hoje.getTime() - new Date(parcela.dataVencimento).getTime()) / 86400000));
+          jurosAtraso = Math.round(parcela.valorDevido * 0.01 * diasAtraso * 100) / 100;
+        }
+
+        let restante = valorRecebido;
+        let jurosAtrasoAcumulado = 0;
+        let jurosCobertos = 0;
+        let principalAbatido = 0;
+
+        // 1. Cobre juros de atraso
+        if (jurosAtraso > 0 && restante > 0) {
+          jurosAtrasoAcumulado = Math.min(jurosAtraso, restante);
+          restante = Math.round((restante - jurosAtrasoAcumulado) * 100) / 100;
+        }
+
+        // 2. Cobre juros mensais da parcela
+        if (restante > 0) {
+          jurosCobertos = Math.min(parcela.valorJuros, restante);
+          restante = Math.round((restante - jurosCobertos) * 100) / 100;
+        }
+
+        // 3. Restante abate principal
+        if (restante > 0) {
+          principalAbatido = Math.min(parcela.valorPrincipal, restante);
+          restante = Math.round((restante - principalAbatido) * 100) / 100;
+        }
+
+        const totalCoberto = Math.round((valorRecebido - restante) * 100) / 100;
+        const statusNovo: StatusParcela = totalCoberto >= parcela.valorDevido ? "PAGO" : "PARCIAL";
+
+        _parcelas[idx] = {
+          ...parcela,
+          valorPago: totalCoberto,
+          dataPagamento: hoje.toISOString(),
+          status: statusNovo,
+          modoPagamento: "ABATIMENTO",
+          jurosAtrasoAcumulado,
+          principalAbatido,
+        };
+
+        // Se abateu principal: atualiza valorDevido das próximas parcelas pro-rata
+        if (principalAbatido > 0) {
+          const empAtual = _emprestimos.find((e) => e.id === parcela.emprestimoId);
+          const proximas = _parcelas.filter(
+            (p) => p.emprestimoId === parcela.emprestimoId &&
+              p.numero > parcela.numero &&
+              ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status)
+          );
+          if (proximas.length > 0 && empAtual) {
+            const abatimentoPorParcela = Math.round((principalAbatido / proximas.length) * 100) / 100;
+            proximas.forEach((pp) => {
+              const ppIdx = _parcelas.findIndex((x) => x.id === pp.id);
+              if (ppIdx >= 0) {
+                const novoDevido = Math.max(0, Math.round((_parcelas[ppIdx].valorDevido - abatimentoPorParcela) * 100) / 100);
+                const novoPrincipal = Math.max(0, Math.round((_parcelas[ppIdx].valorPrincipal - abatimentoPorParcela) * 100) / 100);
+                _parcelas[ppIdx] = { ..._parcelas[ppIdx], valorDevido: novoDevido, valorPrincipal: novoPrincipal };
+              }
+            });
+          }
+        }
+
+        if (statusNovo === "PAGO") {
+          const empParcelas = _parcelas.filter((p) => p.emprestimoId === parcela.emprestimoId);
+          if (empParcelas.every((p) => p.status === "PAGO")) {
+            const eIdx = _emprestimos.findIndex((e) => e.id === parcela.emprestimoId);
+            if (eIdx >= 0) _emprestimos[eIdx].status = "QUITADO";
+          }
+        }
+
+        const empAb = _emprestimos.find((e) => e.id === parcela.emprestimoId);
+        if (empAb) recalcularScoreCliente(empAb.clienteId);
+        return _parcelas[idx];
+      }
 
       if (modo === "ANTECIPADO") {
         // Pagamento antecipado com desconto pro-rata nos juros
@@ -484,7 +626,43 @@ export const store = {
         return { mes: ini.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""), recebido };
       });
 
-      return { capitalNaRua, recebidoMes, lucroMes: Math.round(lucroMes * 100) / 100, parcelasAtrasadas, totalClientesAtivos, lucroVendas: 0, totalSemana, parcelasHoje, evolucaoMensal };
+      // Projecoes financeiras
+      const lucroPrevisto = _parcelas
+        .filter((p) => ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status))
+        .reduce((s, p) => s + p.valorJuros, 0);
+
+      const inadimplentesIds = new Set(
+        _emprestimos.filter((e) => e.status === "INADIMPLENTE").map((e) => e.id)
+      );
+      const capitalEmRisco = _parcelas
+        .filter((p) => inadimplentesIds.has(p.emprestimoId) && ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status))
+        .reduce((s, p) => s + p.valorDevido, 0);
+
+      const vencendoHoje = _parcelas
+        .filter((p) => { const v = new Date(p.dataVencimento); return v.toDateString() === hoje.toDateString() && ["PENDENTE", "ATRASADO"].includes(p.status); })
+        .reduce((s, p) => s + p.valorDevido, 0);
+
+      const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1);
+      const recebidoOntem = _parcelas
+        .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento).toDateString() === ontem.toDateString())
+        .reduce((s, p) => s + (p.valorPago ?? 0), 0);
+
+      const h30 = new Date(hoje); h30.setDate(hoje.getDate() - 30);
+      const pagamentos30d = _parcelas
+        .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= h30)
+        .reduce((s, p) => s + (p.valorPago ?? 0), 0);
+      const mediaRecebimentoDiario = Math.round((pagamentos30d / 30) * 100) / 100;
+
+      const projecoes = {
+        lucroPrevisto: Math.round(lucroPrevisto * 100) / 100,
+        capitalEmRisco: Math.round(capitalEmRisco * 100) / 100,
+        vencendoHoje: Math.round(vencendoHoje * 100) / 100,
+        vencendoSemana: totalSemana,
+        recebidoOntem: Math.round(recebidoOntem * 100) / 100,
+        mediaRecebimentoDiario,
+      };
+
+      return { capitalNaRua, recebidoMes, lucroMes: Math.round(lucroMes * 100) / 100, parcelasAtrasadas, totalClientesAtivos, lucroVendas: 0, totalSemana, parcelasHoje, evolucaoMensal, projecoes };
     },
   },
 };
@@ -640,6 +818,22 @@ let _configWhatsApp: ConfigWhatsApp = {
 // ─── Extensão do store com novas entidades ────────────────────────────────────
 
 export const storeExt = {
+  perfis: {
+    list: () => [..._perfis],
+    get: (id: string) => _perfis.find((p) => p.id === id),
+    create: (data: Omit<PerfilFinanceiro, "id">): PerfilFinanceiro => {
+      const p: PerfilFinanceiro = { ...data, id: uid() };
+      _perfis.push(p);
+      return p;
+    },
+    update: (id: string, data: Partial<PerfilFinanceiro>): PerfilFinanceiro | null => {
+      const idx = _perfis.findIndex((p) => p.id === id);
+      if (idx < 0) return null;
+      _perfis[idx] = { ..._perfis[idx], ...data };
+      return _perfis[idx];
+    },
+  },
+
   templates: {
     list: () => [..._templates],
     get: (id: string) => _templates.find((t) => t.id === id),

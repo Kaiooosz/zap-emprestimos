@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Shield, FileText, Building2, User } from "lucide-react";
+import type { PerfilFinanceiro } from "@/lib/store";
 
 type TipoCliente = "PESSOA_FISICA" | "PESSOA_JURIDICA";
 type TipoGarantia = "IMOVEL" | "VEICULO" | "CHEQUE" | "NOTA_PROMISSORIA" | "FIADOR" | "OUTRO";
@@ -23,6 +24,8 @@ export default function NovoClientePage() {
   const [tipo, setTipo] = useState<TipoCliente>("PESSOA_FISICA");
   const [temContrato, setTemContrato] = useState(false);
   const [garantia, setGarantia] = useState(false);
+  const [perfis, setPerfis] = useState<PerfilFinanceiro[]>([]);
+  const [perfilId, setPerfilId] = useState<string>("");
   const [form, setForm] = useState({
     nome: "", cpf: "", cnpj: "", phone: "", email: "",
     endereco: "", cidade: "", estado: "", profissao: "",
@@ -30,6 +33,13 @@ export default function NovoClientePage() {
     tipoGarantia: "IMOVEL" as TipoGarantia,
     valorGarantia: "", descricaoGarantia: "",
   });
+
+  useEffect(() => {
+    fetch("/api/perfis")
+      .then((r) => r.json())
+      .then((data: PerfilFinanceiro[]) => setPerfis(data))
+      .catch(() => {});
+  }, []);
 
   function set(k: string, v: string) { setForm((f) => ({ ...f, [k]: v })); }
 
@@ -46,6 +56,7 @@ export default function NovoClientePage() {
         valorGarantia: form.valorGarantia ? Number(form.valorGarantia) : undefined,
         tipoGarantia: garantia ? form.tipoGarantia : undefined,
         descricaoGarantia: garantia ? form.descricaoGarantia : undefined,
+        perfilId: perfilId || undefined,
       };
       const res = await fetch("/api/clientes", {
         method: "POST",
@@ -163,6 +174,43 @@ export default function NovoClientePage() {
             </div>
           )}
         </div>
+
+        {/* Perfil Financeiro */}
+        {perfis.length > 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Perfil Financeiro</p>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Selecione o perfil aplicavel a este cliente</label>
+            <select value={perfilId} onChange={(e) => setPerfilId(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-slate-500">
+              <option value="">Sem perfil especifico</option>
+              {perfis.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome} — {p.taxaMensalPct}%/mes, limite R$ {p.limiteEmprestimo.toLocaleString("pt-BR")}
+                </option>
+              ))}
+            </select>
+            {perfilId && (() => {
+              const p = perfis.find((x) => x.id === perfilId);
+              if (!p) return null;
+              return (
+                <div className="mt-3 grid grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+                  <div>
+                    <p className="text-xs text-slate-400">Taxa mensal</p>
+                    <p className="text-sm font-semibold text-slate-800">{p.taxaMensalPct}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Atraso/dia</p>
+                    <p className="text-sm font-semibold text-slate-800">{p.taxaDiariaAtrasoPct}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Max. parcelas</p>
+                    <p className="text-sm font-semibold text-slate-800">{p.prazoMaxParcelado}x</p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
 
         {/* Observações */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
