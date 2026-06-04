@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Bell } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Bell, LogOut } from "lucide-react";
 import Image from "next/image";
 
 export function Topbar() {
+  const router = useRouter();
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }
+
   return (
     <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
       <Link href="/dashboard" className="flex items-center">
@@ -37,6 +45,13 @@ export function Topbar() {
           <Plus size={13} strokeWidth={2.5} />
           Novo Emprestimo
         </Link>
+        <button
+          onClick={logout}
+          title="Sair"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+        >
+          <LogOut size={15} />
+        </button>
       </div>
     </header>
   );

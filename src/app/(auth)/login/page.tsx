@@ -18,15 +18,24 @@ export default function LoginPage() {
     e.preventDefault();
     setErro("");
     setLoading(true);
-    // Credenciais demo — substituir por autenticação real
-    if (email === "admin@zap.com" && senha === "admin123") {
-      await new Promise((r) => setTimeout(r, 800));
-      router.push("/dashboard");
-    } else {
-      await new Promise((r) => setTimeout(r, 500));
-      setErro("E-mail ou senha incorretos.");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email, senha }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErro(data.error ?? "Erro ao entrar.");
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        router.push(params.get("next") ?? "/dashboard");
+      }
+    } catch {
+      setErro("Erro de conexão. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
