@@ -815,6 +815,12 @@ let _configWhatsApp: ConfigWhatsApp = {
   enviarQuitacao: true,
 };
 
+export type TaxasParcelamento = Record<number, number>;
+
+let _taxasParcelamento: TaxasParcelamento = {
+  2: 45, 3: 60, 4: 75, 5: 90, 6: 105, 7: 120, 8: 135, 9: 150, 10: 165,
+};
+
 // ─── Extensão do store com novas entidades ────────────────────────────────────
 
 export const storeExt = {
@@ -858,6 +864,11 @@ export const storeExt = {
     updateWhatsApp: (data: Partial<ConfigWhatsApp>) => {
       _configWhatsApp = { ..._configWhatsApp, ...data };
       return _configWhatsApp;
+    },
+    getTaxasParcelamento: (): TaxasParcelamento => ({ ..._taxasParcelamento }),
+    updateTaxasParcelamento: (data: TaxasParcelamento) => {
+      _taxasParcelamento = { ..._taxasParcelamento, ...data };
+      return _taxasParcelamento;
     },
   },
 };

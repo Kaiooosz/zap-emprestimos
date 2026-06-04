@@ -3,8 +3,9 @@
 import { useState, useMemo } from "react";
 import { Calculator, Info } from "lucide-react";
 import { formatarMoeda, formatarData } from "@/lib/utils";
+import { storeExt } from "@/lib/store";
 
-type TipoJuros = "simples" | "composto" | "price";
+type TipoJuros = "simples" | "composto" | "price" | "parcelado";
 type Periodo = "DIARIO" | "SEMANAL" | "QUINZENAL" | "MENSAL";
 
 const periodMap: Record<Periodo, { label: string; dias: number }> = {
@@ -14,25 +15,36 @@ const periodMap: Record<Periodo, { label: string; dias: number }> = {
   MENSAL:    { label: "Mensal",   dias: 30 },
 };
 
-function calcular(principal: number, taxa: number, n: number, tipo: TipoJuros, entrada: number) {
+function calcular(
+  principal: number, taxa: number, n: number,
+  tipo: TipoJuros, entrada: number,
+  taxasParcelamento: Record<number, number>
+) {
   const p = principal - entrada;
   const r = taxa / 100;
+  if (tipo === "parcelado") {
+    const taxaPct = taxasParcelamento[n] ?? 0;
+    const total   = p * (1 + taxaPct / 100);
+    return { total, totalJuros: total - p, parcela: total / n, taxaUsada: taxaPct };
+  }
   if (tipo === "simples") {
     const total = p * (1 + r * n);
-    return { total, totalJuros: total - p, parcela: total / n };
+    return { total, totalJuros: total - p, parcela: total / n, taxaUsada: taxa };
   }
   if (tipo === "composto") {
     const total = p * Math.pow(1 + r, n);
-    return { total, totalJuros: total - p, parcela: total / n };
+    return { total, totalJuros: total - p, parcela: total / n, taxaUsada: taxa };
   }
-  if (r === 0) return { total: p, totalJuros: 0, parcela: p / n };
+  if (r === 0) return { total: p, totalJuros: 0, parcela: p / n, taxaUsada: 0 };
   const parc = (p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-  return { total: parc * n, totalJuros: parc * n - p, parcela: parc };
+  return { total: parc * n, totalJuros: parc * n - p, parcela: parc, taxaUsada: taxa };
 }
 
 function gerarTabela(
   principal: number, taxa: number, n: number,
-  tipo: TipoJuros, entrada: number, dataInicio: Date, dias: number
+  tipo: TipoJuros, entrada: number,
+  dataInicio: Date, dias: number,
+  taxasParcelamento: Record<number, number>
 ) {
   const p = principal - entrada;
   const r = taxa / 100;
@@ -41,7 +53,15 @@ function gerarTabela(
     const venc = new Date(dataInicio);
     venc.setDate(venc.getDate() + dias * i);
     let parcela = 0, juros = 0, amortizacao = 0, saldo = 0;
-    if (tipo === "simples") {
+
+    if (tipo === "parcelado") {
+      const taxaPct = taxasParcelamento[n] ?? 0;
+      const total   = p * (1 + taxaPct / 100);
+      parcela = total / n;
+      juros = (p * taxaPct / 100) / n;
+      amortizacao = p / n;
+      saldo = Math.max(0, p - amortizacao * i);
+    } else if (tipo === "simples") {
       parcela = p * (1 + r * n) / n;
       juros = p * r;
       amortizacao = p / n;
@@ -66,6 +86,8 @@ function gerarTabela(
 }
 
 export default function SimuladorPage() {
+  const taxasParcelamento = storeExt.config.getTaxasParcelamento();
+
   const [principal, setPrincipal] = useState(5000);
   const [entrada,   setEntrada]   = useState(0);
   const [taxa,      setTaxa]      = useState(10);
@@ -76,9 +98,19 @@ export default function SimuladorPage() {
   const [tabVis,    setTabVis]    = useState(false);
 
   const { dias } = periodMap[period];
-  const res   = useMemo(() => calcular(principal, taxa, n, tipo, entrada), [principal, taxa, n, tipo, entrada]);
-  const tabela = useMemo(() => gerarTabela(principal, taxa, n, tipo, entrada, new Date(dataInicio), dias), [principal, taxa, n, tipo, entrada, dataInicio, dias]);
-  const cet   = useMemo(() => { const r = taxa/100; return tipo === "price" ? (Math.pow(1+r, 12/(dias/30))-1)*100 : r*(12/(dias/30))*100; }, [taxa, tipo, dias]);
+  const res   = useMemo(() => calcular(principal, taxa, n, tipo, entrada, taxasParcelamento), [principal, taxa, n, tipo, entrada, taxasParcelamento]);
+  const tabela = useMemo(() => gerarTabela(principal, taxa, n, tipo, entrada, new Date(dataInicio), dias, taxasParcelamento), [principal, taxa, n, tipo, entrada, dataInicio, dias, taxasParcelamento]);
+  const cet   = useMemo(() => {
+    if (tipo === "parcelado") {
+      const taxaPct = taxasParcelamento[n] ?? 0;
+      return (taxaPct / n) * 12;
+    }
+    const r = taxa / 100;
+    return tipo === "price" ? (Math.pow(1+r, 12/(dias/30))-1)*100 : r*(12/(dias/30))*100;
+  }, [taxa, tipo, dias, n, taxasParcelamento]);
+
+  const isParcelado = tipo === "parcelado";
+  const taxaParcelado = isParcelado ? (taxasParcelamento[n] ?? 0) : null;
 
   return (
     <div className="space-y-5">
@@ -96,31 +128,65 @@ export default function SimuladorPage() {
           <p className="text-sm font-semibold text-slate-900">Parâmetros</p>
           <Num label="Valor Principal (R$)" value={principal} onChange={setPrincipal} step={100} min={100}/>
           <Num label="Entrada / Sinal (R$)" value={entrada} onChange={setEntrada} step={100} min={0}/>
-          <Num label={`Taxa (% / ${periodMap[period].label.toLowerCase()})`} value={taxa} onChange={setTaxa} step={0.5} min={0.1}/>
-          <Num label="Número de Parcelas" value={n} onChange={setN} step={1} min={1} max={360}/>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Data de Início</label>
-            <input type="date" value={dataInicio} onChange={(e) => setData(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500"/>
-          </div>
+          {!isParcelado && (
+            <Num label={`Taxa (% / ${periodMap[period].label.toLowerCase()})`} value={taxa} onChange={setTaxa} step={0.5} min={0.1}/>
+          )}
 
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Periodicidade</label>
-            <div className="grid grid-cols-2 gap-1.5">
-              {(Object.keys(periodMap) as Periodo[]).map((p) => (
-                <button key={p} onClick={() => setPeriod(p)}
-                  className={`rounded-xl py-2 text-xs font-medium border transition-all ${period===p ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700"}`}>
-                  {periodMap[p].label}
-                </button>
-              ))}
+          <Num label="Número de Parcelas" value={n} onChange={setN} step={1} min={2} max={isParcelado ? 10 : 360}/>
+
+          {/* Aviso taxa parcelado */}
+          {isParcelado && (
+            <div className={`rounded-xl border px-3 py-2.5 ${taxaParcelado !== null && taxaParcelado > 0 ? "border-blue-200 bg-blue-50" : "border-amber-200 bg-amber-50"}`}>
+              {taxaParcelado !== null && taxaParcelado > 0 ? (
+                <p className="text-xs text-blue-700 font-medium">
+                  Taxa para {n}x: <span className="font-bold">{taxaParcelado}%</span> sobre o principal
+                </p>
+              ) : (
+                <p className="text-xs text-amber-700">Taxa para {n}x não configurada. Acesse Configurações.</p>
+              )}
             </div>
-          </div>
+          )}
+
+          {!isParcelado && (
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Data de Início</label>
+              <input type="date" value={dataInicio} onChange={(e) => setData(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500"/>
+            </div>
+          )}
+
+          {isParcelado && (
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Data de Início</label>
+              <input type="date" value={dataInicio} onChange={(e) => setData(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500"/>
+            </div>
+          )}
+
+          {!isParcelado && (
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Periodicidade</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(Object.keys(periodMap) as Periodo[]).map((p) => (
+                  <button key={p} onClick={() => setPeriod(p)}
+                    className={`rounded-xl py-2 text-xs font-medium border transition-all ${period===p ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700"}`}>
+                    {periodMap[p].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Modalidade de Cálculo</label>
             <div className="space-y-1.5">
-              {([["simples","Juros Simples","Taxa flat sobre o principal"],["composto","Juros Composto","Juros sobre saldo devedor"],["price","Tabela Price","Parcelas iguais — SAC Francês"]] as const).map(([v,l,d]) => (
+              {([
+                ["simples",   "Juros Simples",  "Taxa flat sobre o principal"],
+                ["composto",  "Juros Composto", "Juros sobre saldo devedor"],
+                ["price",     "Tabela Price",   "Parcelas iguais — SAC Francês"],
+                ["parcelado", "Parcelado",      "Taxa fixa por nº de parcelas (tabela)"],
+              ] as const).map(([v,l,d]) => (
                 <button key={v} onClick={() => setTipo(v)}
                   className={`w-full flex items-start gap-2 rounded-xl border px-3 py-2 text-left transition-all ${tipo===v ? "bg-slate-50 border-slate-900" : "border-slate-200 hover:border-slate-400"}`}>
                   <div className={`mt-0.5 h-3.5 w-3.5 rounded-full border-2 shrink-0 ${tipo===v ? "border-slate-900 bg-slate-900" : "border-slate-400"}`}/>
@@ -132,16 +198,34 @@ export default function SimuladorPage() {
               ))}
             </div>
           </div>
+
+          {/* Tabela de taxas parcelado — exibida quando selecionado */}
+          {isParcelado && (
+            <div className="rounded-xl border border-slate-200 p-3">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Tabela de Taxas</p>
+              <div className="grid grid-cols-3 gap-1">
+                {Object.entries(taxasParcelamento)
+                  .sort(([a],[b]) => Number(a)-Number(b))
+                  .map(([parcelas, pct]) => (
+                    <div key={parcelas}
+                      className={`rounded-lg px-2 py-1.5 text-center border transition-all ${Number(parcelas) === n ? "bg-slate-900 border-slate-900" : "border-slate-100 bg-slate-50"}`}>
+                      <p className={`text-[10px] font-semibold ${Number(parcelas) === n ? "text-white" : "text-slate-500"}`}>{parcelas}x</p>
+                      <p className={`text-xs font-bold ${Number(parcelas) === n ? "text-white" : "text-slate-700"}`}>{pct}%</p>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Resultados */}
         <div className="lg:col-span-2 space-y-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              ["Valor Financiado",     formatarMoeda(principal - entrada)],
-              ["Total de Juros",       formatarMoeda(res.totalJuros)],
-              ["Valor Total",          formatarMoeda(res.total)],
-              ["CET Anual (aprox.)",   `${cet.toFixed(1)}%`],
+              ["Valor Financiado", formatarMoeda(principal - entrada)],
+              ["Total de Juros",   formatarMoeda(res.totalJuros)],
+              ["Valor Total",      formatarMoeda(res.total)],
+              ["CET Anual",        `${cet.toFixed(1)}%`],
             ].map(([l, v]) => (
               <div key={l} className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="text-xs font-medium text-slate-500">{l}</p>
@@ -162,7 +246,13 @@ export default function SimuladorPage() {
               </div>
             )}
             <div className="h-px bg-slate-100"/>
-            {[["Principal", formatarMoeda(principal)], ["Entrada", formatarMoeda(entrada)], ["Financiado", formatarMoeda(principal-entrada)], [`Juros (${tipo})`, formatarMoeda(res.totalJuros)], ["Total", formatarMoeda(res.total)]].map(([l,v]) => (
+            {[
+              ["Principal",               formatarMoeda(principal)],
+              ["Entrada",                 formatarMoeda(entrada)],
+              ["Financiado",              formatarMoeda(principal - entrada)],
+              [isParcelado ? `Taxa parcelado (${taxaParcelado}%)` : `Juros (${tipo})`, formatarMoeda(res.totalJuros)],
+              ["Total",                   formatarMoeda(res.total)],
+            ].map(([l, v]) => (
               <div key={l} className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">{l}</span>
                 <span className="text-sm font-semibold text-slate-900">{v}</span>
@@ -176,7 +266,7 @@ export default function SimuladorPage() {
 
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-400">Tabela de Amortização</p>
-            <button onClick={() => setTabVis(!tabVis)} className="text-xs text-slate-500 hover:text-slate-300 underline">
+            <button onClick={() => setTabVis(!tabVis)} className="text-xs text-slate-500 hover:text-slate-700 underline">
               {tabVis ? "Ocultar" : "Exibir"} tabela completa
             </button>
           </div>
@@ -190,13 +280,13 @@ export default function SimuladorPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#152035]/50">
+              <tbody className="divide-y divide-slate-100">
                 {(tabVis ? tabela : tabela.slice(0, 6)).map((row) => (
                   <tr key={row.numero} className="hover:bg-slate-50/80">
                     <td className="px-4 py-2.5 text-slate-400">{row.numero}</td>
                     <td className="px-4 py-2.5 text-slate-400">{formatarData(row.dataVencimento)}</td>
                     <td className="px-4 py-2.5 font-semibold text-slate-900">{formatarMoeda(row.parcela)}</td>
-                    <td className="px-4 py-2.5 text-red-400">{formatarMoeda(row.juros)}</td>
+                    <td className="px-4 py-2.5 text-red-500">{formatarMoeda(row.juros)}</td>
                     <td className="px-4 py-2.5 text-slate-400">{formatarMoeda(row.amortizacao)}</td>
                     <td className="px-4 py-2.5 text-slate-400">{formatarMoeda(row.saldo)}</td>
                   </tr>

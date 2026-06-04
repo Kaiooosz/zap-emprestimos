@@ -2,23 +2,25 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { User, Building2, MessageSquare, Smartphone, FileText, Save, RefreshCw, CheckCircle, QrCode } from "lucide-react";
-import { ConfigEmpresa, ConfigWhatsApp, TemplateMsg } from "@/lib/store";
+import { User, Building2, MessageSquare, Smartphone, FileText, Save, RefreshCw, CheckCircle, QrCode, Percent } from "lucide-react";
+import { ConfigEmpresa, ConfigWhatsApp, TemplateMsg, TaxasParcelamento, storeExt } from "@/lib/store";
 
-type Tab = "perfil" | "empresa" | "whatsapp" | "templates" | "agente";
+type Tab = "perfil" | "empresa" | "whatsapp" | "templates" | "agente" | "parcelamento";
 
 interface Props {
   empresa: ConfigEmpresa;
   whatsapp: ConfigWhatsApp;
   templates: TemplateMsg[];
+  taxasParcelamento: TaxasParcelamento;
 }
 
 const tabs: { id: Tab; label: string; icon: typeof User }[] = [
-  { id: "perfil",    label: "Perfil",        icon: User },
-  { id: "empresa",   label: "Empresa",       icon: Building2 },
-  { id: "whatsapp",  label: "WhatsApp",      icon: Smartphone },
-  { id: "templates", label: "Templates",     icon: MessageSquare },
-  { id: "agente",    label: "Agente IA",     icon: FileText },
+  { id: "perfil",       label: "Perfil",        icon: User },
+  { id: "empresa",      label: "Empresa",       icon: Building2 },
+  { id: "whatsapp",     label: "WhatsApp",      icon: Smartphone },
+  { id: "templates",    label: "Templates",     icon: MessageSquare },
+  { id: "parcelamento", label: "Parcelamento",  icon: Percent },
+  { id: "agente",       label: "Agente IA",     icon: FileText },
 ];
 
 const AGENTE_MD_INICIAL = `# Agente de Cobranças — Zap Empréstimos
@@ -84,7 +86,7 @@ As mensagens usam as seguintes variáveis dinâmicas:
 - \`{{telefone_empresa}}\` — Contato da empresa
 `;
 
-export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
+export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcelamento: taxasInit }: Props) {
   const searchParams = useSearchParams();
   const tabInicial   = (searchParams.get("tab") as Tab) ?? "perfil";
 
@@ -94,6 +96,8 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
   const [templateSel, setTemplateSel] = useState(templates[0]?.id ?? "");
   const [templateConteudo, setTemplateConteudo] = useState(templates[0]?.conteudo ?? "");
   const [qrVisible, setQrVisible] = useState(false);
+  const [taxas, setTaxas]         = useState<TaxasParcelamento>({ ...taxasInit });
+  const [taxasSaved, setTaxasSaved] = useState(false);
 
   // Formulário empresa
   const [emp, setEmp] = useState({ ...empresa });
@@ -329,6 +333,98 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
                   <Save size={14}/>
                   Salvar Template
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Parcelamento ── */}
+          {tab === "parcelamento" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Taxas de Parcelamento</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Percentual sobre o principal por número de parcelas</p>
+                </div>
+                <button
+                  onClick={() => {
+                    storeExt.config.updateTaxasParcelamento(taxas);
+                    setTaxasSaved(true);
+                    setTimeout(() => setTaxasSaved(false), 2500);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-blue-700 bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 transition-colors shrink-0"
+                >
+                  {taxasSaved ? <CheckCircle size={13} className="text-emerald-300"/> : <Save size={13}/>}
+                  {taxasSaved ? "Salvo!" : "Salvar"}
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                  A parcela é calculada como: <span className="font-mono text-slate-700">total = principal × (1 + taxa%) ÷ nº parcelas</span>
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {Object.entries(taxas)
+                    .sort(([a],[b]) => Number(a)-Number(b))
+                    .map(([parcelas, pct]) => (
+                      <div key={parcelas} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-slate-900">{parcelas}x</span>
+                          <span className="text-xs text-slate-400">parcelas</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={pct}
+                            step={1}
+                            min={0}
+                            max={500}
+                            onChange={(e) => setTaxas((prev) => ({ ...prev, [Number(parcelas)]: Number(e.target.value) }))}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-500 text-right tabular-nums"
+                          />
+                          <span className="text-sm font-semibold text-slate-500 shrink-0">%</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1.5">
+                          Ex: R$ 1.000 → {((1000 * (1 + pct/100)) / Number(parcelas)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/parc.
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Preview da Tabela</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        <th className="py-2 text-left font-semibold text-slate-500">Parcelas</th>
+                        <th className="py-2 text-right font-semibold text-slate-500">Taxa</th>
+                        <th className="py-2 text-right font-semibold text-slate-500">Parcela (R$ 1.000)</th>
+                        <th className="py-2 text-right font-semibold text-slate-500">Total (R$ 1.000)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {Object.entries(taxas)
+                        .sort(([a],[b]) => Number(a)-Number(b))
+                        .map(([p, pct]) => {
+                          const total  = 1000 * (1 + pct/100);
+                          const parcela = total / Number(p);
+                          return (
+                            <tr key={p} className="hover:bg-slate-50">
+                              <td className="py-2 font-semibold text-slate-900">{p}x</td>
+                              <td className="py-2 text-right text-blue-700 font-semibold">{pct}%</td>
+                              <td className="py-2 text-right text-slate-900 tabular-nums font-semibold">
+                                {parcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </td>
+                              <td className="py-2 text-right text-slate-500 tabular-nums">
+                                {total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

@@ -179,7 +179,7 @@ export default function NovoEmprestimoPage() {
               <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all ${step === i ? "bg-slate-200 text-slate-900" : step > i ? "bg-slate-600 text-slate-100" : "bg-slate-100 text-slate-500"}`}>
                 {step > i ? <Check size={11}/> : i + 1}
               </div>
-              <span className={`text-xs font-medium hidden sm:block ${step === i ? "text-slate-200" : "text-slate-500"}`}>{s}</span>
+              <span className={`text-xs font-medium hidden sm:block ${step === i ? "text-slate-900" : "text-slate-500"}`}>{s}</span>
             </div>
           ))}
         </div>
@@ -196,10 +196,10 @@ export default function NovoEmprestimoPage() {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {TIPOS_OPERACAO.map(({ id, icon: Icon, label, desc }) => (
                   <button key={id} onClick={() => setTipoOp(id as TipoOp)}
-                    className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all ${tipoOp === id ? "bg-slate-50 border-slate-500" : "border-slate-200 hover:border-slate-600"}`}>
-                    <Icon size={18} className={`mt-0.5 shrink-0 ${tipoOp === id ? "text-slate-200" : "text-slate-500"}`} />
+                    className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all ${tipoOp === id ? "bg-blue-50 border-blue-700" : "border-slate-200 hover:border-slate-400"}`}>
+                    <Icon size={18} className={`mt-0.5 shrink-0 ${tipoOp === id ? "text-blue-700" : "text-slate-500"}`} />
                     <div>
-                      <p className={`text-sm font-semibold ${tipoOp === id ? "text-slate-100" : "text-slate-400"}`}>{label}</p>
+                      <p className={`text-sm font-semibold ${tipoOp === id ? "text-blue-700" : "text-slate-700"}`}>{label}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
                     </div>
                   </button>
@@ -244,7 +244,7 @@ export default function NovoEmprestimoPage() {
                         <div className="grid grid-cols-4 gap-1.5">
                           {(["DIARIO","SEMANAL","QUINZENAL","MENSAL"] as Periodo[]).map((p) => (
                             <button key={p} type="button" onClick={() => setPeriodo(p)}
-                              className={`rounded-xl py-2 text-xs font-medium border transition-all ${periodo === p ? "bg-slate-50 border-slate-500 text-slate-100" : "border-slate-200 text-slate-500 hover:border-slate-600"}`}>
+                              className={`rounded-xl py-2 text-xs font-medium border transition-all ${periodo === p ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
                               {p === "DIARIO" ? "Diário" : p === "SEMANAL" ? "Semanal" : p === "QUINZENAL" ? "Quinzenal" : "Mensal"}
                             </button>
                           ))}
@@ -257,8 +257,8 @@ export default function NovoEmprestimoPage() {
                       <div className="grid grid-cols-2 gap-2">
                         {([["SIMPLES","Juros Simples","Taxa sobre o montante total"],["POR_PARCELA","Juros por Parcela","Taxa aplicada em cada parcela"]] as const).map(([v,l,d]) => (
                           <button key={v} type="button" onClick={() => setModalidade(v)}
-                            className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${modalidade === v ? "bg-slate-50 border-slate-500" : "border-slate-200 hover:border-slate-600"}`}>
-                            <span className={`text-xs font-semibold ${modalidade === v ? "text-slate-100" : "text-slate-400"}`}>{l}</span>
+                            className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${modalidade === v ? "bg-blue-50 border-blue-700" : "border-slate-200 hover:border-slate-400"}`}>
+                            <span className={`text-xs font-semibold ${modalidade === v ? "text-blue-700" : "text-slate-700"}`}>{l}</span>
                             <span className="text-xs text-slate-600 mt-0.5">{d}</span>
                           </button>
                         ))}
@@ -357,7 +357,7 @@ export default function NovoEmprestimoPage() {
                 <div className="flex items-center gap-3">
                   <FileText size={16} className="text-slate-400" />
                   <div>
-                    <p className="text-sm font-medium text-slate-200">Contrato Formal Assinado</p>
+                    <p className="text-sm font-medium text-slate-900">Contrato Formal Assinado</p>
                     <p className="text-xs text-slate-500">Contrato com validade jurídica será gerado</p>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function NovoEmprestimoPage() {
                 <div className="flex items-center gap-3">
                   <Shield size={16} className="text-slate-400" />
                   <div>
-                    <p className="text-sm font-medium text-slate-200">Deixou Garantia</p>
+                    <p className="text-sm font-medium text-slate-900">Deixou Garantia</p>
                     <p className="text-xs text-slate-500">Imóvel, veículo, cheque, nota promissória ou fiador</p>
                   </div>
                 </div>
