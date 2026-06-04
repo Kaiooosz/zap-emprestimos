@@ -5,7 +5,7 @@ import { store } from "@/lib/store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreGauge } from "@/components/clientes/ScoreGauge";
 import { formatarMoeda, formatarData } from "@/lib/utils";
-import { getPontosLabel } from "@/lib/score/calcularScore";
+import { getPontosLabel, getFaixa } from "@/lib/score/calcularScore";
 
 export const dynamic = "force-dynamic";
 
@@ -79,38 +79,70 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
           </div>
 
           {/* Score */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 text-center">Score de Crédito</p>
-            <ScoreGauge score={scoreData.score} size={180} />
+          {(() => {
+            const { label } = getFaixa(scoreData.score);
+            return (
+              <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                {/* Cabeçalho do card */}
+                <div className="px-5 pt-5 pb-3 flex items-start justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Score de Crédito</p>
+                    <p className="text-2xl font-black text-slate-900 mt-0.5 tabular-nums">{scoreData.score}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-slate-400">{scoreData.eventos.length} eventos</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">base: 500 pts</p>
+                  </div>
+                </div>
 
-            {/* Regras simples */}
-            <div className="mt-4 pt-4 border-t border-slate-100 space-y-1.5">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Como é calculado</p>
-              {[
-                { l: "Pago antecipado",          p: "+35" },
-                { l: "Pago no prazo",             p: "+20" },
-                { l: "5 consecutivas",            p: "+50" },
-                { l: "Contrato quitado",          p: "+100" },
-              ].map((r) => (
-                <div key={r.l} className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">{r.l}</span>
-                  <span className="text-xs font-semibold text-slate-700">{r.p}</span>
+                {/* Gauge centralizado */}
+                <div className="flex justify-center pb-2">
+                  <ScoreGauge score={scoreData.score} size={160} />
                 </div>
-              ))}
-              <div className="h-px bg-slate-100 my-1"/>
-              {[
-                { l: "Atraso 1-7 dias",  p: "-40" },
-                { l: "Atraso 8-30 dias", p: "-100" },
-                { l: "Atraso 31+ dias",  p: "-200" },
-                { l: "Inadimplência",    p: "-350" },
-              ].map((r) => (
-                <div key={r.l} className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">{r.l}</span>
-                  <span className="text-xs font-semibold text-slate-500">{r.p}</span>
+
+                {/* Barra de progresso linear */}
+                <div className="px-5 pb-4">
+                  <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-slate-900 transition-all"
+                      style={{ width: `${(scoreData.score / 1000) * 100}%` }}/>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[10px] text-slate-400">0</span>
+                    <span className="text-[10px] text-slate-400">1000</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* Tabela de pontos */}
+                <div className="border-t border-slate-100 px-5 py-4 space-y-1.5">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Como é calculado</p>
+                  {[
+                    { l: "Pago antecipado",      p: "+35" },
+                    { l: "Pago no prazo",         p: "+20" },
+                    { l: "5 pagamentos seguidos", p: "+50" },
+                    { l: "Contrato quitado",      p: "+100" },
+                  ].map((r) => (
+                    <div key={r.l} className="flex items-center justify-between">
+                      <span className="text-xs text-slate-500">{r.l}</span>
+                      <span className="text-xs font-semibold text-slate-900">{r.p}</span>
+                    </div>
+                  ))}
+                  <div className="h-px bg-slate-100 my-1.5"/>
+                  {[
+                    { l: "Atraso 1-7 dias",  p: "-40" },
+                    { l: "Atraso 8-30 dias", p: "-100" },
+                    { l: "Atraso 31+ dias",  p: "-200" },
+                    { l: "Inadimplência",    p: "-350" },
+                  ].map((r) => (
+                    <div key={r.l} className="flex items-center justify-between">
+                      <span className="text-xs text-slate-500">{r.l}</span>
+                      <span className="text-xs font-semibold text-slate-400">{r.p}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* ── Coluna direita ── */}
