@@ -215,7 +215,7 @@ export default function DashboardPage() {
               {topClientes.map((c, i) => (
                 <Link key={c.id} href={`/clientes/${c.id}`}
                   className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors group">
-                  <span className="text-xs font-bold text-slate-200 w-4 shrink-0 tabular-nums">{i + 1}</span>
+                  <span className="text-xs font-bold text-slate-500 w-4 shrink-0 tabular-nums">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-800 truncate group-hover:text-blue-700 transition-colors">{c.nome}</p>
                     <div className="h-1 w-full rounded-full bg-slate-100 mt-1.5 overflow-hidden">

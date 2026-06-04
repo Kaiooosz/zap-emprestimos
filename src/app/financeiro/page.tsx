@@ -27,7 +27,7 @@ export default function FinanceiroPage() {
             <p className="text-sm text-slate-400 mt-0.5">Financeiro interno da empresa</p>
           </div>
         </div>
-        <Link href="/financeiro/nova" className="flex items-center gap-1.5 rounded-xl bg-blue-700 border border-blue-600 px-4 py-2.5 text-sm font-semibold text-slate-100 hover:bg-blue-800 transition-colors">
+        <Link href="/financeiro/nova" className="flex items-center gap-1.5 rounded-xl bg-blue-700 border border-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 transition-colors">
           <Plus size={16} strokeWidth={2.5} />
           Nova Conta
         </Link>

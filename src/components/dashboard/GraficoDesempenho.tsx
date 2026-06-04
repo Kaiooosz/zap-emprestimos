@@ -10,7 +10,7 @@ function CustomTooltip({ active, payload, label }: any) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xl text-xs">
       <p className="font-medium text-slate-400 mb-1">{label}</p>
-      <p className="font-bold text-slate-100">{formatarMoeda(payload[0].value)}</p>
+      <p className="font-bold text-slate-900">{formatarMoeda(payload[0].value)}</p>
     </div>
   );
 }
@@ -20,7 +20,7 @@ export function GraficoDesempenho({ dados }: { dados: EvolucaoMes[] }) {
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-slate-900">Desempenho Mensal</h3>
-        <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-500 hover:border-slate-200 hover:text-slate-300 transition-colors">
+        <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors">
           <Download size={12} />
           Exportar Relatorio
         </button>

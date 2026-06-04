@@ -155,7 +155,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
                 <div>
                   <p className="font-semibold text-slate-900">Admin Zap</p>
                   <p className="text-xs text-slate-400">admin@zap.com</p>
-                  <button className="text-xs text-slate-500 hover:text-slate-300 mt-1 underline">Trocar foto</button>
+                  <button className="text-xs text-slate-500 hover:text-slate-700 mt-1 underline">Trocar foto</button>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -203,11 +203,11 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
                   : "border-red-800 bg-red-900/20"
               }`}>
                 <div className={`h-2.5 w-2.5 rounded-full ${zap.status === "CONECTADO" ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-                <p className="text-sm font-medium text-slate-200">
+                <p className="text-sm font-medium text-slate-900">
                   {zap.status === "CONECTADO" ? "Conectado" : zap.status === "DESCONECTADO" ? "Desconectado" : "Não configurado"}
                 </p>
                 {zap.status !== "CONECTADO" && (
-                  <button onClick={() => setQrVisible(!qrVisible)} className="ml-auto flex items-center gap-1.5 text-xs text-slate-300 hover:text-white">
+                  <button onClick={() => setQrVisible(!qrVisible)} className="ml-auto flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-900">
                     <QrCode size={13}/>
                     {qrVisible ? "Fechar QR" : "Conectar via QR"}
                   </button>
@@ -251,7 +251,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
                   ].map(({ key, label, desc }) => (
                     <div key={key} className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-300">{label}</p>
+                        <p className="text-sm text-slate-700">{label}</p>
                         <p className="text-xs text-slate-500">{desc}</p>
                       </div>
                       <button
@@ -319,7 +319,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
                         <div key={v} className="flex items-center gap-2">
                           <button
                             onClick={() => setTemplateConteudo((c) => c + v)}
-                            className="text-xs font-mono text-slate-400 hover:text-slate-200 bg-slate-100 px-2 py-0.5 rounded"
+                            className="text-xs font-mono text-blue-700 hover:text-blue-900 bg-slate-100 px-2 py-0.5 rounded"
                           >{v}</button>
                         </div>
                       ))}
@@ -435,7 +435,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Este arquivo Markdown define o comportamento do agente de IA que fará os disparos automáticos de cobrança.
-                  Cole o conteúdo abaixo no seu sistema de agentes (Claude, GPT, etc.) como <strong className="text-slate-200">System Prompt</strong>.
+                  Cole o conteúdo abaixo no seu sistema de agentes (Claude, GPT, etc.) como <strong className="text-slate-900">System Prompt</strong>.
                 </p>
               </div>
 
@@ -444,7 +444,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">agente-cobrancas.md</p>
                   <button
                     onClick={() => { navigator.clipboard.writeText(agentemd); }}
-                    className="text-xs text-slate-500 hover:text-slate-300"
+                    className="text-xs text-slate-500 hover:text-slate-700"
                   >
                     Copiar
                   </button>

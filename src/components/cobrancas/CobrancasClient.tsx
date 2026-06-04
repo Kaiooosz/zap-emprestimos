@@ -138,7 +138,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
               <button
                 onClick={disparar}
                 disabled={!selecionados.size || disparando || whatsappStatus !== "CONECTADO"}
-                className="flex items-center gap-1.5 rounded-lg border border-blue-700 bg-blue-700 px-4 py-1.5 text-xs font-semibold text-slate-200 hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-blue-700 bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <Send size={12}/>
                 {disparando ? "Disparando..." : `Disparar (${selecionados.size})`}
@@ -149,7 +149,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
           {/* Tabela */}
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
             <div className="flex items-center gap-3 px-3 sm:px-5 py-3 border-b border-slate-200 bg-slate-50/80">
-              <button onClick={toggleTodos} className="text-slate-500 hover:text-slate-300">
+              <button onClick={toggleTodos} className="text-slate-500 hover:text-slate-700">
                 {selecionados.size === lista.length && lista.length > 0
                   ? <CheckSquare size={15}/>
                   : <Square size={15}/>}
@@ -243,7 +243,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
 
                 <button
                   onClick={() => { setSelecionados(new Set([preview.id])); }}
-                  className="mt-3 w-full rounded-lg border border-blue-700 bg-blue-700 py-2 text-xs font-semibold text-slate-200 hover:bg-blue-800 transition-colors"
+                  className="mt-3 w-full rounded-lg border border-blue-700 bg-blue-700 py-2 text-xs font-semibold text-white hover:bg-blue-800 transition-colors"
                 >
                   Selecionar este cliente
                 </button>
@@ -274,7 +274,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
               ))}
             </div>
             <div className="mt-3 pt-3 border-t border-slate-200">
-              <Link href="/configuracoes?tab=templates" className="text-xs text-slate-400 hover:text-slate-200 underline">
+              <Link href="/configuracoes?tab=templates" className="text-xs text-slate-400 hover:text-blue-700 underline">
                 Editar templates
               </Link>
             </div>

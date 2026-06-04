@@ -157,7 +157,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
               <h2 className="text-sm font-semibold text-slate-900">Historico de Emprestimos</h2>
-              <Link href={`/emprestimos/novo?clienteId=${c.id}`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 hover:underline">
+              <Link href={`/emprestimos/novo?clienteId=${c.id}`} className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-700 hover:underline">
                 <Plus size={12}/> Novo
               </Link>
             </div>

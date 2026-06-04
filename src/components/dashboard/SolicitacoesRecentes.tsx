@@ -12,7 +12,7 @@ interface SolicitacoesRecentesProps {
 
 const statusConfig = {
   PAGO:     { label: "Aprovado",  color: "text-emerald-400 bg-emerald-400/10", icon: CheckCircle2 },
-  PENDENTE: { label: "Em Analise",color: "text-slate-300 bg-slate-100",         icon: Clock },
+  PENDENTE: { label: "Em Analise",color: "text-slate-600 bg-slate-100",         icon: Clock },
   ATRASADO: { label: "Atrasado",  color: "text-red-400 bg-red-400/10",          icon: Clock },
   PARCIAL:  { label: "Parcial",   color: "text-amber-400 bg-amber-400/10",      icon: Clock },
 };
@@ -24,7 +24,7 @@ export function SolicitacoesRecentes({ parcelas }: SolicitacoesRecentesProps) {
         <h3 className="text-sm font-semibold text-slate-900">Solicitacoes Recentes</h3>
         <Link
           href="/emprestimos/novo"
-          className="flex items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-blue-800 transition-colors"
+          className="flex items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 transition-colors"
         >
           <Plus size={12} strokeWidth={2.5} />
           Novo Emprestimo
@@ -52,7 +52,7 @@ export function SolicitacoesRecentes({ parcelas }: SolicitacoesRecentesProps) {
                 <div className="text-right shrink-0">
                   <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(p.valorDevido)}</p>
                 </div>
-                <button className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:border-blue-600 hover:text-slate-200 transition-colors">
+                <button className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:border-blue-600 hover:text-blue-700 transition-colors">
                   Cobrar
                 </button>
               </div>

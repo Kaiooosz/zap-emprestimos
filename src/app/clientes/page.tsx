@@ -55,7 +55,7 @@ export default function ClientesPage() {
         <div className="rounded-2xl border border-slate-200 bg-white py-20 text-center">
           <User size={32} className="text-slate-600 mx-auto mb-3" />
           <p className="text-sm text-slate-500">Nenhum cliente cadastrado</p>
-          <Link href="/clientes/novo" className="inline-block mt-3 text-xs text-slate-400 hover:text-slate-200 hover:underline">Cadastrar primeiro cliente</Link>
+          <Link href="/clientes/novo" className="inline-block mt-3 text-xs text-slate-400 hover:text-blue-700 hover:underline">Cadastrar primeiro cliente</Link>
         </div>
       )}
     </div>

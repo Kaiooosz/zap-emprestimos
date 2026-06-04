@@ -220,7 +220,7 @@ export default function NovoEmprestimoPage() {
                   {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome} — Score {c.score} — {c.phone}</option>)}
                 </select>
                 <div className="mt-2 text-right">
-                  <Link href="/clientes/novo" className="text-xs text-slate-500 hover:text-slate-300 underline">+ Cadastrar novo cliente</Link>
+                  <Link href="/clientes/novo" className="text-xs text-slate-500 hover:text-blue-700 underline">+ Cadastrar novo cliente</Link>
                 </div>
               </div>
 
@@ -330,7 +330,7 @@ export default function NovoEmprestimoPage() {
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSemDataFim(!semDataFim)}>
                       <Toggle active={semDataFim} />
                       <div>
-                        <p className="text-sm text-slate-300 font-medium">Sem data de fim</p>
+                        <p className="text-sm text-slate-900 font-medium">Sem data de fim</p>
                         <p className="text-xs text-slate-500">Contrato indeterminado</p>
                       </div>
                     </div>
@@ -428,7 +428,7 @@ export default function NovoEmprestimoPage() {
               )}
 
               <button onClick={submit} disabled={loading || !simOk || !clienteId}
-                className="w-full rounded-xl border border-blue-700 bg-blue-700 py-3.5 text-sm font-bold text-slate-200 hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                className="w-full rounded-xl border border-blue-700 bg-blue-700 py-3.5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                 {loading ? "Criando contrato..." : "Criar Contrato"}
               </button>
             </div>
@@ -437,7 +437,7 @@ export default function NovoEmprestimoPage() {
           {/* Navegação entre steps */}
           <div className="flex items-center justify-between pt-2">
             <button onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-400 hover:text-slate-200 hover:border-slate-600 disabled:opacity-0 transition-all">
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:text-slate-900 hover:border-slate-400 disabled:opacity-0 transition-all">
               <ArrowLeft size={14}/> Voltar
             </button>
             {step < 3 && (

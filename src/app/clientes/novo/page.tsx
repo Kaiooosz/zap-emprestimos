@@ -91,7 +91,7 @@ export default function NovoClientePage() {
           <div className="grid grid-cols-2 gap-3">
             {([["PESSOA_FISICA", "Pessoa Física", User], ["PESSOA_JURIDICA", "Pessoa Jurídica", Building2]] as const).map(([v, l, Icon]) => (
               <button key={v} type="button" onClick={() => setTipo(v)}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${tipo === v ? "bg-slate-50 border-slate-500 text-slate-100" : "border-slate-200 text-slate-400 hover:border-slate-600"}`}>
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${tipo === v ? "bg-blue-50 border-blue-700 text-blue-700" : "border-slate-200 text-slate-700 hover:border-slate-400"}`}>
                 <Icon size={18} />
                 <span className="text-sm font-medium">{l}</span>
               </button>
@@ -139,7 +139,7 @@ export default function NovoClientePage() {
             <div className="flex items-center gap-3">
               <FileText size={16} className="text-slate-400" />
               <div>
-                <p className="text-sm font-medium text-slate-200">Contrato Formal Assinado</p>
+                <p className="text-sm font-medium text-slate-900">Contrato Formal Assinado</p>
                 <p className="text-xs text-slate-500">O cliente assinou ou assinará um contrato com validade jurídica</p>
               </div>
             </div>
@@ -151,7 +151,7 @@ export default function NovoClientePage() {
             <div className="flex items-center gap-3">
               <Shield size={16} className="text-slate-400" />
               <div>
-                <p className="text-sm font-medium text-slate-200">Deixou Garantia</p>
+                <p className="text-sm font-medium text-slate-900">Deixou Garantia</p>
                 <p className="text-xs text-slate-500">Imóvel, veículo, cheque, nota promissória ou fiador</p>
               </div>
             </div>
@@ -221,7 +221,7 @@ export default function NovoClientePage() {
         </div>
 
         <button type="submit" disabled={loading}
-          className="w-full rounded-xl border border-blue-700 bg-blue-700 py-3 text-sm font-bold text-slate-200 hover:bg-blue-800 disabled:opacity-60 transition-colors">
+          className="w-full rounded-xl border border-blue-700 bg-blue-700 py-3 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-60 transition-colors">
           {loading ? "Cadastrando..." : "Cadastrar Cliente"}
         </button>
       </form>

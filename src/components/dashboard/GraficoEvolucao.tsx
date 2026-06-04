@@ -15,7 +15,7 @@ function CustomTooltip({ active, payload, label }: any) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xl text-xs">
       <p className="font-medium text-slate-400 mb-1">{label}</p>
-      <p className="font-bold text-slate-100">{formatarMoeda(payload[0].value)}</p>
+      <p className="font-bold text-slate-900">{formatarMoeda(payload[0].value)}</p>
     </div>
   );
 }
@@ -27,13 +27,13 @@ export function GraficoEvolucao({ dados, trend }: GraficoEvolucaoProps) {
         <div>
           <p className="text-xs text-slate-500">Volume de Emprestimos</p>
           {trend !== undefined && (
-            <p className="text-xs font-semibold text-slate-300 flex items-center gap-1 mt-0.5">
+            <p className="text-xs font-semibold text-emerald-600 flex items-center gap-1 mt-0.5">
               <TrendingUp size={11} />
               +{trend}% este mes
             </p>
           )}
         </div>
-        <button className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-500 hover:border-slate-200 hover:text-slate-300 transition-colors">
+        <button className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors">
           Volume de Emprestimo
           <ChevronDown size={12} />
         </button>
