@@ -186,7 +186,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
                     </div>
 
                     <div className="text-right shrink-0 space-y-1">
-                      <p className="text-sm font-bold text-white">{formatarMoeda(p.valorDevido)}</p>
+                      <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(p.valorDevido)}</p>
                       <StatusBadge status={p.status as any}/>
                     </div>
 

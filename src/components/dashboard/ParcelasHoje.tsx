@@ -64,7 +64,7 @@ export function ParcelasHoje({ parcelas }: ParcelasHojeProps) {
             <button
               onClick={() => cobrarParcela(p.id, p.clientePhone, p.valorDevido)}
               disabled={cobrandoId === p.id}
-              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-60 transition-colors"
+              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-60 transition-colors"
             >
               <MessageCircle size={13} />
               Cobrar

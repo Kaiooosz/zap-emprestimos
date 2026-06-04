@@ -115,7 +115,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
             ].map((k) => (
               <div key={k.label} className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="text-xs font-medium text-slate-500">{k.label}</p>
-                <p className={`text-base font-bold mt-0.5 ${k.accent ? "text-blue-700" : "text-white"}`}>{k.value}</p>
+                <p className={`text-base font-bold mt-0.5 ${k.accent ? "text-blue-700" : "text-slate-900"}`}>{k.value}</p>
               </div>
             ))}
           </div>
@@ -140,7 +140,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                           : <TrendingDown size={12} className={cfg.cor}/>}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-white">{ev.descricao}</p>
+                        <p className="text-xs font-medium text-slate-800">{ev.descricao}</p>
                         <p className="text-xs text-slate-500">{formatarData(ev.data)}</p>
                       </div>
                       <span className={`text-sm font-bold tabular-nums shrink-0 ${ev.pontos > 0 ? "text-emerald-400" : "text-red-400"}`}>
@@ -175,7 +175,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                           <span className="text-xs text-slate-500">{formatarData(e.dataInicio)}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-white">{formatarMoeda(e.valorTotal)}</span>
+                          <span className="text-sm font-bold text-slate-900">{formatarMoeda(e.valorTotal)}</span>
                           <span className="text-xs text-slate-500">{e.taxaJuros}% · {e.numParcelas}x</span>
                         </div>
                       </div>

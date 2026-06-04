@@ -102,7 +102,7 @@ export default function SimuladorPage() {
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Data de Início</label>
             <input type="date" value={dataInicio} onChange={(e) => setData(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500"/>
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500"/>
           </div>
 
           <div>
@@ -153,7 +153,7 @@ export default function SimuladorPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-slate-900">Parcela Estimada</p>
-              <p className="text-2xl font-black text-white">{formatarMoeda(res.parcela)}</p>
+              <p className="text-2xl font-black text-slate-900">{formatarMoeda(res.parcela)}</p>
             </div>
             {entrada > 0 && (
               <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -216,7 +216,7 @@ function Num({ label, value, onChange, step, min, max }: { label: string; value:
       <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
       <input type="number" value={value} step={step} min={min} max={max}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500 transition-colors"/>
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors"/>
     </div>
   );
 }

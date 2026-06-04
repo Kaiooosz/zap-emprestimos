@@ -115,7 +115,7 @@ function KPI({ label, value, icon: Icon, accent, positive }: { label: string; va
           <Icon size={14} />
         </div>
       </div>
-      <p className={`text-lg font-bold ${accent ? "text-blue-700" : "text-white"}`}>{value}</p>
+      <p className={`text-lg font-bold ${accent ? "text-blue-700" : "text-slate-900"}`}>{value}</p>
     </div>
   );
 }

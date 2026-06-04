@@ -50,7 +50,7 @@ export function SolicitacoesRecentes({ parcelas }: SolicitacoesRecentesProps) {
                   <p className={cn("text-xs font-medium", cfg.color.split(" ")[0])}>{cfg.label}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-white">{formatarMoeda(p.valorDevido)}</p>
+                  <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(p.valorDevido)}</p>
                 </div>
                 <button className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:border-blue-600 hover:text-slate-200 transition-colors">
                   Cobrar

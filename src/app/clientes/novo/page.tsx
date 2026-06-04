@@ -163,7 +163,7 @@ export default function NovoClientePage() {
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Tipo de Garantia</label>
                 <select value={form.tipoGarantia} onChange={(e) => set("tipoGarantia", e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500">
                   {garantiasOpts.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
                 </select>
               </div>
@@ -216,7 +216,7 @@ export default function NovoClientePage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <label className="block text-xs font-medium text-slate-400 mb-1.5">Observações</label>
           <textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 resize-none"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-600 focus:outline-none focus:border-slate-500 resize-none"
             placeholder="Informações adicionais sobre o cliente..." />
         </div>
 
@@ -238,7 +238,7 @@ function F({ label, value, onChange, type = "text", placeholder, required }: {
       <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder} required={required}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors" />
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors" />
     </div>
   );
 }

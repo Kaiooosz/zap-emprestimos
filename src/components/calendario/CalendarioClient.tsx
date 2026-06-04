@@ -1,0 +1,373 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { ChevronLeft, ChevronRight, Search, X, MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { formatarMoeda } from "@/lib/utils";
+
+interface ParcelaCalendario {
+  id: string;
+  emprestimoId: string;
+  numero: number;
+  valorDevido: number;
+  dataVencimento: string;
+  dataPagamento?: string;
+  status: string;
+  clienteId: string;
+  clienteNome: string;
+  clientePhone: string;
+}
+
+interface Props {
+  parcelas: ParcelaCalendario[];
+  clientes: { id: string; nome: string }[];
+}
+
+const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+const MESES = [
+  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
+];
+
+export function CalendarioClient({ parcelas, clientes }: Props) {
+  const hoje = new Date();
+  const [ano,  setAno]        = useState(hoje.getFullYear());
+  const [mes,  setMes]        = useState(hoje.getMonth());
+  const [clienteFiltro, setClienteFiltro] = useState("");
+  const [statusFiltro,  setStatusFiltro]  = useState("todos");
+  const [diaSelecionado, setDia]          = useState<number | null>(hoje.getDate());
+  const [busca, setBusca]                 = useState("");
+
+  // Navegar meses
+  function prevMes() {
+    if (mes === 0) { setMes(11); setAno(a => a - 1); }
+    else           { setMes(m => m - 1); }
+    setDia(null);
+  }
+  function nextMes() {
+    if (mes === 11) { setMes(0); setAno(a => a + 1); }
+    else            { setMes(m => m + 1); }
+    setDia(null);
+  }
+  function irHoje() {
+    setAno(hoje.getFullYear());
+    setMes(hoje.getMonth());
+    setDia(hoje.getDate());
+  }
+
+  // Parcelas filtradas para o mês
+  const parcelasMes = useMemo(() => parcelas.filter((p) => {
+    const d = new Date(p.dataVencimento);
+    if (d.getFullYear() !== ano || d.getMonth() !== mes) return false;
+    if (clienteFiltro && p.clienteId !== clienteFiltro)  return false;
+    if (statusFiltro !== "todos" && p.status !== statusFiltro.toUpperCase()) return false;
+    if (busca && !p.clienteNome.toLowerCase().includes(busca.toLowerCase())) return false;
+    return true;
+  }), [parcelas, ano, mes, clienteFiltro, statusFiltro, busca]);
+
+  // Parcelas por dia
+  const porDia = useMemo(() => {
+    const m: Record<number, ParcelaCalendario[]> = {};
+    parcelasMes.forEach((p) => {
+      const dia = new Date(p.dataVencimento).getDate();
+      if (!m[dia]) m[dia] = [];
+      m[dia].push(p);
+    });
+    return m;
+  }, [parcelasMes]);
+
+  // Parcelas do dia selecionado
+  const parcelasDia = diaSelecionado ? (porDia[diaSelecionado] ?? []) : parcelasMes;
+
+  // Resumo do mês
+  const resumo = useMemo(() => ({
+    total:     parcelasMes.length,
+    pendente:  parcelasMes.filter(p => p.status === "PENDENTE").reduce((s, p) => s + p.valorDevido, 0),
+    atrasado:  parcelasMes.filter(p => p.status === "ATRASADO").reduce((s, p) => s + p.valorDevido, 0),
+    pago:      parcelasMes.filter(p => p.status === "PAGO").reduce((s, p) => s + (p.valorDevido), 0),
+    totalValor:parcelasMes.reduce((s, p) => s + p.valorDevido, 0),
+    countPago: parcelasMes.filter(p => p.status === "PAGO").length,
+    countAtraso:parcelasMes.filter(p => p.status === "ATRASADO").length,
+  }), [parcelasMes]);
+
+  // Grid do calendário
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+  const diasNoMes   = new Date(ano, mes + 1, 0).getDate();
+
+  function getDotColor(p: ParcelaCalendario) {
+    if (p.status === "ATRASADO") return "bg-red-500";
+    if (p.status === "PAGO")     return "bg-slate-300";
+    const d = new Date(p.dataVencimento);
+    const diff = Math.floor((d.getTime() - hoje.getTime()) / 86400000);
+    if (diff <= 2) return "bg-amber-500";
+    return "bg-blue-500";
+  }
+
+  return (
+    <div className="space-y-5 pb-8">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-base font-bold text-slate-900 tracking-tight">Calendario de Vencimentos</h1>
+          <p className="text-xs text-slate-400 mt-0.5">{MESES[mes]} {ano}</p>
+        </div>
+        <button onClick={irHoje}
+          className="text-xs font-semibold text-blue-700 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors">
+          Ir para hoje
+        </button>
+      </div>
+
+      {/* Filtros */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Busca por nome */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar cliente..."
+              className="w-full rounded-lg border border-slate-200 bg-white pl-8 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+            {busca && (
+              <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X size={13}/>
+              </button>
+            )}
+          </div>
+
+          {/* Cliente */}
+          <select value={clienteFiltro} onChange={(e) => setClienteFiltro(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600">
+            <option value="">Todos os clientes</option>
+            {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
+
+          {/* Status */}
+          <select value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600">
+            <option value="todos">Todos os status</option>
+            <option value="pendente">Pendente</option>
+            <option value="atrasado">Atrasado</option>
+            <option value="pago">Pago</option>
+          </select>
+
+          {/* Limpar filtros */}
+          {(clienteFiltro || statusFiltro !== "todos" || busca) && (
+            <button
+              onClick={() => { setClienteFiltro(""); setStatusFiltro("todos"); setBusca(""); }}
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+              <X size={13}/> Limpar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Resumo do mês */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Total do mes",     value: formatarMoeda(resumo.totalValor), sub: `${resumo.total} parcelas` },
+          { label: "A receber",        value: formatarMoeda(resumo.pendente),   sub: "Pendentes" },
+          { label: "Em atraso",        value: formatarMoeda(resumo.atrasado),   sub: `${resumo.countAtraso} parcelas`, red: resumo.countAtraso > 0 },
+          { label: "Recebido no mes",  value: formatarMoeda(resumo.pago),       sub: `${resumo.countPago} pagas` },
+        ].map(({ label, value, sub, red }) => (
+          <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+            <p className={`text-lg font-black mt-1 tabular-nums ${red ? "text-red-600" : "text-slate-900"}`}>{value}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Grid + Lista */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* Calendario */}
+        <div className="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-sm p-5">
+          {/* Navegação */}
+          <div className="flex items-center justify-between mb-5">
+            <button onClick={prevMes}
+              className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+              <ChevronLeft size={16}/>
+            </button>
+            <h2 className="text-base font-bold text-slate-900">
+              {MESES[mes]} {ano}
+            </h2>
+            <button onClick={nextMes}
+              className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+              <ChevronRight size={16}/>
+            </button>
+          </div>
+
+          {/* Cabeçalho dias */}
+          <div className="grid grid-cols-7 mb-2">
+            {DIAS.map((d) => (
+              <div key={d} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
+            ))}
+          </div>
+
+          {/* Dias */}
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: primeiroDia }).map((_, i) => <div key={`e${i}`}/>)}
+            {Array.from({ length: diasNoMes }, (_, i) => {
+              const dia = i + 1;
+              const parcs = porDia[dia] ?? [];
+              const isHoje = dia === hoje.getDate() && mes === hoje.getMonth() && ano === hoje.getFullYear();
+              const isSel  = dia === diaSelecionado;
+
+              const temAtraso   = parcs.some(p => p.status === "ATRASADO");
+              const temPendente = parcs.some(p => p.status === "PENDENTE");
+              const temPago     = parcs.some(p => p.status === "PAGO");
+
+              return (
+                <button key={dia}
+                  onClick={() => setDia(diaSelecionado === dia ? null : dia)}
+                  className={`relative min-h-[52px] rounded-xl p-1.5 border text-left transition-all ${
+                    isSel  ? "bg-blue-700 border-blue-700" :
+                    isHoje ? "border-blue-300 bg-blue-50" :
+                    parcs.length > 0 ? "border-slate-200 hover:border-blue-200 hover:bg-slate-50" :
+                    "border-transparent hover:border-slate-100"
+                  }`}
+                >
+                  <p className={`text-xs font-bold ${isSel ? "text-white" : isHoje ? "text-blue-700" : "text-slate-700"}`}>
+                    {dia}
+                  </p>
+                  {/* Dots de status */}
+                  <div className="flex gap-0.5 mt-1 flex-wrap">
+                    {temAtraso   && <div className="h-1.5 w-1.5 rounded-full bg-red-500"/>}
+                    {temPendente && <div className="h-1.5 w-1.5 rounded-full bg-blue-500"/>}
+                    {temPago     && <div className="h-1.5 w-1.5 rounded-full bg-slate-300"/>}
+                  </div>
+                  {parcs.length > 1 && (
+                    <p className={`text-xs leading-none mt-0.5 font-medium ${isSel ? "text-blue-100" : "text-slate-400"}`}>
+                      {parcs.length}
+                    </p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Legenda */}
+          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-100 flex-wrap">
+            {[
+              { cor: "bg-red-500",   label: "Atrasado" },
+              { cor: "bg-blue-500",  label: "Pendente" },
+              { cor: "bg-amber-500", label: "Vence em breve" },
+              { cor: "bg-slate-300", label: "Pago" },
+            ].map(({ cor, label }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className={`h-2 w-2 rounded-full ${cor}`}/>
+                <span className="text-xs text-slate-500">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Painel direito: lista de parcelas */}
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">
+                {diaSelecionado
+                  ? `${diaSelecionado} de ${MESES[mes]}`
+                  : `${MESES[mes]} completo`}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {parcelasDia.length} vencimento{parcelasDia.length !== 1 ? "s" : ""}
+                {parcelasDia.length > 0 && ` · ${formatarMoeda(parcelasDia.reduce((s,p)=>s+p.valorDevido,0))}`}
+              </p>
+            </div>
+            {diaSelecionado && (
+              <button onClick={() => setDia(null)} className="text-xs text-slate-400 hover:text-slate-700">
+                Ver mes
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-y-auto max-h-[420px] divide-y divide-slate-50">
+            {parcelasDia.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-12">Nenhum vencimento</p>
+            ) : (
+              parcelasDia
+                .sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime())
+                .map((p) => {
+                  const venc = new Date(p.dataVencimento);
+                  const diasAtraso = p.status === "ATRASADO"
+                    ? Math.floor((Date.now() - venc.getTime()) / 86400000)
+                    : 0;
+                  const diasAte = p.status === "PENDENTE"
+                    ? Math.max(0, Math.floor((venc.getTime() - Date.now()) / 86400000))
+                    : 0;
+
+                  return (
+                    <div key={p.id} className="flex items-start gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                      {/* Dot */}
+                      <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${getDotColor(p)}`}/>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Link href={`/clientes/${p.clienteId}`}
+                            className="text-sm font-semibold text-slate-900 hover:text-blue-700 transition-colors truncate">
+                            {p.clienteNome}
+                          </Link>
+                          <StatusBadge status={p.status as any}/>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-slate-500">Parcela {p.numero}</span>
+                          {diasAtraso > 0 && (
+                            <span className="text-xs font-medium text-red-600">{diasAtraso}d atraso</span>
+                          )}
+                          {diasAte > 0 && (
+                            <span className="text-xs text-slate-400">
+                              {diasAte === 0 ? "hoje" : `em ${diasAte}d`}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {venc.toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-slate-900 tabular-nums">
+                          {formatarMoeda(p.valorDevido)}
+                        </p>
+                        {["PENDENTE","ATRASADO"].includes(p.status) && p.clientePhone && (
+                          <a
+                            href={`https://wa.me/${p.clientePhone.replace(/\D/g,"")}?text=${encodeURIComponent(
+                              `Olá *${p.clienteNome}*! Sua parcela de *${formatarMoeda(p.valorDevido)}* vence em *${venc.toLocaleDateString("pt-BR")}*.\n_Zap Empréstimos_`
+                            )}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-xs text-slate-400 hover:text-emerald-600 transition-colors mt-1"
+                          >
+                            <MessageCircle size={11}/>
+                            WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+
+          {/* Faturamento total do mes filtrado */}
+          {parcelasDia.length > 0 && (
+            <div className="border-t border-slate-100 px-5 py-3 bg-slate-50">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-medium uppercase tracking-wider">
+                  {diaSelecionado ? `Dia ${diaSelecionado}` : "Total do mes"}
+                </span>
+                <span className="font-black text-slate-900 tabular-nums text-sm">
+                  {formatarMoeda(parcelasDia.reduce((s, p) => s + p.valorDevido, 0))}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

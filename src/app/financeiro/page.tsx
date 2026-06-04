@@ -63,7 +63,7 @@ export default function FinanceiroPage() {
             {contas.map((c) => (
               <tr key={c.id} className="hover:bg-white/30 transition-colors">
                 <td className="px-5 py-4">
-                  <p className="font-medium text-white">{c.descricao}</p>
+                  <p className="font-medium text-slate-900">{c.descricao}</p>
                   {c.recorrente && <p className="text-xs text-slate-500">Recorrente</p>}
                 </td>
                 <td className="px-5 py-4">
@@ -71,7 +71,7 @@ export default function FinanceiroPage() {
                     {categoriaLabel[c.categoria]}
                   </span>
                 </td>
-                <td className="px-5 py-4 font-semibold text-white">{formatarMoeda(c.valor)}</td>
+                <td className="px-5 py-4 font-semibold text-slate-900 tabular-nums">{formatarMoeda(c.valor)}</td>
                 <td className="px-5 py-4 text-xs text-slate-400">{formatarData(c.dataVencimento)}</td>
                 <td className="px-5 py-4"><StatusBadge status={c.status as any} /></td>
                 <td className="px-5 py-4">

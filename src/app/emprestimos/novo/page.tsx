@@ -215,7 +215,7 @@ export default function NovoEmprestimoPage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cliente</p>
                 <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} required
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500">
                   <option value="">Selecione um cliente...</option>
                   {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome} — Score {c.score} — {c.phone}</option>)}
                 </select>
@@ -341,7 +341,7 @@ export default function NovoEmprestimoPage() {
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5">Observações</label>
                   <textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 resize-none"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-600 focus:outline-none focus:border-slate-500 resize-none"
                     placeholder="Anotações sobre o contrato..." />
                 </div>
               </div>
@@ -380,7 +380,7 @@ export default function NovoEmprestimoPage() {
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">Tipo de Garantia</label>
                     <select value={tipoGarantia} onChange={(e) => setTipoGarantia(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500">
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500">
                       {[["IMOVEL","Imóvel"],["VEICULO","Veículo"],["CHEQUE","Cheque"],["NOTA_PROMISSORIA","Nota Promissória"],["FIADOR","Fiador"],["OUTRO","Outro"]].map(([v,l]) => (
                         <option key={v} value={v}>{l}</option>
                       ))}
@@ -505,7 +505,7 @@ function Num({ label, value, onChange, step = 1, min, max }: {
       <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
       <input type="number" value={value} step={step} min={min} max={max}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white focus:outline-none focus:border-slate-500 transition-colors" />
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors" />
     </div>
   );
 }
@@ -518,7 +518,7 @@ function Inp({ label, value, onChange, type = "text", placeholder }: {
     <div>
       <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors" />
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors" />
     </div>
   );
 }

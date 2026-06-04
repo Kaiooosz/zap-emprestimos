@@ -34,7 +34,7 @@ export default function ClientesPage() {
                 <span className="text-sm font-bold text-slate-200">{c.nome[0]}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white truncate group-hover:text-blue-700 transition-colors">{c.nome}</p>
+                <p className="font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">{c.nome}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{c.phone}</p>
                 {c.cpf && <p className="text-xs text-slate-500 mt-0.5">{c.cpf}</p>}
               </div>
