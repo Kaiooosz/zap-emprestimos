@@ -123,19 +123,19 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
       <h1 className="text-base font-semibold text-slate-900 tracking-tight">Configurações</h1>
 
       <div className="flex gap-5 flex-col lg:flex-row">
-        {/* Sidebar de abas */}
-        <nav className="flex lg:flex-col gap-1 lg:w-44 shrink-0">
+        {/* Nav de abas — horizontal com scroll no mobile, vertical no desktop */}
+        <nav className="flex overflow-x-auto lg:flex-col gap-1 lg:w-44 shrink-0 pb-1 lg:pb-0 scrollbar-hide">
           {tabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-left transition-all ${
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs lg:text-sm font-medium text-left whitespace-nowrap transition-all shrink-0 ${
                 tab === id
                   ? "bg-slate-900 text-white"
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
               }`}
             >
-              <Icon size={15} />
+              <Icon size={14} />
               {label}
             </button>
           ))}
@@ -154,7 +154,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
                   <button className="text-xs text-slate-500 hover:text-slate-300 mt-1 underline">Trocar foto</button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Nome" defaultValue="Admin Zap" />
                 <Field label="E-mail" defaultValue="admin@zap.com" type="email" />
                 <Field label="Telefone" defaultValue="(11) 99000-0001" />
@@ -168,19 +168,19 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
           {/* ── Empresa ── */}
           {tab === "empresa" && (
             <Section title="Dados da Empresa" onSave={onSave} saved={saved}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Razão Social" value={emp.razaoSocial} onChange={(v) => setEmpField("razaoSocial", v)} />
                 <Field label="Nome Fantasia" value={emp.nomeFantasia} onChange={(v) => setEmpField("nomeFantasia", v)} />
                 <Field label="CNPJ" value={emp.cnpj} onChange={(v) => setEmpField("cnpj", v)} />
                 <Field label="Telefone" value={emp.telefone} onChange={(v) => setEmpField("telefone", v)} />
                 <Field label="E-mail" value={emp.email} onChange={(v) => setEmpField("email", v)} />
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <Field label="Endereço" value={emp.endereco} onChange={(v) => setEmpField("endereco", v)} />
                 </div>
               </div>
               <div className="border-t border-slate-200 pt-4 mt-4">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Padrões Operacionais</p>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Field label="Taxa Padrão (%)" type="number" value={String(emp.taxaJurosPadrao)} onChange={(v) => setEmpField("taxaJurosPadrao", Number(v))} />
                   <Field label="Limite Mín (R$)" type="number" value={String(emp.limiteEmprestimoMin)} onChange={(v) => setEmpField("limiteEmprestimoMin", Number(v))} />
                   <Field label="Limite Máx (R$)" type="number" value={String(emp.limiteEmprestimoMax)} onChange={(v) => setEmpField("limiteEmprestimoMax", Number(v))} />
@@ -227,7 +227,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="URL da API (Evolution API)" value={zap.apiUrl} onChange={(v) => setZapField("apiUrl", v)} placeholder="http://localhost:8080" />
                 <Field label="API Key" value={zap.apiKey} onChange={(v) => setZapField("apiKey", v)} placeholder="sua-chave-aqui" type="password" />
                 <Field label="Instância" value={zap.instance} onChange={(v) => setZapField("instance", v)} placeholder="zap-emprestimos" />
@@ -271,7 +271,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
                 <select
                   value={templateSel}
                   onChange={(e) => onTemplateChange(e.target.value)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-300 focus:outline-none"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none"
                 >
                   {templates.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
                 </select>
@@ -288,7 +288,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
                     value={templateConteudo}
                     onChange={(e) => setTemplateConteudo(e.target.value)}
                     rows={16}
-                    className="w-full bg-transparent px-4 py-3 text-sm text-slate-300 font-mono focus:outline-none resize-none"
+                    className="w-full bg-transparent px-4 py-3 text-sm text-slate-900 font-mono focus:outline-none resize-none"
                     placeholder="Escreva sua mensagem aqui..."
                   />
                 </div>
@@ -298,9 +298,9 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
                   <div className="px-4 py-3 border-b border-slate-200">
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Preview WhatsApp</p>
                   </div>
-                  <div className="p-4 bg-[#0a1018] min-h-48">
-                    <div className="rounded-2xl rounded-tl-none bg-slate-50 border border-slate-200 p-3 max-w-xs">
-                      <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
+                  <div className="p-4 bg-[#1a2433] min-h-48">
+                    <div className="rounded-2xl rounded-tl-none bg-white border border-slate-200 p-3 max-w-xs shadow-sm">
+                      <p className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed">
                         {templateConteudo
                           .replace(/\*\*(.*?)\*\*/g, "$1")
                           .replace(/\*(.*?)\*/g, "$1")
@@ -325,7 +325,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
               </div>
 
               <div className="flex justify-end">
-                <button onClick={onSave} className="flex items-center gap-2 rounded-xl border border-blue-700 bg-blue-700 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-blue-800 transition-colors">
+                <button onClick={onSave} className="flex items-center gap-2 rounded-xl border border-blue-700 bg-blue-700 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-800 transition-colors">
                   <Save size={14}/>
                   Salvar Template
                 </button>
@@ -357,16 +357,16 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
                   value={agentemd}
                   onChange={(e) => setAgenteMd(e.target.value)}
                   rows={28}
-                  className="w-full bg-transparent px-4 py-3 text-sm text-slate-300 font-mono focus:outline-none resize-none"
+                  className="w-full bg-transparent px-4 py-3 text-sm text-slate-900 font-mono focus:outline-none resize-none"
                 />
               </div>
 
               <div className="flex justify-end gap-2">
-                <button onClick={() => setAgenteMd(AGENTE_MD_INICIAL)} className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                <button onClick={() => setAgenteMd(AGENTE_MD_INICIAL)} className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs text-slate-600 hover:text-slate-900 hover:border-slate-400 transition-colors">
                   <RefreshCw size={12}/>
                   Restaurar padrão
                 </button>
-                <button onClick={onSave} className="flex items-center gap-2 rounded-xl border border-blue-700 bg-blue-700 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-blue-800 transition-colors">
+                <button onClick={onSave} className="flex items-center gap-2 rounded-xl border border-blue-700 bg-blue-700 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-800 transition-colors">
                   <Save size={14}/>
                   Salvar
                 </button>
@@ -382,13 +382,13 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates }: Props) {
 function Section({ title, children, onSave, saved }: { title: string; children: React.ReactNode; onSave: () => void; saved: boolean }) {
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-slate-900">{title}</p>
         <button
           onClick={onSave}
-          className="flex items-center gap-2 rounded-xl border border-blue-700 bg-blue-700 px-5 py-2 text-sm font-semibold text-slate-900 hover:bg-blue-800 transition-colors"
+          className="flex items-center gap-1.5 rounded-xl border border-blue-700 bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 transition-colors shrink-0"
         >
-          {saved ? <CheckCircle size={14} className="text-emerald-400"/> : <Save size={14}/>}
+          {saved ? <CheckCircle size={13} className="text-emerald-300"/> : <Save size={13}/>}
           {saved ? "Salvo!" : "Salvar"}
         </button>
       </div>

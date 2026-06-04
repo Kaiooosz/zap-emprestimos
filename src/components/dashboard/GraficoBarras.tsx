@@ -25,9 +25,9 @@ export function GraficoBarras({ dados }: GraficoBarrasProps) {
   return (
     <div>
       {/* Valor destaque */}
-      <div className="mb-4">
-        <p className="text-2xl font-black text-slate-900 tabular-nums">{formatarMoeda(ultimoMes)}</p>
-        <p className="text-xs text-slate-400 mt-0.5">recebido no ultimo mes</p>
+      <div className="mb-3">
+        <p className="text-lg font-black text-slate-900 tabular-nums">{formatarMoeda(ultimoMes)}</p>
+        <p className="text-[10px] text-slate-400 mt-0.5">recebido no ultimo mes</p>
       </div>
 
       <ResponsiveContainer width="100%" height={160}>

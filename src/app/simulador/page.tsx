@@ -110,7 +110,7 @@ export default function SimuladorPage() {
             <div className="grid grid-cols-2 gap-1.5">
               {(Object.keys(periodMap) as Periodo[]).map((p) => (
                 <button key={p} onClick={() => setPeriod(p)}
-                  className={`rounded-xl py-2 text-xs font-medium border transition-all ${period===p ? "bg-slate-50 border-slate-500 text-slate-100" : "border-slate-200 text-slate-500 hover:border-slate-600 hover:text-slate-300"}`}>
+                  className={`rounded-xl py-2 text-xs font-medium border transition-all ${period===p ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700"}`}>
                   {periodMap[p].label}
                 </button>
               ))}
@@ -122,11 +122,11 @@ export default function SimuladorPage() {
             <div className="space-y-1.5">
               {([["simples","Juros Simples","Taxa flat sobre o principal"],["composto","Juros Composto","Juros sobre saldo devedor"],["price","Tabela Price","Parcelas iguais — SAC Francês"]] as const).map(([v,l,d]) => (
                 <button key={v} onClick={() => setTipo(v)}
-                  className={`w-full flex items-start gap-2 rounded-xl border px-3 py-2 text-left transition-all ${tipo===v ? "bg-slate-50 border-slate-500" : "border-slate-200 hover:border-slate-600"}`}>
-                  <div className={`mt-0.5 h-3.5 w-3.5 rounded-full border-2 shrink-0 ${tipo===v ? "border-slate-300 bg-slate-300" : "border-slate-600"}`}/>
+                  className={`w-full flex items-start gap-2 rounded-xl border px-3 py-2 text-left transition-all ${tipo===v ? "bg-slate-50 border-slate-900" : "border-slate-200 hover:border-slate-400"}`}>
+                  <div className={`mt-0.5 h-3.5 w-3.5 rounded-full border-2 shrink-0 ${tipo===v ? "border-slate-900 bg-slate-900" : "border-slate-400"}`}/>
                   <div>
-                    <p className={`text-xs font-semibold ${tipo===v ? "text-slate-100" : "text-slate-400"}`}>{l}</p>
-                    <p className="text-xs text-slate-600">{d}</p>
+                    <p className={`text-xs font-semibold ${tipo===v ? "text-slate-900" : "text-slate-500"}`}>{l}</p>
+                    <p className="text-xs text-slate-500">{d}</p>
                   </div>
                 </button>
               ))}
@@ -145,7 +145,7 @@ export default function SimuladorPage() {
             ].map(([l, v]) => (
               <div key={l} className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="text-xs font-medium text-slate-500">{l}</p>
-                <p className="text-lg font-bold text-slate-200 mt-0.5">{v}</p>
+                <p className="text-lg font-bold text-slate-900 mt-0.5">{v}</p>
               </div>
             ))}
           </div>
@@ -169,7 +169,7 @@ export default function SimuladorPage() {
               </div>
             ))}
             <a href={`/emprestimos/novo?principal=${principal}&taxa=${taxa}&parcelas=${n}&tipo=${period}`}
-              className="block w-full text-center rounded-xl border border-blue-700 bg-blue-700 py-2.5 text-sm font-semibold text-slate-900 hover:bg-blue-800 transition-colors mt-2">
+              className="block w-full text-center rounded-xl border border-blue-700 bg-blue-700 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 transition-colors mt-2">
               Criar Contrato com estes Dados
             </a>
           </div>
@@ -195,7 +195,7 @@ export default function SimuladorPage() {
                   <tr key={row.numero} className="hover:bg-slate-50/80">
                     <td className="px-4 py-2.5 text-slate-400">{row.numero}</td>
                     <td className="px-4 py-2.5 text-slate-400">{formatarData(row.dataVencimento)}</td>
-                    <td className="px-4 py-2.5 font-semibold text-slate-200">{formatarMoeda(row.parcela)}</td>
+                    <td className="px-4 py-2.5 font-semibold text-slate-900">{formatarMoeda(row.parcela)}</td>
                     <td className="px-4 py-2.5 text-red-400">{formatarMoeda(row.juros)}</td>
                     <td className="px-4 py-2.5 text-slate-400">{formatarMoeda(row.amortizacao)}</td>
                     <td className="px-4 py-2.5 text-slate-400">{formatarMoeda(row.saldo)}</td>

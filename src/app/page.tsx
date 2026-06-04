@@ -53,7 +53,7 @@ export default function HomePage() {
             {
               icon: HandCoins,
               title: "Multiplos tipos de emprestimo",
-              desc: "Padrao, diario, desconto de cheque, renovacao, venda parcelada, aluguel e assinatura IPTV",
+              desc: "Padrao, diario, desconto de cheque, renovacao, venda parcelada, aluguel e assinatura",
             },
             {
               icon: BarChart3,

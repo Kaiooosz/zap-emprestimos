@@ -110,7 +110,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
             {whatsappStatus === "CONECTADO" ? <Wifi size={12}/> : <WifiOff size={12}/>}
             WhatsApp: {whatsappStatus === "CONECTADO" ? "Conectado" : whatsappStatus === "DESCONECTADO" ? "Desconectado" : "Não configurado"}
           </div>
-          <Link href="/configuracoes" className="text-xs text-slate-500 hover:text-slate-300 underline">Configurar</Link>
+          <Link href="/configuracoes" className="text-xs text-slate-500 hover:text-slate-700 underline">Configurar</Link>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
             <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 gap-0.5">
               {[["todos","Todos"],["atrasado","Atrasados"],["pendente","Pendentes"]].map(([v,l]) => (
                 <button key={v} onClick={() => setFiltro(v as any)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${filtro===v ? "bg-slate-100 text-slate-100" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${filtro===v ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"}`}>
                   {l}
                 </button>
               ))}
@@ -131,7 +131,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
               <select
                 value={templateId}
                 onChange={(e) => setTemplateId(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-slate-500"
               >
                 {templates.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
               </select>
@@ -148,7 +148,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
 
           {/* Tabela */}
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-200 bg-slate-50/80">
+            <div className="flex items-center gap-3 px-3 sm:px-5 py-3 border-b border-slate-200 bg-slate-50/80">
               <button onClick={toggleTodos} className="text-slate-500 hover:text-slate-300">
                 {selecionados.size === lista.length && lista.length > 0
                   ? <CheckSquare size={15}/>
@@ -164,14 +164,14 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
                 {lista.map((p) => (
                   <div key={p.id}
                     onClick={() => setPreview(p)}
-                    className={`flex items-center gap-3 px-5 py-3.5 cursor-pointer transition-colors ${
+                    className={`flex items-center gap-2.5 px-3 sm:px-5 py-3 cursor-pointer transition-colors ${
                       preview?.id === p.id ? "bg-slate-50" :
                       disparados.has(p.id) ? "opacity-40" :
                       "hover:bg-slate-50/80"
                     }`}
                   >
-                    <button onClick={(e) => { e.stopPropagation(); toggleSel(p.id); }} className="text-slate-500 hover:text-slate-300 shrink-0">
-                      {selecionados.has(p.id) ? <CheckSquare size={15} className="text-slate-300"/> : <Square size={15}/>}
+                    <button onClick={(e) => { e.stopPropagation(); toggleSel(p.id); }} className="text-slate-500 hover:text-slate-700 shrink-0">
+                      {selecionados.has(p.id) ? <CheckSquare size={15} className="text-blue-700"/> : <Square size={15}/>}
                     </button>
 
                     <div className="flex-1 min-w-0">
@@ -179,9 +179,17 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
                         <p className="text-sm font-medium text-slate-900 truncate">{p.clienteNome}</p>
                         {disparados.has(p.id) && <span className="text-xs text-emerald-500 shrink-0">Enviado</span>}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <ScoreBadge score={p.score}/>
-                        <span className="text-xs text-slate-500">{p.clientePhone}</span>
+                        <span className="text-xs text-slate-500 tabular-nums">{p.clientePhone}</span>
+                      </div>
+                      {/* Atraso/vencimento — visível só no mobile abaixo do nome */}
+                      <div className="mt-0.5 sm:hidden">
+                        {p.diasAtraso > 0 ? (
+                          <span className="text-xs text-red-400">{p.diasAtraso}d atraso · Parc. {p.parcelaNum}/{p.totalParcelas}</span>
+                        ) : (
+                          <span className="text-xs text-slate-500">{formatarData(p.dataVencimento)} · Parc. {p.parcelaNum}/{p.totalParcelas}</span>
+                        )}
                       </div>
                     </div>
 
@@ -225,7 +233,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
               <div className="p-4">
                 {/* Bolha de WhatsApp */}
                 <div className="rounded-2xl rounded-tl-none bg-slate-50 border border-slate-200 p-4 max-w-xs">
-                  <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
                     {renderTemplate(template.conteudo, getVars(preview))}
                   </p>
                   <p className="text-xs text-slate-600 mt-2 text-right">
@@ -260,7 +268,7 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
                 ["{{telefone_empresa}}", "Telefone da empresa"],
               ].map(([v, d]) => (
                 <div key={v} className="flex items-center justify-between">
-                  <code className="text-xs text-slate-300 font-mono">{v}</code>
+                  <code className="text-xs text-blue-700 font-mono">{v}</code>
                   <span className="text-xs text-slate-600">{d}</span>
                 </div>
               ))}

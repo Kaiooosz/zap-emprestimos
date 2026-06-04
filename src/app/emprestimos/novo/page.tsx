@@ -18,7 +18,7 @@ const TIPOS_OPERACAO = [
   { id: "RENOVACAO",       icon: FileCheck,  label: "Renovação",            desc: "Renovar empréstimo existente com nova taxa" },
   { id: "VENDA",           icon: ShoppingBag,label: "Venda Parcelada",      desc: "Produto/veículo com custo e margem de lucro" },
   { id: "ALUGUEL",         icon: Home,       label: "Aluguel / Contrato",   desc: "Mensalidade recorrente sem data fim definida" },
-  { id: "ASSINATURA",      icon: Tv,         label: "Assinatura (IPTV)",    desc: "Micro-recorrência com alerta de vencimento" },
+  { id: "ASSINATURA",      icon: Tv,         label: "Assinatura",           desc: "Micro-recorrência com alerta de vencimento" },
 ];
 
 type TipoOp = typeof TIPOS_OPERACAO[number]["id"];
@@ -321,7 +321,7 @@ export default function NovoEmprestimoPage() {
                   <div className="grid grid-cols-2 gap-4">
                     {tipoOp === "ASSINATURA" && (
                       <div className="col-span-2">
-                        <Inp label="Plano / Descrição" value={plano} onChange={setPlano} placeholder="Ex: IPTV Premium, Basic..." />
+                        <Inp label="Plano / Descrição" value={plano} onChange={setPlano} placeholder="Ex: Premium, Basic..." />
                       </div>
                     )}
                     <Num label="Valor Mensal (R$)" value={valorMensal} onChange={setValorMensal} step={50} min={1} />

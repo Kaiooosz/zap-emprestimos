@@ -75,26 +75,26 @@ export default function DashboardPage() {
       </div>
 
       {/* KPIs — 4 cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {[
-          { label: "Capital na Rua",     value: formatarMoeda(data.capitalNaRua),  sub: `${data.totalClientesAtivos} contratos ativos`, icon: DollarSign,    trend: null,     up: true },
-          { label: "Recebido este Mes",  value: formatarMoeda(data.recebidoMes),  sub: "Pagamentos do periodo",                          icon: Banknote,      trend: "+12%",   up: true },
-          { label: "Lucro do Mes",       value: formatarMoeda(data.lucroMes),     sub: "Juros cobrados no periodo",                       icon: TrendingUp,    trend: "+8%",    up: true },
-          { label: "Parcelas Atrasadas", value: String(data.parcelasAtrasadas),   sub: formatarMoeda(carteira.atrasado) + " em aberto",   icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? String(data.parcelasAtrasadas) : null, up: false },
+          { label: "Na Rua",      value: formatarMoeda(data.capitalNaRua),  sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: null,     up: true },
+          { label: "Recebido",    value: formatarMoeda(data.recebidoMes),  sub: "Este mês",                              icon: Banknote,      trend: "+12%",   up: true },
+          { label: "Lucro",       value: formatarMoeda(data.lucroMes),     sub: "Juros cobrados",                        icon: TrendingUp,    trend: "+8%",    up: true },
+          { label: "Atrasadas",   value: String(data.parcelasAtrasadas),   sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? String(data.parcelasAtrasadas) : null, up: false },
         ].map(({ label, value, sub, icon: Icon, trend, up }) => (
-          <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider leading-tight">{label}</p>
-              <div className="h-7 w-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                <Icon size={13} className="text-slate-400" />
+          <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+              <div className="h-6 w-6 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                <Icon size={11} className="text-slate-400" />
               </div>
             </div>
-            <p className="text-xl sm:text-2xl font-black text-slate-900 leading-none tabular-nums">{value}</p>
-            <div className="flex items-center justify-between mt-2.5">
-              <p className="text-xs text-slate-400 leading-tight">{sub}</p>
+            <p className="text-base sm:text-xl font-black text-slate-900 leading-none tabular-nums">{value}</p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-[10px] text-slate-400 leading-tight truncate">{sub}</p>
               {trend && (
-                <span className={`flex items-center gap-0.5 text-xs font-bold ${up ? "text-emerald-600" : "text-red-500"}`}>
-                  {up ? <ArrowUpRight size={10}/> : <ArrowDownRight size={10}/>}{trend}
+                <span className={`flex items-center gap-0.5 text-[10px] font-bold shrink-0 ${up ? "text-emerald-600" : "text-red-500"}`}>
+                  {up ? <ArrowUpRight size={9}/> : <ArrowDownRight size={9}/>}{trend}
                 </span>
               )}
             </div>
@@ -103,28 +103,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Projecoes financeiras — 3 cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2">
         {[
-          {
-            label: "Lucro Previsto",
-            value: formatarMoeda(data.projecoes.lucroPrevisto),
-            sub: "Juros futuros a receber",
-          },
-          {
-            label: "Capital em Risco",
-            value: formatarMoeda(data.projecoes.capitalEmRisco),
-            sub: "Saldo devedor de inadimplentes",
-          },
-          {
-            label: "Recebido Ontem",
-            value: formatarMoeda(data.projecoes.recebidoOntem),
-            sub: `Media 30d: ${formatarMoeda(data.projecoes.mediaRecebimentoDiario)}/dia`,
-          },
+          { label: "L. Previsto",  value: formatarMoeda(data.projecoes.lucroPrevisto),          sub: "Juros futuros" },
+          { label: "Em Risco",     value: formatarMoeda(data.projecoes.capitalEmRisco),          sub: "Inadimplentes" },
+          { label: "Ontem",        value: formatarMoeda(data.projecoes.recebidoOntem),           sub: `Med. ${formatarMoeda(data.projecoes.mediaRecebimentoDiario)}/d` },
         ].map(({ label, value, sub }) => (
-          <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{label}</p>
-            <p className="text-xl font-black text-slate-900 tabular-nums">{value}</p>
-            <p className="text-xs text-slate-400 mt-1.5">{sub}</p>
+          <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{label}</p>
+            <p className="text-sm sm:text-base font-black text-slate-900 tabular-nums">{value}</p>
+            <p className="text-[10px] text-slate-400 mt-1 truncate">{sub}</p>
           </div>
         ))}
       </div>
@@ -133,16 +121,16 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Histórico + Vencimentos */}
         <div className="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex items-start justify-between">
+          <div className="px-4 pt-4 pb-3 border-b border-slate-100 flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Historico de Recebimentos</p>
-              <p className="text-base font-bold text-slate-900 mt-0.5">Ultimos 6 meses de atividade</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Historico de Recebimentos</p>
+              <p className="text-sm font-bold text-slate-900 mt-0.5">Ultimos 6 meses</p>
             </div>
             <Link href="/relatorios" className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors shrink-0 mt-1">
               Ver relatorio <ChevronRight size={11}/>
             </Link>
           </div>
-          <div className="px-5 pt-4 pb-5">
+          <div className="px-4 pt-3 pb-4">
             <GraficoBarras dados={data.evolucaoMensal} />
           </div>
 

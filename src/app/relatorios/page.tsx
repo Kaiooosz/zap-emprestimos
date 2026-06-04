@@ -26,8 +26,8 @@ export default function RelatoriosPage() {
       <div className="flex items-center gap-2">
         <BarChart3 size={20} className="text-blue-700" />
         <div>
-          <h1 className="text-lg font-bold text-slate-900 tracking-tight">Relatorios</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Visao consolidada do negocio</p>
+          <h1 className="text-base font-bold text-slate-900 tracking-tight">Relatorios</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Visao consolidada do negocio</p>
         </div>
       </div>
 
@@ -108,14 +108,14 @@ export default function RelatoriosPage() {
 
 function KPI({ label, value, icon: Icon, accent, positive }: { label: string; value: string; icon: typeof DollarSign; accent?: boolean; positive?: boolean }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-slate-400">{label}</p>
-        <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${accent ? "bg-[#4a78c0]/15 text-blue-700" : positive ? "bg-emerald-500/15 text-emerald-400" : "bg-[#1e3a5f] text-slate-400"}`}>
-          <Icon size={14} />
+    <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">{label}</p>
+        <div className={`h-6 w-6 rounded-md flex items-center justify-center ${accent ? "bg-blue-50 text-blue-700" : positive ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"}`}>
+          <Icon size={12} />
         </div>
       </div>
-      <p className={`text-lg font-bold ${accent ? "text-blue-700" : "text-slate-900"}`}>{value}</p>
+      <p className={`text-base font-bold ${accent ? "text-blue-700" : "text-slate-900"}`}>{value}</p>
     </div>
   );
 }

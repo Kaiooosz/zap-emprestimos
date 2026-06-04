@@ -17,11 +17,11 @@ export default function ClientesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-slate-900 tracking-tight">Clientes</h1>
-          <p className="text-sm text-slate-400 mt-0.5">{clientes.length} cadastrados</p>
+          <h1 className="text-base font-bold text-slate-900 tracking-tight">Clientes</h1>
+          <p className="text-xs text-slate-400 mt-0.5">{clientes.length} cadastrados</p>
         </div>
-        <Link href="/clientes/novo" className="flex items-center gap-1.5 rounded-xl bg-blue-700 border border-blue-600 px-4 py-2.5 text-sm font-semibold text-slate-100 hover:bg-blue-800 transition-colors">
-          <Plus size={16} strokeWidth={2.5} />
+        <Link href="/clientes/novo" className="hidden md:flex items-center gap-1.5 rounded-xl bg-blue-700 border border-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 transition-colors">
+          <Plus size={15} strokeWidth={2.5} />
           Novo Cliente
         </Link>
       </div>

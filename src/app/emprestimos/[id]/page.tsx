@@ -46,47 +46,43 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/emprestimos" className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-slate-500 hover:text-white transition-colors">
+      <div className="flex items-start gap-2">
+        <Link href="/emprestimos" className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-slate-400 hover:text-slate-700 transition-colors shrink-0 mt-0.5">
           <ArrowLeft size={15} />
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-base font-semibold text-slate-900 tracking-tight">
-              {tipoProdutoLabel[e.tipoProduto] ?? e.tipoProduto} #{id.slice(0, 8)}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-sm font-semibold text-slate-900 tracking-tight">
+              {tipoProdutoLabel[e.tipoProduto] ?? e.tipoProduto} #{id.slice(0, 6)}
             </h1>
             <StatusBadge status={e.status} />
-            {e.temGarantia && (
-              <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">Com Garantia</span>
-            )}
-            {e.temContrato && (
-              <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">Contrato Formal</span>
-            )}
+            {e.temGarantia && <span className="text-[10px] bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded-full">Garantia</span>}
+            {e.temContrato && <span className="text-[10px] bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded-full">Contrato</span>}
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">Cliente: {cliente?.nome ?? "—"}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{cliente?.nome ?? "—"}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Info cards */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {infoCards.map((c) => (
-              <div key={c.label} className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-medium text-slate-500">{c.label}</p>
-                <p className={`text-sm font-bold mt-0.5 break-words text-slate-900"}`}>{c.value}</p>
+              <div key={c.label} className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">{c.label}</p>
+                <p className="text-sm font-bold mt-0.5 break-words text-slate-900">{c.value}</p>
               </div>
             ))}
           </div>
 
           {/* Progresso */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between mb-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3">
+            <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold text-slate-900">Progresso das Parcelas</p>
-              <p className="text-xs text-slate-400">{pagas} de {e.numParcelas} pagas</p>
+              <p className="text-xs text-slate-400">{pagas}/{e.numParcelas} pagas</p>
             </div>
-            <div className="h-2 w-full rounded-full bg-slate-700 overflow-hidden">
-              <div className="h-full rounded-full bg-slate-400 transition-all" style={{ width: `${(pagas / e.numParcelas) * 100}%` }} />
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${(pagas / e.numParcelas) * 100}%` }} />
             </div>
           </div>
 
