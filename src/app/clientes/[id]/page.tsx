@@ -9,6 +9,8 @@ import { getPontosLabel, getFaixa } from "@/lib/score/calcularScore";
 
 export const dynamic = "force-dynamic";
 
+const TAXA_DIARIA_ATRASO = 1; // 1% ao dia
+
 export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const c = store.clientes.get(id);
@@ -24,7 +26,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
   const totalParcelas   = emprestimos.flatMap((e) => store.parcelas.list(e.id)).length;
   const adimplencia     = totalParcelas > 0 ? Math.round((parcelasPagas / totalParcelas) * 100) : 0;
 
-  // Todas as parcelas em aberto (pendente + atrasado + parcial)
+  // Parcelas em aberto com juros de atraso calculados
   const parcelasAbertas = emprestimos
     .filter((e) => e.status !== "CANCELADO")
     .flatMap((e) =>
@@ -33,20 +35,23 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
         .map((p) => {
           const venc = new Date(p.dataVencimento);
           venc.setHours(0, 0, 0, 0);
-          const diff = Math.floor((venc.getTime() - hoje.getTime()) / 86400000);
-          return { ...p, emprestimo: e, diff };
+          const diff        = Math.floor((venc.getTime() - hoje.getTime()) / 86400000);
+          const diasAtraso  = diff < 0 ? Math.abs(diff) : 0;
+          const jurosAtraso = diasAtraso > 0
+            ? Number((p.valorDevido * diasAtraso * TAXA_DIARIA_ATRASO / 100).toFixed(2))
+            : 0;
+          const totalComJuros = Number((p.valorDevido + jurosAtraso).toFixed(2));
+          return { ...p, emprestimo: e, diff, diasAtraso, jurosAtraso, totalComJuros };
         })
     )
     .sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime());
 
-  const totalEmAberto   = parcelasAbertas.reduce((s, p) => s + p.valorDevido, 0);
-  const atrasadas       = parcelasAbertas.filter((p) => p.diff < 0);
-  const totalAtrasado   = atrasadas.reduce((s, p) => s + p.valorDevido, 0);
-  const proximasHoje    = parcelasAbertas.filter((p) => p.diff === 0);
-  const proximasFuturas = parcelasAbertas.filter((p) => p.diff > 0 && p.diff <= 7);
-
-  // KPI: capital na rua = tudo em aberto
-  const capitalNaRua = totalEmAberto;
+  const atrasadas         = parcelasAbertas.filter((p) => p.diasAtraso > 0);
+  const totalParcelasBase = parcelasAbertas.reduce((s, p) => s + p.valorDevido, 0);
+  const totalJurosAtraso  = atrasadas.reduce((s, p) => s + p.jurosAtraso, 0);
+  const totalComJuros     = parcelasAbertas.reduce((s, p) => s + p.totalComJuros, 0);
+  const proximasHoje      = parcelasAbertas.filter((p) => p.diff === 0);
+  const proximasFuturas   = parcelasAbertas.filter((p) => p.diff > 0 && p.diff <= 7);
 
   return (
     <div className="space-y-4">
@@ -76,7 +81,6 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                 {c.cpf && <p className="text-xs text-slate-500 mt-0.5 font-mono">{c.cpf}</p>}
               </div>
             </div>
-
             <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
               {c.phone && (
                 <div className="flex items-center justify-between">
@@ -87,7 +91,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                   <a href={`https://wa.me/${c.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`Olá *${c.nome}*!`)}`}
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors">
-                    <MessageCircle size={12}/>WhatsApp
+                    <MessageCircle size={12}/> WhatsApp
                   </a>
                 </div>
               )}
@@ -126,10 +130,10 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Como é calculado</p>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     {[
-                      { l: "Pago antecipado", p: "+35" }, { l: "Atraso 1-7d",  p: "-40"  },
-                      { l: "Pago no prazo",   p: "+20" }, { l: "Atraso 8-30d", p: "-100" },
-                      { l: "5 consecutivas",  p: "+50" }, { l: "Atraso 31d+",  p: "-200" },
-                      { l: "Quitado",         p: "+100"}, { l: "Inadimplência",p: "-350" },
+                      { l: "Pago antecipado", p: "+35"  }, { l: "Atraso 1-7d",  p: "-40"  },
+                      { l: "Pago no prazo",   p: "+20"  }, { l: "Atraso 8-30d", p: "-100" },
+                      { l: "5 consecutivas",  p: "+50"  }, { l: "Atraso 31d+",  p: "-200" },
+                      { l: "Quitado",         p: "+100" }, { l: "Inadimplência",p: "-350" },
                     ].map((r) => (
                       <div key={r.l} className="flex items-center justify-between">
                         <span className="text-[11px] text-slate-500">{r.l}</span>
@@ -149,7 +153,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
           {/* KPIs */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
-              { label: "Em Aberto",       value: formatarMoeda(capitalNaRua) },
+              { label: "Total c/ Juros",  value: formatarMoeda(totalComJuros) },
               { label: "Total Emprestado",value: formatarMoeda(totalEmprestado) },
               { label: "Contratos",       value: String(emprestimos.length) },
               { label: "Adimplência",     value: `${adimplencia}%` },
@@ -161,34 +165,32 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
             ))}
           </div>
 
-          {/* ── NEGOCIAÇÕES EM ABERTO ── */}
+          {/* NEGOCIAÇÕES EM ABERTO */}
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-            {/* Header do card */}
-            <div className="px-5 py-4 border-b border-slate-100">
-              <div className="flex items-start justify-between">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Negociações em Aberto</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {parcelasAbertas.length} parcela{parcelasAbertas.length !== 1 ? "s" : ""}
+                  {totalJurosAtraso > 0 && (
+                    <> · juros: <span className="text-slate-600 font-medium">{formatarMoeda(totalJurosAtraso)}</span></>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-right shrink-0">
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-900">Negociações em Aberto</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">{parcelasAbertas.length} parcela{parcelasAbertas.length !== 1 ? "s" : ""} · {formatarMoeda(totalEmAberto)} total</p>
+                  <p className="text-[10px] text-slate-400">Parcelas</p>
+                  <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(totalParcelasBase)}</p>
                 </div>
-                <div className="flex items-center gap-3 text-right">
-                  {atrasadas.length > 0 && (
-                    <div>
-                      <p className="text-[10px] text-slate-400">Em atraso</p>
-                      <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(totalAtrasado)}</p>
-                    </div>
-                  )}
-                  {proximasHoje.length > 0 && (
-                    <div>
-                      <p className="text-[10px] text-slate-400">Vence hoje</p>
-                      <p className="text-sm font-bold text-slate-900 tabular-nums">{proximasHoje.length}</p>
-                    </div>
-                  )}
-                  {proximasFuturas.length > 0 && (
-                    <div>
-                      <p className="text-[10px] text-slate-400">Próx. 7 dias</p>
-                      <p className="text-sm font-bold text-slate-900 tabular-nums">{proximasFuturas.length}</p>
-                    </div>
-                  )}
+                {totalJurosAtraso > 0 && (
+                  <div>
+                    <p className="text-[10px] text-slate-400">+ Juros</p>
+                    <p className="text-sm font-bold text-slate-700 tabular-nums">{formatarMoeda(totalJurosAtraso)}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[10px] text-slate-400">Total</p>
+                  <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(totalComJuros)}</p>
                 </div>
               </div>
             </div>
@@ -201,99 +203,111 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
             ) : (
               <div className="divide-y divide-slate-50">
                 {parcelasAbertas.map((p) => {
-                  const diasAtraso = p.diff < 0 ? Math.abs(p.diff) : 0;
-                  const diasAte   = p.diff > 0 ? p.diff : 0;
-                  const isHoje    = p.diff === 0;
-                  const isAtrasado = p.status === "ATRASADO" || p.diff < 0;
+                  const isHoje     = p.diff === 0;
+                  const isAtrasado = p.diasAtraso > 0;
+                  const diasAte    = p.diff > 0 ? p.diff : 0;
 
                   const waMsg = c.phone
                     ? encodeURIComponent(
                         isAtrasado
-                          ? `Olá *${c.nome}*!\n\nSua parcela *${p.numero}/${p.emprestimo.numParcelas}* de *${formatarMoeda(p.valorDevido)}* está em atraso há *${diasAtraso} dia${diasAtraso !== 1 ? "s" : ""}*.\n\nPor favor, regularize para evitar juros adicionais.\n\n_Zap Empréstimos_`
-                          : `Olá *${c.nome}*!\n\nSua parcela *${p.numero}/${p.emprestimo.numParcelas}* de *${formatarMoeda(p.valorDevido)}* vence ${isHoje ? "*hoje*" : `em *${diasAte} dia${diasAte !== 1 ? "s" : ""}*`} (${formatarData(p.dataVencimento)}).\n\nEvite atrasos!\n\n_Zap Empréstimos_`
+                          ? `Olá *${c.nome}*!\n\nSua parcela *${p.numero}/${p.emprestimo.numParcelas}* está em atraso há *${p.diasAtraso} dia${p.diasAtraso !== 1 ? "s" : ""}*.\n\n` +
+                            `📋 *Detalhamento:*\n` +
+                            `• Parcela original: *${formatarMoeda(p.valorDevido)}*\n` +
+                            `• Juros de atraso (${p.diasAtraso}d × ${TAXA_DIARIA_ATRASO}%/dia): *${formatarMoeda(p.jurosAtraso)}*\n` +
+                            `• *Total a pagar: ${formatarMoeda(p.totalComJuros)}*\n\n` +
+                            `Por favor, regularize o quanto antes.\n\n_Zap Empréstimos_`
+                          : `Olá *${c.nome}*!\n\nSua parcela *${p.numero}/${p.emprestimo.numParcelas}* de *${formatarMoeda(p.valorDevido)}* vence ${isHoje ? "*hoje*" : `em *${diasAte} dia${diasAte !== 1 ? "s" : ""}*`} (${formatarData(p.dataVencimento)}).\n\nEvite atrasos e juros adicionais!\n\n_Zap Empréstimos_`
                       )
                     : "";
 
                   return (
-                    <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/60 transition-colors">
-                      {/* Status icon */}
-                      <div className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
-                        isAtrasado ? "bg-slate-100" : isHoje ? "bg-slate-100" : "bg-slate-50"
-                      }`}>
-                        {isAtrasado
-                          ? <AlertTriangle size={12} className="text-slate-500"/>
-                          : isHoje
-                            ? <Clock size={12} className="text-slate-600"/>
-                            : <Clock size={12} className="text-slate-400"/>}
-                      </div>
-
-                      {/* Info principal */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <Link href={`/emprestimos/${p.emprestimo.id}`}
-                            className="text-xs font-semibold text-slate-700 hover:text-blue-700 transition-colors truncate">
-                            {p.emprestimo.tipoProduto === "EMPRESTIMO" ? "Empréstimo" :
-                             p.emprestimo.tipoProduto === "VENDA" ? "Venda Parc." :
-                             p.emprestimo.tipoProduto === "ALUGUEL" ? "Aluguel" :
-                             p.emprestimo.tipoProduto === "ASSINATURA" ? "Assinatura" :
-                             p.emprestimo.tipoProduto}
-                          </Link>
-                          <span className="text-[10px] text-slate-400 shrink-0">
-                            Parc. {p.numero}/{p.emprestimo.numParcelas}
-                          </span>
+                    <div key={p.id} className="px-4 py-3 hover:bg-slate-50/60 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                          {isAtrasado
+                            ? <AlertTriangle size={12} className="text-slate-500"/>
+                            : isHoje
+                              ? <Clock size={12} className="text-slate-600"/>
+                              : <Clock size={12} className="text-slate-400"/>}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-slate-400">
-                            Venc. {formatarData(p.dataVencimento)}
-                          </span>
-                          {isAtrasado && (
-                            <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-full">
-                              {diasAtraso}d atraso
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <Link href={`/emprestimos/${p.emprestimo.id}`}
+                              className="text-xs font-semibold text-slate-700 hover:text-blue-700 transition-colors">
+                              {p.emprestimo.tipoProduto === "EMPRESTIMO" ? "Empréstimo"
+                                : p.emprestimo.tipoProduto === "VENDA"      ? "Venda Parc."
+                                : p.emprestimo.tipoProduto === "ALUGUEL"    ? "Aluguel"
+                                : p.emprestimo.tipoProduto === "ASSINATURA" ? "Assinatura"
+                                : p.emprestimo.tipoProduto}
+                            </Link>
+                            <span className="text-[10px] text-slate-400">Parc. {p.numero}/{p.emprestimo.numParcelas}</span>
+                            <span className="text-[10px] text-slate-400">· {formatarData(p.dataVencimento)}</span>
+                            {isAtrasado && (
+                              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                                {p.diasAtraso}d atraso
+                              </span>
+                            )}
+                            {isHoje && <span className="text-[10px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-full">Hoje</span>}
+                            {!isAtrasado && !isHoje && diasAte > 0 && diasAte <= 7 && (
+                              <span className="text-[10px] text-slate-400">em {diasAte}d</span>
+                            )}
+                          </div>
+
+                          {/* Breakdown de valores */}
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            <span className="text-xs text-slate-500">
+                              Parcela: <span className="font-semibold text-slate-700 tabular-nums">{formatarMoeda(p.valorDevido)}</span>
                             </span>
-                          )}
-                          {isHoje && (
-                            <span className="text-[10px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-full">
-                              Vence hoje
-                            </span>
-                          )}
-                          {!isAtrasado && !isHoje && diasAte <= 7 && (
-                            <span className="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-full">
-                              em {diasAte}d
-                            </span>
+                            {isAtrasado && p.jurosAtraso > 0 && (
+                              <>
+                                <span className="text-[10px] text-slate-400">+</span>
+                                <span className="text-xs text-slate-500">
+                                  Juros ({p.diasAtraso}d × {TAXA_DIARIA_ATRASO}%):&nbsp;
+                                  <span className="font-semibold text-slate-700 tabular-nums">{formatarMoeda(p.jurosAtraso)}</span>
+                                </span>
+                                <span className="text-[10px] text-slate-400">=</span>
+                                <span className="text-xs font-bold text-slate-900 tabular-nums">{formatarMoeda(p.totalComJuros)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <StatusBadge status={p.status as any}/>
+                          {c.phone && (
+                            <a href={`https://wa.me/${c.phone.replace(/\D/g,"")}?text=${waMsg}`}
+                              target="_blank" rel="noopener noreferrer"
+                              title="Cobrar via WhatsApp"
+                              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 hover:border-slate-400 transition-all">
+                              <MessageCircle size={13}/>
+                            </a>
                           )}
                         </div>
                       </div>
-
-                      {/* Valor + badge */}
-                      <div className="text-right shrink-0 space-y-1">
-                        <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(p.valorDevido)}</p>
-                        <StatusBadge status={p.status as any}/>
-                      </div>
-
-                      {/* WhatsApp */}
-                      {c.phone && (
-                        <a href={`https://wa.me/${c.phone.replace(/\D/g,"")}?text=${waMsg}`}
-                          target="_blank" rel="noopener noreferrer"
-                          title="Cobrar via WhatsApp"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 hover:border-slate-400 transition-all shrink-0">
-                          <MessageCircle size={13}/>
-                        </a>
-                      )}
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {/* Resumo rodapé */}
             {parcelasAbertas.length > 0 && (
-              <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between bg-slate-50/50">
-                <div className="flex items-center gap-4 text-xs text-slate-500">
+              <div className="border-t border-slate-100 px-5 py-3 bg-slate-50/50 flex items-center justify-between">
+                <div className="flex items-center gap-3 text-xs text-slate-500">
                   <span>{atrasadas.length} atrasada{atrasadas.length !== 1 ? "s" : ""}</span>
+                  <span>·</span>
                   <span>{proximasHoje.length} vence hoje</span>
-                  <span>{parcelasAbertas.filter(p => p.diff > 0).length} pendente{parcelasAbertas.filter(p => p.diff > 0).length !== 1 ? "s" : ""}</span>
+                  <span>·</span>
+                  <span>{proximasFuturas.length} próx. 7d</span>
                 </div>
-                <p className="text-xs font-semibold text-slate-700 tabular-nums">{formatarMoeda(totalEmAberto)}</p>
+                <div className="text-right">
+                  {totalJurosAtraso > 0 && (
+                    <p className="text-[10px] text-slate-400 tabular-nums">
+                      {formatarMoeda(totalParcelasBase)} + {formatarMoeda(totalJurosAtraso)} juros
+                    </p>
+                  )}
+                  <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(totalComJuros)}</p>
+                </div>
               </div>
             )}
           </div>
@@ -349,7 +363,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
               </div>
             </div>
             {scoreData.eventos.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">Nenhum evento registrado</p>
+              <p className="text-sm text-slate-400 text-center py-8">Nenhum evento</p>
             ) : (
               <div className="divide-y divide-slate-50 max-h-48 overflow-y-auto">
                 {scoreData.eventos.map((ev, i) => {
