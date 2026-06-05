@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { DollarSign, TrendingUp, AlertTriangle, Banknote, Calendar, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import Link from "next/link";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/utils";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { GraficoBarras } from "@/components/dashboard/GraficoBarras";
@@ -9,55 +9,88 @@ import { MiniCalendario } from "@/components/dashboard/MiniCalendario";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
-  const data     = store.dashboard.get();
-  const clientes = store.clientes.list();
-  const emps     = store.emprestimos.list();
-  const parcelas = store.parcelas.list();
+export default async function DashboardPage() {
+  const hoje    = new Date();
+  const mesIni  = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate() + 7);
+
+  const [parcelas, emps, clientes] = await Promise.all([
+    prisma.parcela.findMany({ include: { emprestimo: { include: { cliente: { select: { id: true, nome: true } } } } } }),
+    prisma.emprestimo.findMany({ include: { parcelas: { select: { status: true, valorDevido: true } } } }),
+    prisma.cliente.findMany({ orderBy: { score: "desc" } }),
+  ]);
+
+  const toN = (v: any) => Number(v);
 
   const carteira = {
-    ativo:    parcelas.filter((p) => p.status === "PENDENTE").reduce((s, p) => s + p.valorDevido, 0),
-    atrasado: parcelas.filter((p) => p.status === "ATRASADO").reduce((s, p) => s + p.valorDevido, 0),
-    parcial:  parcelas.filter((p) => p.status === "PARCIAL").reduce((s, p) => s + p.valorDevido, 0),
+    ativo:    parcelas.filter((p) => p.status === "PENDENTE").reduce((s, p) => s + toN(p.valorDevido), 0),
+    atrasado: parcelas.filter((p) => p.status === "ATRASADO").reduce((s, p) => s + toN(p.valorDevido), 0),
+    parcial:  parcelas.filter((p) => p.status === "PARCIAL").reduce((s, p) => s + toN(p.valorDevido), 0),
   };
   const totalCarteira = carteira.ativo + carteira.atrasado + carteira.parcial;
 
-  const topClientes = clientes
-    .map((c) => {
-      const saldo = emps
-        .filter((e) => e.clienteId === c.id && e.status === "ATIVO")
-        .flatMap((e) => parcelas.filter((p) => p.emprestimoId === e.id && ["PENDENTE","ATRASADO"].includes(p.status)))
-        .reduce((s, p) => s + p.valorDevido, 0);
-      return { ...c, saldo };
-    })
-    .filter((c) => c.saldo > 0)
-    .sort((a, b) => b.saldo - a.saldo)
-    .slice(0, 6);
+  const capitalNaRua = emps.filter((e) => e.status === "ATIVO")
+    .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status)))
+    .reduce((s, p) => s + toN(p.valorDevido), 0);
+
+  const recebidoMes = parcelas
+    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= mesIni)
+    .reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
+
+  const lucroMes = parcelas
+    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= mesIni)
+    .reduce((s, p) => s + toN(p.valorJuros), 0);
+
+  const parcelasAtrasadas = parcelas.filter((p) =>
+    p.status === "ATRASADO" || (["PENDENTE","PARCIAL"].includes(p.status) && new Date(p.dataVencimento) < hoje)
+  );
+
+  const totalSemana = parcelas
+    .filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && new Date(p.dataVencimento) >= hoje && new Date(p.dataVencimento) <= em7dias)
+    .reduce((s, p) => s + toN(p.valorDevido), 0);
+
+  const topClientes = clientes.map((c) => {
+    const saldo = emps
+      .filter((e) => e.clienteId === c.id && e.status === "ATIVO")
+      .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status)))
+      .reduce((s, p) => s + toN(p.valorDevido), 0);
+    return { ...c, saldo };
+  }).filter((c) => c.saldo > 0).sort((a, b) => b.saldo - a.saldo).slice(0, 6);
   const maxSaldo = topClientes[0]?.saldo ?? 1;
 
   const recentes = parcelas
     .filter((p) => p.status === "PAGO" && p.dataPagamento)
     .sort((a, b) => new Date(b.dataPagamento!).getTime() - new Date(a.dataPagamento!).getTime())
     .slice(0, 8)
-    .map((p) => {
-      const e = emps.find((e) => e.id === p.emprestimoId);
-      const c = clientes.find((c) => c.id === e?.clienteId);
-      return { ...p, clienteNome: c?.nome ?? "—" };
-    });
+    .map((p) => ({ ...p, valorDevido: toN(p.valorDevido), valorPago: p.valorPago ? toN(p.valorPago) : undefined, clienteNome: p.emprestimo.cliente?.nome ?? "—" }));
 
-  const hoje = new Date();
-  const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate() + 7);
   const proxVenc = parcelas
     .filter((p) => { const v = new Date(p.dataVencimento); return v >= hoje && v <= em7dias && ["PENDENTE","ATRASADO"].includes(p.status); })
     .sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime())
     .slice(0, 5)
-    .map((p) => {
-      const e = emps.find((e) => e.id === p.emprestimoId);
-      const c = clientes.find((c) => c.id === e?.clienteId);
-      return { ...p, clienteNome: c?.nome ?? "—" };
-    });
+    .map((p) => ({ ...p, valorDevido: toN(p.valorDevido), clienteNome: p.emprestimo.cliente?.nome ?? "—" }));
 
   const adimplencia = parcelas.length > 0 ? Math.round((parcelas.filter((p) => p.status === "PAGO").length / parcelas.length) * 100) : 0;
+
+  const evolucaoMensal = Array.from({ length: 6 }, (_, i) => {
+    const d   = new Date(hoje.getFullYear(), hoje.getMonth() - (5 - i), 1);
+    const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+    const rec = parcelas.filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= d && new Date(p.dataPagamento) <= fim).reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
+    return { mes: d.toLocaleString("pt-BR", { month: "short" }), recebido: rec };
+  });
+
+  const data = {
+    capitalNaRua, recebidoMes, lucroMes,
+    parcelasAtrasadas: parcelasAtrasadas.length,
+    totalSemana, totalClientesAtivos: emps.filter((e) => e.status === "ATIVO").length,
+    evolucaoMensal,
+    projecoes: {
+      lucroPrevisto:          emps.filter((e) => e.status === "ATIVO").flatMap((e) => e.parcelas.filter((p) => p.status === "PENDENTE")).reduce((s, p) => s + toN(p.valorDevido) * 0.1, 0),
+      capitalEmRisco:         carteira.atrasado,
+      recebidoOntem:          0,
+      mediaRecebimentoDiario: recebidoMes / Math.max(1, hoje.getDate()),
+    },
+  };
 
   return (
     <div className="space-y-5 pb-8">
@@ -271,7 +304,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-4">
-          <MiniCalendario parcelas={parcelas} />
+          <MiniCalendario parcelas={parcelas.map((p) => ({ ...p, valorDevido: toN(p.valorDevido), dataVencimento: p.dataVencimento.toISOString(), createdAt: p.createdAt.toISOString(), dataPagamento: p.dataPagamento?.toISOString(), valorPago: p.valorPago ? toN(p.valorPago) : undefined, valorPrincipal: toN(p.valorPrincipal ?? 0), valorJuros: toN(p.valorJuros ?? 0), desconto: p.desconto ? toN(p.desconto) : undefined, modoPagamento: p.modoPagamento ?? undefined })) as any} />
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Resumo</p>
             {[

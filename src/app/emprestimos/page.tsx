@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { formatarMoeda, formatarData } from "@/lib/utils";
@@ -9,18 +9,27 @@ export const dynamic = "force-dynamic";
 
 const tipoLabel: Record<string, string> = { DIARIO: "Diário", SEMANAL: "Semanal", QUINZENAL: "Quinzenal", MENSAL: "Mensal" };
 
-export default function EmprestimosPage() {
-  const emprestimos = store.emprestimos.list().map((e) => ({
+export default async function EmprestimosPage() {
+  const raw = await prisma.emprestimo.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      cliente:  { select: { id: true, nome: true, score: true } },
+      parcelas: { select: { status: true, valorDevido: true } },
+    },
+  });
+  const emprestimos = raw.map((e) => ({
     ...e,
-    cliente: store.clientes.get(e.clienteId),
-    parcelasPagas: store.parcelas.list(e.id).filter((p) => p.status === "PAGO").length,
+    valorPrincipal: Number(e.valorPrincipal),
+    valorTotal:     Number(e.valorTotal),
+    taxaJuros:      Number(e.taxaJuros),
+    parcelasPagas:  e.parcelas.filter((p) => p.status === "PAGO").length,
   }));
 
   const ativos = emprestimos.filter((e) => e.status === "ATIVO").length;
   const capitalNaRua = emprestimos
     .filter((e) => e.status === "ATIVO")
-    .flatMap((e) => store.parcelas.list(e.id).filter((p) => ["PENDENTE", "ATRASADO"].includes(p.status)))
-    .reduce((s, p) => s + p.valorDevido, 0);
+    .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status)))
+    .reduce((s, p) => s + Number(p.valorDevido), 0);
 
   return (
     <div className="space-y-4">

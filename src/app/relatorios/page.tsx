@@ -1,19 +1,23 @@
 import { BarChart3, TrendingUp, TrendingDown, DollarSign, Users } from "lucide-react";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 import { formatarMoeda } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default function RelatoriosPage() {
-  const data = store.dashboard.get();
-  const clientes = store.clientes.list();
-  const emprestimos = store.emprestimos.list();
-  const parcelas = store.parcelas.list();
-
+export default async function RelatoriosPage() {
+  const [clientes, emprestimosRaw, parcelas] = await Promise.all([
+    prisma.cliente.findMany({ orderBy: { score: "desc" } }),
+    prisma.emprestimo.findMany(),
+    prisma.parcela.findMany(),
+  ]);
+  const emprestimos   = emprestimosRaw.map((e) => ({ ...e, valorPrincipal: Number(e.valorPrincipal), totalJuros: Number(e.totalJuros) }));
   const totalEmprestado = emprestimos.reduce((s, e) => s + e.valorPrincipal, 0);
   const totalJuros = emprestimos.reduce((s, e) => s + e.totalJuros, 0);
   const parcelasPagas = parcelas.filter((p) => p.status === "PAGO").length;
   const taxaAdimplencia = parcelas.length > 0 ? Math.round((parcelasPagas / parcelas.length) * 100) : 0;
+  const hoje = new Date();
+  const capitalNaRua = emprestimos.filter((e) => e.status === "ATIVO").reduce((s, e) => s + Number(e.valorTotal), 0);
+  const lucroMes = 0; // calculado na API dashboard
 
   const porStatus = {
     ATIVO:        emprestimos.filter((e) => e.status === "ATIVO").length,
@@ -33,8 +37,8 @@ export default function RelatoriosPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KPI label="Capital na Rua" value={formatarMoeda(data.capitalNaRua)} icon={DollarSign} accent />
-        <KPI label="Lucro do Mes" value={formatarMoeda(data.lucroMes)} icon={TrendingUp} positive />
+        <KPI label="Capital na Rua" value={formatarMoeda(capitalNaRua)} icon={DollarSign} accent />
+        <KPI label="Juros Totais" value={formatarMoeda(totalJuros)} icon={TrendingUp} positive />
         <KPI label="Total Emprestado" value={formatarMoeda(totalEmprestado)} icon={DollarSign} />
         <KPI label="Juros Totais" value={formatarMoeda(totalJuros)} icon={TrendingUp} positive />
       </div>
@@ -76,7 +80,7 @@ export default function RelatoriosPage() {
               <p className="text-xs text-slate-400">Pagas</p>
             </div>
             <div className="rounded-lg bg-white p-3 text-center">
-              <p className="text-lg font-bold text-red-400">{data.parcelasAtrasadas}</p>
+              <p className="text-lg font-bold text-red-400">{parcelas.filter((p) => p.status === "ATRASADO").length}</p>
               <p className="text-xs text-slate-400">Atrasadas</p>
             </div>
           </div>

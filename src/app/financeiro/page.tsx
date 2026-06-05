@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, Wallet } from "lucide-react";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { formatarMoeda, formatarData } from "@/lib/utils";
 import { PagarContaBtn } from "@/components/financeiro/PagarContaBtn";
@@ -12,10 +12,11 @@ const categoriaLabel: Record<string, string> = {
   SERVICO: "Servico", MARKETING: "Marketing", TECNOLOGIA: "Tecnologia", OUTROS: "Outros",
 };
 
-export default function FinanceiroPage() {
-  const contas = store.contas.list();
+export default async function FinanceiroPage() {
+  const raw     = await prisma.contaPagar.findMany({ orderBy: { dataVencimento: "asc" } });
+  const contas  = raw.map((c) => ({ ...c, valor: Number(c.valor) }));
   const pendente = contas.filter((c) => c.status !== "PAGO").reduce((s, c) => s + c.valor, 0);
-  const pago = contas.filter((c) => c.status === "PAGO").reduce((s, c) => s + c.valor, 0);
+  const pago     = contas.filter((c) => c.status === "PAGO").reduce((s, c) => s + c.valor, 0);
 
   return (
     <div className="space-y-5">

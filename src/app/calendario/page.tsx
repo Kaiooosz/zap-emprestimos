@@ -1,29 +1,40 @@
-import { store } from "@/lib/store";
-import { formatarMoeda } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 import { CalendarioClient } from "@/components/calendario/CalendarioClient";
 
 export const dynamic = "force-dynamic";
 
-export default function CalendarioPage() {
-  store.parcelas.marcarAtrasadas();
+export default async function CalendarioPage() {
+  const hoje = new Date();
 
-  const clientes   = store.clientes.list();
-  const emprestimos = store.emprestimos.list();
-  const todasParcelas = store.parcelas.list().map((p) => {
-    const e = emprestimos.find((e) => e.id === p.emprestimoId);
-    const c = clientes.find((c) => c.id === e?.clienteId);
-    return {
-      ...p,
-      clienteId:   c?.id ?? "",
-      clienteNome: c?.nome ?? "—",
-      clientePhone:c?.phone ?? "—",
-    };
+  // Marca atrasadas
+  await prisma.parcela.updateMany({
+    where: { status: "PENDENTE", dataVencimento: { lt: hoje } },
+    data:  { status: "ATRASADO" },
   });
+
+  const parcelas = await prisma.parcela.findMany({
+    include: { emprestimo: { include: { cliente: { select: { id: true, nome: true, phone: true } } } } },
+    orderBy: { dataVencimento: "asc" },
+  });
+
+  const clientes = await prisma.cliente.findMany({
+    select: { id: true, nome: true },
+    orderBy: { nome: "asc" },
+  });
+
+  const todasParcelas = parcelas.map((p) => ({
+    ...p,
+    valorDevido:  Number(p.valorDevido),
+    valorPago:    p.valorPago ? Number(p.valorPago) : undefined,
+    clienteId:    p.emprestimo.cliente.id,
+    clienteNome:  p.emprestimo.cliente.nome,
+    clientePhone: p.emprestimo.cliente.phone,
+  }));
 
   return (
     <CalendarioClient
-      parcelas={todasParcelas}
-      clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
+      parcelas={todasParcelas as any}
+      clientes={clientes}
     />
   );
 }

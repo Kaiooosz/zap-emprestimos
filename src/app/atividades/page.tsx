@@ -1,5 +1,5 @@
 import { Activity, CreditCard, MessageSquare, User, HandCoins, CheckCircle, AlertTriangle, FileText, TrendingUp } from "lucide-react";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/utils";
 import { NovaAtividadeForm } from "@/components/atividades/NovaAtividadeForm";
 
@@ -38,24 +38,25 @@ const iconPorTipo: Record<TipoAtividade, { icon: typeof CreditCard; cor: string;
   RENOVACAO:      { icon: TrendingUp,    cor: "text-blue-600",    bg: "bg-blue-50" },
 };
 
-function gerarAtividadesDoStore(): Atividade[] {
+async function gerarAtividades(): Promise<Atividade[]> {
   const atividades: Atividade[] = [];
-  const emprestimos = store.emprestimos.list();
+  const emprestimos = await prisma.emprestimo.findMany({
+    include: { cliente: true, parcelas: { where: { status: "PAGO" } } },
+  });
 
   for (const e of emprestimos) {
-    const cliente = store.clientes.get(e.clienteId);
-    const nomeCliente = cliente?.nome ?? "—";
-    const parcelas = store.parcelas.list(e.id);
+    const nomeCliente = e.cliente.nome;
+    const parcelas = e.parcelas;
 
     // Criacao do emprestimo
     atividades.push({
       id: `${e.id}-criado`,
       tipo: "NOVO_EMPRESTIMO",
-      descricao: `Novo contrato criado — ${e.tipoProduto} de ${formatarMoeda(e.valorPrincipal)} em ${e.numParcelas}x`,
-      valor: e.valorPrincipal,
+      descricao: `Novo contrato criado — ${e.tipoProduto} de ${formatarMoeda(Number(e.valorPrincipal))} em ${e.numParcelas}x`,
+      valor: Number(e.valorPrincipal),
       clienteNome: nomeCliente,
       clienteId: e.clienteId,
-      data: e.createdAt,
+      data: e.createdAt.toISOString(),
       operador: "Admin",
       tag: e.tipoProduto,
     });
@@ -65,11 +66,11 @@ function gerarAtividadesDoStore(): Atividade[] {
       atividades.push({
         id: `${e.id}-quitado`,
         tipo: "QUITACAO",
-        descricao: `Contrato quitado — Total pago: ${formatarMoeda(e.valorTotal)}`,
-        valor: e.valorTotal,
+        descricao: `Contrato quitado — Total pago: ${formatarMoeda(Number(e.valorTotal))}`,
+        valor: Number(e.valorTotal),
         clienteNome: nomeCliente,
         clienteId: e.clienteId,
-        data: parcelas[parcelas.length - 1]?.dataPagamento ?? e.dataVencimento,
+        data: (parcelas[parcelas.length - 1]?.dataPagamento ?? e.dataVencimento).toISOString(),
         operador: "Sistema",
       });
     }
@@ -80,10 +81,10 @@ function gerarAtividadesDoStore(): Atividade[] {
         id: `${e.id}-inadimplente`,
         tipo: "ATRASO",
         descricao: `Contrato marcado como inadimplente`,
-        valor: store.parcelas.getSaldoDevedor(e.id),
+        valor: Number(e.valorTotal),
         clienteNome: nomeCliente,
         clienteId: e.clienteId,
-        data: e.dataVencimento,
+        data: e.dataVencimento.toISOString(),
         operador: "Sistema",
       });
     }
@@ -94,12 +95,12 @@ function gerarAtividadesDoStore(): Atividade[] {
         id: `${p.id}-pago`,
         tipo: "PAGAMENTO",
         descricao: `Parcela ${p.numero}/${e.numParcelas} recebida${p.modoPagamento === "SOMENTE_JUROS" ? " (somente juros)" : p.modoPagamento === "QUITACAO_TOTAL" ? " (quitacao total)" : ""}`,
-        valor: p.valorPago,
+        valor: p.valorPago ? Number(p.valorPago) : undefined,
         clienteNome: nomeCliente,
         clienteId: e.clienteId,
-        data: p.dataPagamento!,
+        data: p.dataPagamento!.toISOString(),
         operador: "Operador",
-        tag: p.modoPagamento,
+        tag: p.modoPagamento ?? undefined,
       });
     }
   }
@@ -107,8 +108,11 @@ function gerarAtividadesDoStore(): Atividade[] {
   return atividades.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
 }
 
-export default function AtividadesPage() {
-  const atividades = gerarAtividadesDoStore();
+export default async function AtividadesPage() {
+  const [atividades, clientes] = await Promise.all([
+    gerarAtividades(),
+    prisma.cliente.findMany({ select: { id: true, nome: true }, orderBy: { nome: "asc" } }),
+  ]);
   const hoje = new Date().toDateString();
 
   const por_tipo = {
@@ -128,7 +132,7 @@ export default function AtividadesPage() {
             <p className="text-xs text-slate-500 mt-0.5">{atividades.length} eventos</p>
           </div>
         </div>
-        <NovaAtividadeForm clientes={store.clientes.list()} />
+        <NovaAtividadeForm clientes={clientes as any} />
       </div>
 
       {/* Resumo */}

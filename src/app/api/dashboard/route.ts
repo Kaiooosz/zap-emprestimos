@@ -1,6 +1,67 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  return NextResponse.json(store.dashboard.get());
+  try {
+    const hoje  = new Date();
+    const mesInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const semInicio = new Date(hoje); semInicio.setDate(hoje.getDate() - 7);
+
+    const [emprestimos, parcelas] = await Promise.all([
+      prisma.emprestimo.findMany({ include: { parcelas: true } }),
+      prisma.parcela.findMany(),
+    ]);
+
+    const ativos          = emprestimos.filter((e) => e.status === "ATIVO");
+    const parcelasAtrasadas = parcelas.filter((p) => {
+      return p.status === "ATRASADO" || (
+        ["PENDENTE","PARCIAL"].includes(p.status) &&
+        new Date(p.dataVencimento) < hoje
+      );
+    });
+    const capitalNaRua    = ativos
+      .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO","PARCIAL"].includes(p.status)))
+      .reduce((s, p) => s + Number(p.valorDevido), 0);
+
+    const recebidoMes = parcelas
+      .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= mesInicio)
+      .reduce((s, p) => s + Number(p.valorPago ?? 0), 0);
+
+    const totalSemana = parcelas
+      .filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && new Date(p.dataVencimento) >= hoje && new Date(p.dataVencimento) <= new Date(hoje.getTime() + 7 * 86400000))
+      .reduce((s, p) => s + Number(p.valorDevido), 0);
+
+    const lucroMes = emprestimos
+      .flatMap((e) => e.parcelas.filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= mesInicio))
+      .reduce((s, p) => s + Number(p.valorJuros), 0);
+
+    // Evolução mensal (últimos 6 meses)
+    const evolucaoMensal = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - (5 - i), 1);
+      const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+      const recebido = parcelas
+        .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= d && new Date(p.dataPagamento) <= fim)
+        .reduce((s, p) => s + Number(p.valorPago ?? 0), 0);
+      return { mes: d.toLocaleString("pt-BR", { month: "short" }), recebido };
+    });
+
+    return NextResponse.json({
+      capitalNaRua,
+      recebidoMes,
+      lucroMes,
+      parcelasAtrasadas:    parcelasAtrasadas.length,
+      totalSemana,
+      totalClientesAtivos:  ativos.length,
+      evolucaoMensal,
+      projecoes: {
+        lucroPrevisto:           ativos.flatMap((e) => e.parcelas.filter((p) => p.status === "PENDENTE")).reduce((s, p) => s + Number(p.valorJuros), 0),
+        capitalEmRisco:          emprestimos.filter((e) => e.status === "INADIMPLENTE").flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status))).reduce((s, p) => s + Number(p.valorDevido), 0),
+        recebidoOntem:           parcelas.filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento).toDateString() === new Date(hoje.getTime() - 86400000).toDateString()).reduce((s, p) => s + Number(p.valorPago ?? 0), 0),
+        mediaRecebimentoDiario:  recebidoMes / Math.max(1, hoje.getDate()),
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Erro no dashboard." }, { status: 500 });
+  }
 }

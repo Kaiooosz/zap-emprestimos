@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { formatarMoeda, formatarData } from "@/lib/utils";
@@ -21,12 +21,47 @@ const modalidadeLabel: Record<string, string> = {
 
 export default async function EmprestimoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const e = store.emprestimos.get(id);
-  if (!e) notFound();
-  const cliente = store.clientes.get(e.clienteId);
-  const parcelas = store.parcelas.list(id);
-  const pagas    = parcelas.filter((p) => p.status === "PAGO").length;
-  const saldoDevedor = store.parcelas.getSaldoDevedor(id);
+  const raw = await prisma.emprestimo.findUnique({
+    where:   { id },
+    include: { parcelas: { orderBy: { numero: "asc" } }, cliente: true },
+  });
+  if (!raw) notFound();
+
+  // Normaliza Decimal → number
+  const e = {
+    ...raw,
+    valorPrincipal: Number(raw.valorPrincipal),
+    valorTotal:     Number(raw.valorTotal),
+    totalJuros:     Number(raw.totalJuros),
+    taxaJuros:      Number(raw.taxaJuros),
+    valorGarantia:  raw.valorGarantia ? Number(raw.valorGarantia) : undefined,
+    valorNominalCheque: raw.valorNominalCheque ? Number(raw.valorNominalCheque) : undefined,
+    valorMensal:    raw.valorMensal ? Number(raw.valorMensal) : undefined,
+    custo:          raw.custo ? Number(raw.custo) : undefined,
+  };
+  const cliente = raw.cliente ? {
+    ...raw.cliente,
+    descricaoGarantia: raw.cliente.descGarantia,
+    rendaMensal:  raw.cliente.rendaMensal  ? Number(raw.cliente.rendaMensal)  : undefined,
+    valorGarantia:raw.cliente.valorGarantia? Number(raw.cliente.valorGarantia): undefined,
+    createdAt:    raw.cliente.createdAt.toISOString(),
+  } : null;
+  const parcelas = raw.parcelas.map((p) => ({
+    ...p,
+    valorDevido:    Number(p.valorDevido),
+    valorPrincipal: Number(p.valorPrincipal),
+    valorJuros:     Number(p.valorJuros),
+    valorPago:      p.valorPago ? Number(p.valorPago) : undefined,
+    desconto:       p.desconto  ? Number(p.desconto)  : undefined,
+    dataVencimento: p.dataVencimento.toISOString(),
+    dataPagamento:  p.dataPagamento ? p.dataPagamento.toISOString() : undefined,
+    modoPagamento:  p.modoPagamento ?? undefined,
+    createdAt:      p.createdAt.toISOString(),
+  }));
+  const pagas = parcelas.filter((p) => p.status === "PAGO").length;
+  const saldoDevedor = parcelas
+    .filter((p) => ["PENDENTE","ATRASADO","PARCIAL"].includes(p.status))
+    .reduce((s, p) => s + p.valorDevido, 0);
 
   const infoCards = [
     { label: "Tipo de Operação",  value: tipoProdutoLabel[e.tipoProduto] ?? e.tipoProduto },
@@ -93,7 +128,7 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
             clientePhone={cliente?.phone ?? ""}
             clienteNome={cliente?.nome ?? ""}
             taxaJuros={e.taxaJuros}
-            dataInicio={e.dataInicio}
+            dataInicio={e.dataInicio instanceof Date ? e.dataInicio.toISOString() : String(e.dataInicio)}
           />
         </div>
 

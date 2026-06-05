@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { Plus, User } from "lucide-react";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { formatarData } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default function ClientesPage() {
-  const clientes = store.clientes.list().map((c) => ({
-    ...c,
-    emprestimosAtivos: store.emprestimos.list(c.id).filter((e) => e.status === "ATIVO").length,
-    totalEmprestimos: store.emprestimos.list(c.id).length,
+export default async function ClientesPage() {
+  const raw = await prisma.cliente.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { emprestimos: true } } },
+  });
+  const clientes = await Promise.all(raw.map(async (c) => {
+    const ativos = await prisma.emprestimo.count({ where: { clienteId: c.id, status: "ATIVO" } });
+    return { ...c, emprestimosAtivos: ativos, totalEmprestimos: c._count.emprestimos };
   }));
 
   return (

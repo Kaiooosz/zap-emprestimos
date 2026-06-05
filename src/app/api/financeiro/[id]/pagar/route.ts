@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const c = store.contas.pagar(id);
-  if (!c) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(c);
+  try {
+    const { id } = await params;
+    const conta  = await prisma.contaPagar.update({
+      where: { id },
+      data:  { status: "PAGO", dataPagamento: new Date() },
+    });
+    return NextResponse.json(conta);
+  } catch (e) { console.error(e); return NextResponse.json({ error: "Erro." }, { status: 500 }); }
 }

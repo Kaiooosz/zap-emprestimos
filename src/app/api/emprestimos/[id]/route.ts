@@ -1,19 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const e = store.emprestimos.get(id);
-  if (!e) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const parcelas = store.parcelas.list(id);
-  const cliente = store.clientes.get(e.clienteId);
-  return NextResponse.json({ ...e, parcelas, cliente });
+  try {
+    const { id } = await params;
+    const emprestimo = await prisma.emprestimo.findUnique({
+      where:   { id },
+      include: { parcelas: { orderBy: { numero: "asc" } }, cliente: true },
+    });
+    if (!emprestimo) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(emprestimo);
+  } catch (e) { console.error(e); return NextResponse.json({ error: "Erro interno." }, { status: 500 }); }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const { status } = await req.json();
-  const e = store.emprestimos.updateStatus(id, status);
-  if (!e) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(e);
+  try {
+    const { id } = await params;
+    const body   = await req.json();
+    const emprestimo = await prisma.emprestimo.update({ where: { id }, data: { status: body.status } });
+    return NextResponse.json(emprestimo);
+  } catch (e) { console.error(e); return NextResponse.json({ error: "Erro." }, { status: 500 }); }
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    await prisma.emprestimo.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (e) { console.error(e); return NextResponse.json({ error: "Erro." }, { status: 500 }); }
 }
