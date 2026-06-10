@@ -267,6 +267,15 @@ export function PainelAnalitico({ parcelasRaw, equipe }: PainelAnaliticoProps) {
 
   return (
     <div className="space-y-6">
+      {/* Painel Informativo sobre Relatórios Analíticos */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 leading-relaxed space-y-2">
+        <p className="font-semibold text-slate-700">Painel Analítico e Exportação de Dados:</p>
+        <ul className="list-disc pl-4 space-y-1">
+          <li><strong>Métricas e Gráficos Reativos</strong>: Ao alterar qualquer filtro (Datas, Cliente, Operador ou Modalidade), a base de cálculos de todos os KPIs e os gráficos dinâmicos de faturamento, rosca de modalidades e ranking de membros são atualizados em tempo real.</li>
+          <li><strong>Exportador para CSV</strong>: O botão "Exportar CSV" gera o download imediato dos registros da tabela de transações respeitando exatamente os filtros ativos no momento. Isso possibilita análises externas personalizadas e montagem de relatórios gerenciais no Microsoft Excel, Google Sheets ou Power BI.</li>
+        </ul>
+      </div>
+
       {/* Barra de Filtros Avançados */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div className="flex items-center gap-2 text-slate-800 font-bold border-b border-slate-100 pb-3">

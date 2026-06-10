@@ -276,6 +276,16 @@ export function CobrancasClient({
         </div>
       </div>
 
+      {/* Painel Informativo sobre Cobranças e Templates */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 leading-relaxed space-y-2">
+        <p className="font-semibold text-slate-700">Como gerenciar as Cobranças e Mensagens:</p>
+        <ul className="list-disc pl-4 space-y-1">
+          <li><strong>Disparos Manuais</strong>: Filtre as parcelas por status (atrasadas ou pendentes), selecione os clientes desejados e realize o disparo de mensagens. O valor exibido na lista e na mensagem já inclui os juros diários calculados automaticamente.</li>
+          <li><strong>Notificações Automáticas</strong>: Ative notificações recorrentes diárias para eventos como alertas de vencimento antecipado, lembretes de atraso e comprovantes de quitação de contrato.</li>
+          <li><strong>Modelos (Templates)</strong>: Edite as mensagens padrão de contato. Insira variáveis de texto como <code className="bg-slate-100 px-1 rounded text-blue-700 font-mono">{"{{nome}}"}</code>, <code className="bg-slate-100 px-1 rounded text-blue-700 font-mono">{"{{valor}}"}</code> ou <code className="bg-slate-100 px-1 rounded text-blue-700 font-mono">{"{{vencimento}}"}</code> que serão substituídas pelos valores reais no momento do disparo.</li>
+        </ul>
+      </div>
+
       {/* ─── ABA 1: DISPAROS MANUAIS ─── */}
       {tab === "disparos" && (
         <div className="space-y-4">

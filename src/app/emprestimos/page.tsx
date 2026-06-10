@@ -46,6 +46,16 @@ export default async function EmprestimosPage() {
         </Link>
       </div>
 
+      {/* Painel Informativo sobre Empréstimos */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 leading-relaxed space-y-2">
+        <p className="font-semibold text-slate-700">Gestão e Registro de Contratos:</p>
+        <ul className="list-disc pl-4 space-y-1">
+          <li><strong>Acompanhamento</strong>: Acesse detalhes individuais clicando em cada contrato na lista para ver o cronograma de parcelas, status de atrasos e acessar o modal de pagamentos parciais, totais ou apenas juros.</li>
+          <li><strong>Novo Contrato</strong>: Utilize o botão "Novo Empréstimo" para registrar uma nova operação financeira, escolhendo o devedor, o valor tomado, a taxa de juros do acordo e o número de parcelas.</li>
+          <li><strong>Score de Crédito</strong>: O score de crédito do cliente (índice 0-1000 exibido ao lado do nome) é reavaliado e atualizado pelo sistema dinamicamente a cada pagamento realizado ou atraso registrado.</li>
+        </ul>
+      </div>
+
       {/* Mobile: cards */}
       <div className="md:hidden space-y-2">
         {emprestimos.map((e) => (

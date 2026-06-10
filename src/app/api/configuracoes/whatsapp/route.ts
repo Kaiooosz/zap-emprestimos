@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * POST /api/configuracoes/whatsapp
+ * Propósito: Salva/atualiza os dados de credenciais e conexão da Evolution API + URL do Webhook do WhatsApp.
+ * Recebe: Objeto contendo credenciais (apiUrl, apiKey, instance, numeroBusiness, webhookUrl, etc.)
+ */
 export async function POST(req: NextRequest) {
   try {
     const whatsapp = await req.json();

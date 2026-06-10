@@ -20,7 +20,7 @@ export default function RegisterPage() {
     if (form.senha !== form.confirmar) return alert("As senhas nao coincidem.");
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1000));
-    router.push("/dashboard");
+    router.push("/dashboard?new=true");
     setLoading(false);
   }
 

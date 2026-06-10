@@ -120,6 +120,16 @@ export default function SimuladorPage() {
         </div>
       </div>
 
+      {/* Painel Informativo sobre Regras Financeiras */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 leading-relaxed space-y-2">
+        <p className="font-semibold text-slate-700">Funcionamento das Modalidades e Juros de Atraso:</p>
+        <ul className="list-disc pl-4 space-y-1">
+          <li><strong>Mensal Rolável</strong>: O devedor paga apenas a taxa de juros do mês para prorrogar a liquidação do principal por mais 30 dias (renovação). Caso deseje abater a dívida ou quitá-la (Opção C), os juros subsequentes incidirão apenas sobre o saldo devedor restante.</li>
+          <li><strong>Parcelado</strong>: O principal é dividido de acordo com a quantidade de parcelas desejada, aplicando as taxas percentuais salvas na aba de parcelamento das configurações.</li>
+          <li><strong>Juros de Atraso Diário</strong>: Regra A calcula os juros com base no valor integral da parcela. Regra B aplica os juros diários estritamente sob o saldo restante (após amortizações parciais).</li>
+        </ul>
+      </div>
+
       {/* Seletor de modo */}
       <div className="flex gap-2">
         {([

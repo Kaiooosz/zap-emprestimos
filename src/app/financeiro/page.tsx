@@ -34,6 +34,16 @@ export default async function FinanceiroPage() {
         </Link>
       </div>
 
+      {/* Painel Informativo sobre Financeiro Interno */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 leading-relaxed space-y-2">
+        <p className="font-semibold text-slate-700">Controle de Despesas e Contas a Pagar:</p>
+        <ul className="list-disc pl-4 space-y-1">
+          <li><strong>Organização por Categoria</strong>: Classifique as contas de despesas da sua operação (Aluguel, Salário, Tecnologia, Marketing, etc.) para ter um panorama claro dos seus custos.</li>
+          <li><strong>Pagamentos</strong>: Ao liquidar uma obrigação, utilize o botão "Pagar" na linha da tabela correspondente. O sistema atualizará o status e recalculará as somas totais do mês.</li>
+          <li><strong>Lançamentos</strong>: Clique em "Nova Conta" para cadastrar futuras despesas, informando descrição, valor, data de vencimento e se ela se trata de um custo recorrente mensal.</li>
+        </ul>
+      </div>
+
       {/* Resumo */}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4">

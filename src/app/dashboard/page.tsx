@@ -6,6 +6,7 @@ import { formatarMoeda, formatarData } from "@/lib/utils";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { GraficoBarras } from "@/components/dashboard/GraficoBarras";
 import { MiniCalendario } from "@/components/dashboard/MiniCalendario";
+import { OnboardingTour } from "@/components/shared/OnboardingTour";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ interface PageProps {
   searchParams: Promise<{
     periodo?: string;
     status?: string;
+    new?: string;
   }>;
 }
 
@@ -20,6 +22,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
   const periodo = resolvedParams.periodo ?? "mes";
   const status = resolvedParams.status ?? "todos";
+  const isNew = resolvedParams.new === "true";
 
   const hoje    = new Date();
   const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate() + 7);
@@ -412,6 +415,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </div>
         </div>
       </div>
+      <OnboardingTour startAutomatically={isNew} />
     </div>
   );
 }

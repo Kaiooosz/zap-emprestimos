@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * POST /api/configuracoes/empresa
+ * Propósito: Salva/atualiza os dados cadastrais da empresa no JSON global de configurações do singleton Config.
+ * Recebe: Objeto contendo dados da empresa (razão social, CNPJ, padrão operacional, etc.)
+ */
 export async function POST(req: NextRequest) {
   try {
     const empresa = await req.json();

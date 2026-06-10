@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * POST /api/configuracoes/templates
+ * Propósito: Atualiza o conteúdo textual de um template de mensagem de cobrança persistido no banco de dados (tabela Template).
+ * Recebe: { id: string, conteudo: string }
+ */
 export async function POST(request: Request) {
   try {
     const { id, conteudo } = await request.json();

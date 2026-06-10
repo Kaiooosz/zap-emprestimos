@@ -29,6 +29,16 @@ export default async function ClientesPage() {
         </Link>
       </div>
 
+      {/* Painel Informativo sobre Clientes e Score */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 leading-relaxed space-y-2">
+        <p className="font-semibold text-slate-700">Gestão de Devedores e Score de Risco:</p>
+        <ul className="list-disc pl-4 space-y-1">
+          <li><strong>Perfil do Cliente</strong>: Clique em cada card para acessar o histórico detalhado, contratos vinculados, informações cadastrais completas e as garantias registradas para aquele cliente.</li>
+          <li><strong>Novo Cadastro</strong>: Utilize o botão "Novo Cliente" para cadastrar pessoas físicas (PF) ou jurídicas (PJ), configurando o telefone (necessário para os disparos de cobrança via WhatsApp) e endereço.</li>
+          <li><strong>Métrica do Score</strong>: O score de crédito é um indicador que varia de 0 (Muito Alto Risco) a 1000 (Excelente). Ele é recalculado automaticamente a cada pagamento efetuado em dia (sobe o score) ou atraso registrado (desce o score).</li>
+        </ul>
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {clientes.map((c) => (
           <Link key={c.id} href={`/clientes/${c.id}`} className="group rounded-2xl border border-slate-200 bg-white p-5 hover:border-[#4a78c0]/40 transition-all">
