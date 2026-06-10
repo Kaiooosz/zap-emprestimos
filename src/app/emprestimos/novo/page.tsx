@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -46,6 +46,14 @@ const intervaloMap: Record<Periodo, number> = { DIARIO: 1, SEMANAL: 7, QUINZENAL
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function NovoEmprestimoPage() {
+  return (
+    <Suspense fallback={null}>
+      <NovoEmprestimoInner />
+    </Suspense>
+  );
+}
+
+function NovoEmprestimoInner() {
   const router      = useRouter();
   const searchParams= useSearchParams();
   const [step,      setStep]      = useState(0);   // 0=tipo, 1=dados, 2=garantias, 3=revisão

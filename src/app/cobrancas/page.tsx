@@ -6,17 +6,17 @@ export const dynamic = "force-dynamic";
 export default async function CobrancasPage() {
   const hoje = new Date();
 
-  // Marca parcelas atrasadas
+  // Marca parcelas vencidas como ATRASADO
   await prisma.parcela.updateMany({
     where: {
-      status:        "PENDENTE",
+      status:         "PENDENTE",
       dataVencimento: { lt: hoje },
     },
     data: { status: "ATRASADO" },
   });
 
   const parcelas = await prisma.parcela.findMany({
-    where:   { status: { in: ["ATRASADO","PENDENTE"] } },
+    where:   { status: { in: ["ATRASADO", "PENDENTE"] } },
     include: { emprestimo: { include: { cliente: true } } },
     orderBy: { dataVencimento: "asc" },
   });
@@ -27,18 +27,19 @@ export default async function CobrancasPage() {
       ? Math.max(0, Math.floor((hoje.getTime() - venc.getTime()) / 86400000))
       : 0;
     return {
-      id:           p.id,
-      parcelaNum:   p.numero,
-      totalParcelas:p.emprestimo.numParcelas,
-      clienteId:    p.emprestimo.cliente.id,
-      clienteNome:  p.emprestimo.cliente.nome,
-      clientePhone: p.emprestimo.cliente.phone,
-      score:        p.emprestimo.cliente.score,
-      valorDevido:  Number(p.valorDevido),
+      id:            p.id,
+      parcelaNum:    p.numero,
+      totalParcelas: p.emprestimo.numParcelas,
+      clienteId:     p.emprestimo.cliente.id,
+      clienteNome:   p.emprestimo.cliente.nome,
+      clientePhone:  p.emprestimo.cliente.phone,
+      score:         p.emprestimo.cliente.score,
+      valorDevido:   Number(p.valorDevido),
+      valorPago:     Number(p.valorPago ?? 0),
       dataVencimento: p.dataVencimento.toISOString(),
-      status:       p.status,
+      status:        p.status,
       diasAtraso,
-      emprestimoId: p.emprestimoId,
+      emprestimoId:  p.emprestimoId,
     };
   }).sort((a, b) => b.diasAtraso - a.diasAtraso);
 
@@ -47,9 +48,14 @@ export default async function CobrancasPage() {
     prisma.config.findUnique({ where: { id: "singleton" } }),
   ]);
 
-  const cfg       = (config?.data as any) ?? {};
-  const empresa   = cfg.empresa   ?? {};
-  const whatsapp  = cfg.whatsapp  ?? {};
+  const cfg       = (config?.data as Record<string, unknown>) ?? {};
+  const empresa   = (cfg.empresa   as Record<string, string>)  ?? {};
+  const whatsapp  = (cfg.whatsapp  as Record<string, string>)  ?? {};
+  const operacional = (cfg.operacional as Record<string, unknown>) ?? {};
+
+  // Regra de atraso e taxa diária configuráveis na config (padrões: Regra A, 1%/dia)
+  const regraAtraso = (operacional.regraAtraso as "A" | "B") ?? "A";
+  const taxaDiaria  = Number(operacional.taxaDiaria ?? 1);
 
   const templatesMapped = templates.map((t) => ({
     id:        t.id,
@@ -64,9 +70,11 @@ export default async function CobrancasPage() {
     <CobrancasClient
       pendentes={pendentes}
       templates={templatesMapped}
-      empresaNome={empresa.nomeFantasia ?? "Zap Empréstimos"}
+      empresaNome={empresa.nomeFantasia ?? "Zap Emprestimos"}
       empresaTelefone={empresa.telefone ?? ""}
-      whatsappStatus={whatsapp.status ?? "NAO_CONFIGURADO"}
+      whatsappStatus={(whatsapp.status as any) ?? "NAO_CONFIGURADO"}
+      regraAtraso={regraAtraso}
+      taxaDiaria={taxaDiaria}
     />
   );
 }

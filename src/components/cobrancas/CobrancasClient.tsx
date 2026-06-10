@@ -17,6 +17,7 @@ interface Pendente {
   clientePhone: string;
   score: number;
   valorDevido: number;
+  valorPago: number;        // valor já pago na parcela (para regra B)
   dataVencimento: string;
   status: string;
   diasAtraso: number;
@@ -29,19 +30,30 @@ interface Props {
   empresaNome: string;
   empresaTelefone: string;
   whatsappStatus: "CONECTADO" | "DESCONECTADO" | "NAO_CONFIGURADO";
+  regraAtraso: "A" | "B";   // A = parcela inteira, B = saldo restante
+  taxaDiaria: number;        // % por dia, ex: 1
 }
 
 function renderTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
 }
 
-export function CobrancasClient({ pendentes, templates, empresaNome, empresaTelefone, whatsappStatus }: Props) {
+export function CobrancasClient({ pendentes, templates, empresaNome, empresaTelefone, whatsappStatus, regraAtraso, taxaDiaria }: Props) {
   const [filtro, setFiltro]         = useState<"todos" | "atrasado" | "pendente">("todos");
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? "");
   const [preview, setPreview]       = useState<Pendente | null>(null);
   const [disparando, setDisparando] = useState(false);
   const [disparados, setDisparados] = useState<Set<string>>(new Set());
+
+  /** Calcula juros de atraso respeitando a regra do perfil */
+  function calcJuros(p: Pendente): number {
+    if (p.diasAtraso <= 0) return 0;
+    const base = regraAtraso === "A"
+      ? p.valorDevido                                          // Regra A: parcela inteira
+      : Math.max(0, p.valorDevido - (p.valorPago ?? 0));      // Regra B: saldo restante
+    return Number((base * p.diasAtraso * taxaDiaria / 100).toFixed(2));
+  }
 
   const lista = useMemo(() =>
     pendentes.filter((p) => filtro === "todos" || p.status === filtro.toUpperCase()),
@@ -51,14 +63,17 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
   const template = templates.find((t) => t.id === templateId);
 
   function getVars(p: Pendente): Record<string, string> {
+    const juros = calcJuros(p);
     return {
       nome:             p.clienteNome,
       numero:           String(p.parcelaNum),
-      valor:            formatarMoeda(p.valorDevido),
+      valor:            formatarMoeda(p.valorDevido + juros),
       vencimento:       formatarData(p.dataVencimento),
       dias_atraso:      String(p.diasAtraso),
       telefone_empresa: empresaTelefone,
       empresa:          empresaNome,
+      juros_atraso:     formatarMoeda(juros),
+      regra_juros:      `Regra ${regraAtraso} (${taxaDiaria}%/dia)`,
     };
   }
 
@@ -183,14 +198,19 @@ export function CobrancasClient({ pendentes, templates, empresaNome, empresaTele
                         <ScoreBadge score={p.score}/>
                         <span className="text-xs text-slate-500 tabular-nums">{p.clientePhone}</span>
                       </div>
-                      {/* Atraso/vencimento — visível só no mobile abaixo do nome */}
-                      <div className="mt-0.5 sm:hidden">
-                        {p.diasAtraso > 0 ? (
-                          <span className="text-xs text-red-400">{p.diasAtraso}d atraso · Parc. {p.parcelaNum}/{p.totalParcelas}</span>
-                        ) : (
-                          <span className="text-xs text-slate-500">{formatarData(p.dataVencimento)} · Parc. {p.parcelaNum}/{p.totalParcelas}</span>
-                        )}
-                      </div>
+                      {p.diasAtraso > 0 && (() => {
+                        const juros = calcJuros(p);
+                        return (
+                          <div className="mt-1 flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] text-red-500 font-medium">
+                              Juros (Regra {regraAtraso}): +{formatarMoeda(juros)}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              Total: {formatarMoeda(p.valorDevido + juros)}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="text-right shrink-0 space-y-1">

@@ -1,11 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { User, Building2, MessageSquare, Smartphone, FileText, Save, RefreshCw, CheckCircle, QrCode, Percent } from "lucide-react";
+import { User, Building2, MessageSquare, Smartphone, FileText, Save, RefreshCw, CheckCircle, QrCode, Percent, Bell, Loader2, Clock } from "lucide-react";
 import { ConfigEmpresa, ConfigWhatsApp, TemplateMsg, TaxasParcelamento, storeExt } from "@/lib/store";
 
-type Tab = "perfil" | "empresa" | "whatsapp" | "templates" | "agente" | "parcelamento";
+type Tab = "perfil" | "empresa" | "whatsapp" | "templates" | "agente" | "parcelamento" | "notificacoes";
+
+interface ConfigNotificacao {
+  ativo:      boolean;
+  horario:    string | null;
+  templateId: string | null;
+}
+
+interface ConfigNotificacoes {
+  resumoDiario:        ConfigNotificacao;
+  relatorioCobrancas:  ConfigNotificacao;
+  lembreteManhaAlt:    ConfigNotificacao;
+  bemVindas:           ConfigNotificacao;
+  lembrete3dias:       ConfigNotificacao;
+  confirmacaoQuitacao: ConfigNotificacao;
+}
+
+const NOTIF_DEFAULTS: ConfigNotificacoes = {
+  resumoDiario:        { ativo: false, horario: "07:00", templateId: null },
+  relatorioCobrancas:  { ativo: false, horario: "08:00", templateId: null },
+  lembreteManhaAlt:    { ativo: false, horario: "12:00", templateId: null },
+  bemVindas:           { ativo: false, horario: null,    templateId: null },
+  lembrete3dias:       { ativo: false, horario: "09:00", templateId: null },
+  confirmacaoQuitacao: { ativo: false, horario: null,    templateId: null },
+};
+
+const NOTIF_META: Record<keyof ConfigNotificacoes, { label: string; desc: string; temHorario: boolean }> = {
+  resumoDiario:        { label: "Resumo diário",             desc: "Visao geral de vencimentos do dia",              temHorario: true },
+  relatorioCobrancas:  { label: "Relatorio de cobrancas",   desc: "Lista de parcelas atrasadas",                    temHorario: true },
+  lembreteManhaAlt:    { label: "Lembrete alternativo",      desc: "Parcelas nao cobradas pela manha",               temHorario: true },
+  bemVindas:           { label: "Boas-vindas ao contrato",   desc: "Enviado ao criar emprestimo — imediato",         temHorario: false },
+  lembrete3dias:       { label: "Lembrete 3 dias antes",     desc: "Alerta antecipado de vencimento",                temHorario: true },
+  confirmacaoQuitacao: { label: "Confirmacao de quitacao",   desc: "Enviado quando emprestimo e quitado — imediato", temHorario: false },
+};
 
 interface Props {
   empresa: ConfigEmpresa;
@@ -15,12 +48,13 @@ interface Props {
 }
 
 const tabs: { id: Tab; label: string; icon: typeof User }[] = [
-  { id: "perfil",       label: "Perfil",        icon: User },
-  { id: "empresa",      label: "Empresa",       icon: Building2 },
-  { id: "whatsapp",     label: "WhatsApp",      icon: Smartphone },
-  { id: "templates",    label: "Templates",     icon: MessageSquare },
-  { id: "parcelamento", label: "Parcelamento",  icon: Percent },
-  { id: "agente",       label: "Agente IA",     icon: FileText },
+  { id: "perfil",         label: "Perfil",          icon: User },
+  { id: "empresa",        label: "Empresa",         icon: Building2 },
+  { id: "whatsapp",       label: "WhatsApp",        icon: Smartphone },
+  { id: "templates",      label: "Templates",       icon: MessageSquare },
+  { id: "notificacoes",   label: "Notificacoes",    icon: Bell },
+  { id: "parcelamento",   label: "Parcelamento",    icon: Percent },
+  { id: "agente",         label: "Agente IA",       icon: FileText },
 ];
 
 const AGENTE_MD_INICIAL = `# Agente de Cobranças — Zap Empréstimos
@@ -98,6 +132,38 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
   const [qrVisible, setQrVisible] = useState(false);
   const [taxas, setTaxas]         = useState<TaxasParcelamento>({ ...taxasInit });
   const [taxasSaved, setTaxasSaved] = useState(false);
+
+  // Notificacoes
+  const [notifs,       setNotifs]       = useState<ConfigNotificacoes>(NOTIF_DEFAULTS);
+  const [notifLoading, setNotifLoading] = useState(true);
+  const [notifSaved,   setNotifSaved]   = useState(false);
+  const [notifSaving,  setNotifSaving]  = useState(false);
+
+  useEffect(() => {
+    fetch("/api/configuracoes/notificacoes")
+      .then((r) => r.json())
+      .then((d) => { setNotifs({ ...NOTIF_DEFAULTS, ...d }); setNotifLoading(false); })
+      .catch(() => setNotifLoading(false));
+  }, []);
+
+  async function salvarNotificacoes() {
+    setNotifSaving(true);
+    try {
+      await fetch("/api/configuracoes/notificacoes", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(notifs),
+      });
+      setNotifSaved(true);
+      setTimeout(() => setNotifSaved(false), 2500);
+    } finally {
+      setNotifSaving(false);
+    }
+  }
+
+  function setNotifField<K extends keyof ConfigNotificacoes>(key: K, field: keyof ConfigNotificacao, value: unknown) {
+    setNotifs((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+  }
 
   // Formulário empresa
   const [emp, setEmp] = useState({ ...empresa });
@@ -425,6 +491,108 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Notificacoes ── */}
+          {tab === "notificacoes" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Notificacoes Automaticas</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Ative, personalize o horario e associe um template a cada notificacao</p>
+                </div>
+                <button
+                  onClick={salvarNotificacoes}
+                  disabled={notifSaving}
+                  className="flex items-center gap-1.5 rounded-xl border border-blue-700 bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-60 transition-colors shrink-0"
+                >
+                  {notifSaving ? <Loader2 size={12} className="animate-spin" /> : notifSaved ? <CheckCircle size={12} className="text-emerald-300" /> : <Save size={12} />}
+                  {notifSaved ? "Salvo!" : "Salvar"}
+                </button>
+              </div>
+
+              {notifLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 size={20} className="animate-spin text-slate-400" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(Object.keys(NOTIF_META) as (keyof ConfigNotificacoes)[]).map((key) => {
+                    const meta  = NOTIF_META[key];
+                    const notif = notifs[key];
+                    return (
+                      <div key={key} className={`rounded-2xl border bg-white p-5 transition-all ${notif.ativo ? "border-blue-200" : "border-slate-200"}`}>
+                        <div className="flex items-start gap-4">
+                          <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${notif.ativo ? "bg-blue-50" : "bg-slate-50"}`}>
+                            <Bell size={16} className={notif.ativo ? "text-blue-700" : "text-slate-400"} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-slate-900">{meta.label}</p>
+                              {/* Toggle */}
+                              <button
+                                onClick={() => setNotifField(key, "ativo", !notif.ativo)}
+                                className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${notif.ativo ? "bg-blue-700" : "bg-slate-200"}`}
+                              >
+                                <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${notif.ativo ? "left-6" : "left-1"}`} />
+                              </button>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">{meta.desc}</p>
+
+                            {notif.ativo && (
+                              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Horario */}
+                                {meta.temHorario && (
+                                  <div>
+                                    <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                                      <Clock size={9} />
+                                      Horario de disparo
+                                    </label>
+                                    <input
+                                      type="time"
+                                      value={notif.horario ?? "07:00"}
+                                      onChange={(e) => setNotifField(key, "horario", e.target.value)}
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
+                                    />
+                                  </div>
+                                )}
+                                {!meta.temHorario && (
+                                  <div className="flex items-center rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                    <p className="text-xs text-slate-500">Enviado imediatamente ao evento</p>
+                                  </div>
+                                )}
+
+                                {/* Template */}
+                                <div>
+                                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Template de mensagem</label>
+                                  <select
+                                    value={notif.templateId ?? ""}
+                                    onChange={(e) => setNotifField(key, "templateId", e.target.value || null)}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
+                                  >
+                                    <option value="">Nenhum template</option>
+                                    {templates.map((t) => (
+                                      <option key={t.id} value={t.id}>{t.nome}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  As notificacoes sao enviadas via WhatsApp pelo numero Business configurado na aba WhatsApp.
+                  Certifique-se de que a conexao esta ativa antes de ativar os disparos automaticos.
+                </p>
               </div>
             </div>
           )}
