@@ -106,16 +106,16 @@ Ao receber qualquer valor pago pelo cliente, o sistema deve seguir esta ordem de
 
 ### 3.1 Regra de aplicação
 
-- Juros de atraso são cobrados **por dia** de inadimplência
-- A regra é definida pelo **admin** e pode ser diferente por **perfil de cliente**
-- Há duas modalidades de cálculo disponíveis como toggle por perfil:
+- Juros de atraso são cobrados **por dia** de inadimplência.
+- O percentual da taxa de juros diário de atraso é definido pelo administrador de acordo com o perfil do cliente cadastrado.
+- Caso o cliente não pague a parcela total no vencimento, os juros de atraso diários incidem de acordo com duas regras de cálculo disponíveis:
 
 | Regra | Base de cálculo | Descrição |
 |-------|-----------------|-----------|
-| A | Valor da parcela (total) | 1% ao dia sobre o valor integral da parcela |
-| B | Saldo restante da parcela | 1% ao dia sobre o quanto ainda falta pagar da parcela |
+| Regra A | Valor da parcela (total) | A taxa diária do perfil incide sobre o valor integral da parcela |
+| Regra B | Saldo restante da parcela | A taxa diária do perfil incide apenas sobre o valor restante/faltante da parcela (em caso de pagamento parcial) |
 
-**Exemplo — Regra A:**
+**Exemplo — Regra A (Taxa diária de 1%):**
 ```
 Parcela devida:    R$ 1.200,00
 Dias em atraso:    3
@@ -123,7 +123,7 @@ Juros de atraso:   R$ 1.200 × 1% × 3 = R$ 36,00
 Total a pagar:     R$ 1.236,00
 ```
 
-**Exemplo — Regra B (cliente pagou R$ 400 da parcela e ficou devendo R$ 800):**
+**Exemplo — Regra B (Taxa diária de 1%, cliente pagou R$ 400 da parcela e ficou devendo R$ 800):**
 ```
 Saldo da parcela:  R$ 800,00
 Dias em atraso:    3
@@ -137,41 +137,36 @@ Total a pagar:     R$ 824,00
 Perfil do cliente → define:
   - Modalidade de empréstimo permitida (1, 2 ou ambas)
   - Taxa mensal de juros (ex: 30%)
-  - Regra de atraso (A ou B)
-  - % do juros de atraso por dia (padrão: 1%)
+  - Regra de atraso (Regra A ou Regra B)
+  - % do juros de atraso por dia definido pelo admin
 ```
 
 ---
 
 ## 4. Projeções e Visão Financeira da Empresa
 
-### 4.1 Volume em campo
+### 4.1 Volume de Dinheiro na Rua (Capital em Campo)
 
-- Soma total de capital emprestado que ainda não foi quitado
-- Atualizado em tempo real a cada pagamento recebido ou novo empréstimo concedido
+- Soma total de capital principal emprestado que ainda não foi quitado pelos clientes.
+- Atualizado em tempo real a cada pagamento recebido ou novo empréstimo concedido.
 
-### 4.2 Lucro projetado
+### 4.2 Lucro Projetado e Projeções
 
-- Total de juros a receber de todos os contratos ativos
-- Deve ser exibido com projeção por data:
-  - Quanto vai entrar **hoje**
-  - Quanto vai entrar **este mês**
-  - Projeção dos **próximos meses**
+- Projeção do total de lucro que a empresa irá obter com base nos juros a receber dos contratos ativos.
+- Exibe o valor do lucro esperado e as datas de quando cada retorno será obtido (hoje, este mês e projeções futuras para os próximos meses).
 
 ### 4.3 Agenda de recebimentos
 
-- Listagem por data de vencimento de cada parcela/juros
-- Discrimina: principal esperado + juros esperados + juros de atraso acumulados (se houver)
+- Listagem por data de vencimento de cada parcela/juros.
+- Discrimina: principal esperado + juros esperados + juros de atraso acumulados (se houver).
 
 ---
 
 ## 5. Cobranças
 
-- Disparadas automaticamente quando o cliente **não paga a parcela total** no vencimento
-- O sistema identifica:
-  - Pagamento parcial → aplica juros de atraso sobre o saldo faltante (conforme regra do perfil)
-  - Sem pagamento → aplica juros de atraso sobre a parcela inteira (conforme regra do perfil)
-- Cobrança pode ser via Zap (WhatsApp) com mensagem automática configurável
+- Disparadas quando o cliente não paga a parcela total no vencimento.
+- O sistema calcula automaticamente os juros de atraso diários sobre o valor integral da parcela (Regra A) ou sobre o saldo restante (Regra B) conforme definido no perfil do cliente pelo admin.
+- O disparo de cobrança enfileira a notificação na fila assíncrona com throttling seguro para envio via WhatsApp.
 
 ---
 
@@ -182,20 +177,17 @@ Perfil do cliente → define:
 | Principal | Valor original tomado pelo cliente |
 | Saldo devedor | Principal ainda não quitado |
 | Juros mensais | % aplicado sobre o saldo devedor ao mês |
-| Juros de atraso | % aplicado por dia de inadimplência |
+| Juros de atraso | % aplicado por dia de inadimplência definido por perfil |
 | Abatimento | Pagamento que reduz o saldo devedor |
 | Excedente | Valor pago acima da parcela devida |
-| Perfil | Configuração do cliente (taxas, regras, modalidades) |
+| Perfil | Configuração do cliente (taxas, regras, de acordo com o perfil) |
 | Liquidação | Quitação total da dívida |
 | Renovação | Pagamento só de juros, rolando a dívida |
 
 ---
 
-## 7. Pontos em aberto para decisão
+## 7. Decisões Consolidadas de Implementação
 
-- [ ] No parcelado com abatimento: as parcelas futuras são recalculadas (valor menor) ou o número de parcelas diminui?
-- [ ] O excedente retido no parcelado tem prazo de validade ou fica indefinidamente?
-- [ ] A taxa de atraso (1%) é fixa ou também configurável por perfil?
-- [ ] Existe um limite máximo de renovações na Modalidade 1?
-- [ ] Como é tratada a quitação antecipada total no parcelado (desconto de juros futuros)?
+- **Juros de Atraso**: A taxa diária é 100% configurável pelo admin para cada perfil de cliente, incidindo sobre o valor total da parcela ou o restante conforme a regra selecionada.
+- **Forma de Liquidação**: O recebimento de pagamentos atualiza a negociação separando o valor devido da parcela e o valor a mais. O excedente abate o saldo devedor (atualizando a porcentagem de quitação da dívida) na modalidade Mensal, e fica retido/seguro para descontar da próxima parcela na modalidade Parcelado.
 
