@@ -787,6 +787,7 @@ export interface ConfigWhatsApp {
   enviarBemVindas: boolean;
   enviarLembrete3dias: boolean;
   enviarQuitacao: boolean;
+  webhookUrl?: string;
 }
 
 let _configEmpresa: ConfigEmpresa = {

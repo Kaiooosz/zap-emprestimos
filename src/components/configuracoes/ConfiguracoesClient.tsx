@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { User, Building2, MessageSquare, Smartphone, FileText, Save, RefreshCw, CheckCircle, QrCode, Percent, Bell, Loader2, Clock } from "lucide-react";
 import { ConfigEmpresa, ConfigWhatsApp, TemplateMsg, TaxasParcelamento, storeExt } from "@/lib/store";
 
-type Tab = "perfil" | "empresa" | "whatsapp" | "templates" | "agente" | "parcelamento" | "notificacoes";
+type Tab = "perfil" | "empresa" | "whatsapp" | "agente" | "parcelamento";
 
 interface ConfigNotificacao {
   ativo:      boolean;
@@ -51,8 +51,6 @@ const tabs: { id: Tab; label: string; icon: typeof User }[] = [
   { id: "perfil",         label: "Perfil",          icon: User },
   { id: "empresa",        label: "Empresa",         icon: Building2 },
   { id: "whatsapp",       label: "WhatsApp",        icon: Smartphone },
-  { id: "templates",      label: "Templates",       icon: MessageSquare },
-  { id: "notificacoes",   label: "Notificacoes",    icon: Bell },
   { id: "parcelamento",   label: "Parcelamento",    icon: Percent },
   { id: "agente",         label: "Agente IA",       icon: FileText },
 ];
@@ -127,48 +125,71 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
   const [tab, setTab]             = useState<Tab>(tabInicial);
   const [saved, setSaved]         = useState(false);
   const [agentemd, setAgenteMd]   = useState(AGENTE_MD_INICIAL);
-  const [templateSel, setTemplateSel] = useState(templates[0]?.id ?? "");
-  const [templateConteudo, setTemplateConteudo] = useState(templates[0]?.conteudo ?? "");
   const [qrVisible, setQrVisible] = useState(false);
   const [taxas, setTaxas]         = useState<TaxasParcelamento>({ ...taxasInit });
   const [taxasSaved, setTaxasSaved] = useState(false);
 
-  // Notificacoes
-  const [notifs,       setNotifs]       = useState<ConfigNotificacoes>(NOTIF_DEFAULTS);
-  const [notifLoading, setNotifLoading] = useState(true);
-  const [notifSaved,   setNotifSaved]   = useState(false);
-  const [notifSaving,  setNotifSaving]  = useState(false);
+  // Formulário empresa
+  const [emp, setEmp] = useState({ ...empresa });
+  const [empSaving, setEmpSaving] = useState(false);
+  const [empSaved, setEmpSaved] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/configuracoes/notificacoes")
-      .then((r) => r.json())
-      .then((d) => { setNotifs({ ...NOTIF_DEFAULTS, ...d }); setNotifLoading(false); })
-      .catch(() => setNotifLoading(false));
-  }, []);
-
-  async function salvarNotificacoes() {
-    setNotifSaving(true);
+  async function salvarEmpresa() {
+    setEmpSaving(true);
     try {
-      await fetch("/api/configuracoes/notificacoes", {
-        method:  "POST",
+      await fetch("/api/configuracoes/empresa", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(notifs),
+        body: JSON.stringify(emp),
       });
-      setNotifSaved(true);
-      setTimeout(() => setNotifSaved(false), 2500);
+      setEmpSaved(true);
+      setTimeout(() => setEmpSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
     } finally {
-      setNotifSaving(false);
+      setEmpSaving(false);
     }
   }
 
-  function setNotifField<K extends keyof ConfigNotificacoes>(key: K, field: keyof ConfigNotificacao, value: unknown) {
-    setNotifs((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
-  }
-
-  // Formulário empresa
-  const [emp, setEmp] = useState({ ...empresa });
   // Formulário WhatsApp
   const [zap, setZap] = useState({ ...whatsapp });
+  const [zapSaving, setZapSaving] = useState(false);
+  const [zapSaved, setZapSaved] = useState(false);
+
+  async function salvarWhatsapp() {
+    setZapSaving(true);
+    try {
+      await fetch("/api/configuracoes/whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(zap),
+      });
+      setZapSaved(true);
+      setTimeout(() => setZapSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setZapSaving(false);
+    }
+  }
+
+  // Webhook Test
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [webhookTestStatus, setWebhookTestStatus] = useState<"success" | "error" | null>(null);
+
+  async function testarWebhook() {
+    if (!zap.webhookUrl) return;
+    setTestingWebhook(true);
+    setWebhookTestStatus(null);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      setWebhookTestStatus("success");
+    } catch {
+      setWebhookTestStatus("error");
+    } finally {
+      setTestingWebhook(false);
+    }
+  }
 
   function setEmpField(k: keyof ConfigEmpresa, v: string | number) {
     setEmp((prev) => ({ ...prev, [k]: v }));
@@ -180,12 +201,6 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
   function onSave() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-  }
-
-  function onTemplateChange(id: string) {
-    setTemplateSel(id);
-    const t = templates.find((t) => t.id === id);
-    if (t) setTemplateConteudo(t.conteudo);
   }
 
   return (
@@ -237,7 +252,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
 
           {/* ── Empresa ── */}
           {tab === "empresa" && (
-            <Section title="Dados da Empresa" onSave={onSave} saved={saved}>
+            <Section title="Dados da Empresa" onSave={salvarEmpresa} saved={empSaved}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Razão Social" value={emp.razaoSocial} onChange={(v) => setEmpField("razaoSocial", v)} />
                 <Field label="Nome Fantasia" value={emp.nomeFantasia} onChange={(v) => setEmpField("nomeFantasia", v)} />
@@ -261,19 +276,15 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
 
           {/* ── WhatsApp ── */}
           {tab === "whatsapp" && (
-            <Section title="Conexão WhatsApp" onSave={onSave} saved={saved}>
+            <Section title="Conexão WhatsApp" onSave={salvarWhatsapp} saved={zapSaved}>
               {/* Status */}
-              <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 mb-5 ${
-                zap.status === "CONECTADO"
-                  ? "border-emerald-800 bg-emerald-900/20"
-                  : "border-red-800 bg-red-900/20"
-              }`}>
-                <div className={`h-2.5 w-2.5 rounded-full ${zap.status === "CONECTADO" ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-                <p className="text-sm font-medium text-slate-900">
+              <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 mb-5 border-slate-200 bg-slate-50 text-slate-700`}>
+                <div className={`h-2.5 w-2.5 rounded-full ${zap.status === "CONECTADO" ? "bg-blue-500 animate-pulse" : "bg-slate-400"}`} />
+                <p className="text-sm font-medium">
                   {zap.status === "CONECTADO" ? "Conectado" : zap.status === "DESCONECTADO" ? "Desconectado" : "Não configurado"}
                 </p>
                 {zap.status !== "CONECTADO" && (
-                  <button onClick={() => setQrVisible(!qrVisible)} className="ml-auto flex items-center gap-1.5 text-xs text-slate-700 hover:text-slate-900">
+                  <button onClick={() => setQrVisible(!qrVisible)} className="ml-auto flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
                     <QrCode size={13}/>
                     {qrVisible ? "Fechar QR" : "Conectar via QR"}
                   </button>
@@ -291,13 +302,13 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
                   </div>
                   <p className="text-xs text-slate-500 mt-3">O código expira em 60 segundos</p>
                   <button onClick={() => setZapField("status", "CONECTADO")}
-                    className="mt-3 text-xs text-emerald-400 underline hover:text-emerald-300">
+                    className="mt-3 text-xs text-blue-500 underline hover:text-blue-600">
                     Simular conexão bem-sucedida
                   </button>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                 <Field label="URL da API (Evolution API)" value={zap.apiUrl} onChange={(v) => setZapField("apiUrl", v)} placeholder="http://localhost:8080" />
                 <Field label="API Key" value={zap.apiKey} onChange={(v) => setZapField("apiKey", v)} placeholder="sua-chave-aqui" type="password" />
                 <Field label="Instância" value={zap.instance} onChange={(v) => setZapField("instance", v)} placeholder="zap-emprestimos" />
@@ -305,102 +316,47 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
               </div>
 
               <div className="border-t border-slate-200 pt-4 mt-4">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Notificações Automáticas</p>
-                <div className="space-y-3">
-                  {[
-                    { key: "notificacoes7h",    label: "Resumo diário 07h00",          desc: "Visão geral de vencimentos do dia" },
-                    { key: "notificacoes8h",    label: "Relatório de cobranças 08h00", desc: "Lista de parcelas atrasadas" },
-                    { key: "notificacoes12h",   label: "Lembrete 12h00",               desc: "Parcelas não cobradas pela manhã" },
-                    { key: "enviarBemVindas",   label: "Boas-vindas ao novo contrato", desc: "Enviado ao criar empréstimo" },
-                    { key: "enviarLembrete3dias",label: "Lembrete 3 dias antes",       desc: "Alerta antecipado de vencimento" },
-                    { key: "enviarQuitacao",    label: "Confirmação de quitação",      desc: "Enviado quando empréstimo é quitado" },
-                  ].map(({ key, label, desc }) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-700">{label}</p>
-                        <p className="text-xs text-slate-500">{desc}</p>
-                      </div>
-                      <button
-                        onClick={() => setZapField(key as any, !(zap as any)[key])}
-                        className={`relative h-5 w-9 rounded-full transition-colors ${(zap as any)[key] ? "bg-slate-400" : "bg-slate-700"}`}
-                      >
-                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${(zap as any)[key] ? "left-4" : "left-0.5"}`} />
-                      </button>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Configurações de Webhook</p>
+                <div className="space-y-4">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Field
+                        label="URL do Webhook"
+                        value={zap.webhookUrl ?? ""}
+                        onChange={(v) => setZapField("webhookUrl", v)}
+                        placeholder="https://seu-sistema.com/api/webhook"
+                      />
                     </div>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={testarWebhook}
+                      disabled={testingWebhook || !zap.webhookUrl}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-colors disabled:opacity-50 h-[42px] flex items-center gap-1.5"
+                    >
+                      {testingWebhook ? (
+                        <>
+                          <Loader2 size={12} className="animate-spin" />
+                          Testando...
+                        </>
+                      ) : (
+                        "Testar Webhook"
+                      )}
+                    </button>
+                  </div>
+                  
+                  {webhookTestStatus === "success" && (
+                    <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                      Webhook testado com sucesso! Conexão ativa.
+                    </p>
+                  )}
+                  {webhookTestStatus === "error" && (
+                    <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                      Erro de conexão ao testar webhook. Verifique a URL e tente novamente.
+                    </p>
+                  )}
                 </div>
               </div>
             </Section>
-          )}
-
-          {/* ── Templates ── */}
-          {tab === "templates" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-900">Templates de Mensagem</p>
-                <select
-                  value={templateSel}
-                  onChange={(e) => onTemplateChange(e.target.value)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none"
-                >
-                  {templates.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {/* Editor */}
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Editor</p>
-                    <span className="text-xs text-slate-600">Markdown + Variáveis</span>
-                  </div>
-                  <textarea
-                    value={templateConteudo}
-                    onChange={(e) => setTemplateConteudo(e.target.value)}
-                    rows={16}
-                    className="w-full bg-transparent px-4 py-3 text-sm text-slate-900 font-mono focus:outline-none resize-none"
-                    placeholder="Escreva sua mensagem aqui..."
-                  />
-                </div>
-
-                {/* Preview WhatsApp */}
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-200">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Preview WhatsApp</p>
-                  </div>
-                  <div className="p-4 bg-[#1a2433] min-h-48">
-                    <div className="rounded-2xl rounded-tl-none bg-white border border-slate-200 p-3 max-w-xs shadow-sm">
-                      <p className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed">
-                        {templateConteudo
-                          .replace(/\*\*(.*?)\*\*/g, "$1")
-                          .replace(/\*(.*?)\*/g, "$1")
-                          .replace(/\{\{(\w+)\}\}/g, (_, k) => `[${k}]`)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="px-4 pb-4">
-                    <div className="rounded-xl border border-slate-200 p-3 space-y-1">
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Variáveis</p>
-                      {["{{nome}}", "{{numero}}", "{{valor}}", "{{vencimento}}", "{{dias_atraso}}", "{{telefone_empresa}}"].map((v) => (
-                        <div key={v} className="flex items-center gap-2">
-                          <button
-                            onClick={() => setTemplateConteudo((c) => c + v)}
-                            className="text-xs font-mono text-blue-700 hover:text-blue-900 bg-slate-100 px-2 py-0.5 rounded"
-                          >{v}</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button onClick={onSave} className="flex items-center gap-2 rounded-xl border border-blue-700 bg-blue-700 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-800 transition-colors">
-                  <Save size={14}/>
-                  Salvar Template
-                </button>
-              </div>
-            </div>
           )}
 
           {/* ── Parcelamento ── */}
@@ -495,107 +451,7 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
             </div>
           )}
 
-          {/* ── Notificacoes ── */}
-          {tab === "notificacoes" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Notificacoes Automaticas</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Ative, personalize o horario e associe um template a cada notificacao</p>
-                </div>
-                <button
-                  onClick={salvarNotificacoes}
-                  disabled={notifSaving}
-                  className="flex items-center gap-1.5 rounded-xl border border-blue-700 bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-60 transition-colors shrink-0"
-                >
-                  {notifSaving ? <Loader2 size={12} className="animate-spin" /> : notifSaved ? <CheckCircle size={12} className="text-emerald-300" /> : <Save size={12} />}
-                  {notifSaved ? "Salvo!" : "Salvar"}
-                </button>
-              </div>
 
-              {notifLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 size={20} className="animate-spin text-slate-400" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {(Object.keys(NOTIF_META) as (keyof ConfigNotificacoes)[]).map((key) => {
-                    const meta  = NOTIF_META[key];
-                    const notif = notifs[key];
-                    return (
-                      <div key={key} className={`rounded-2xl border bg-white p-5 transition-all ${notif.ativo ? "border-blue-200" : "border-slate-200"}`}>
-                        <div className="flex items-start gap-4">
-                          <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${notif.ativo ? "bg-blue-50" : "bg-slate-50"}`}>
-                            <Bell size={16} className={notif.ativo ? "text-blue-700" : "text-slate-400"} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-sm font-semibold text-slate-900">{meta.label}</p>
-                              {/* Toggle */}
-                              <button
-                                onClick={() => setNotifField(key, "ativo", !notif.ativo)}
-                                className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${notif.ativo ? "bg-blue-700" : "bg-slate-200"}`}
-                              >
-                                <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${notif.ativo ? "left-6" : "left-1"}`} />
-                              </button>
-                            </div>
-                            <p className="text-xs text-slate-400 mt-0.5">{meta.desc}</p>
-
-                            {notif.ativo && (
-                              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {/* Horario */}
-                                {meta.temHorario && (
-                                  <div>
-                                    <label className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                                      <Clock size={9} />
-                                      Horario de disparo
-                                    </label>
-                                    <input
-                                      type="time"
-                                      value={notif.horario ?? "07:00"}
-                                      onChange={(e) => setNotifField(key, "horario", e.target.value)}
-                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
-                                    />
-                                  </div>
-                                )}
-                                {!meta.temHorario && (
-                                  <div className="flex items-center rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                                    <p className="text-xs text-slate-500">Enviado imediatamente ao evento</p>
-                                  </div>
-                                )}
-
-                                {/* Template */}
-                                <div>
-                                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Template de mensagem</label>
-                                  <select
-                                    value={notif.templateId ?? ""}
-                                    onChange={(e) => setNotifField(key, "templateId", e.target.value || null)}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
-                                  >
-                                    <option value="">Nenhum template</option>
-                                    {templates.map((t) => (
-                                      <option key={t.id} value={t.id}>{t.nome}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  As notificacoes sao enviadas via WhatsApp pelo numero Business configurado na aba WhatsApp.
-                  Certifique-se de que a conexao esta ativa antes de ativar os disparos automaticos.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* ── Agente IA ── */}
           {tab === "agente" && (

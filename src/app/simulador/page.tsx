@@ -161,12 +161,12 @@ export default function SimuladorPage() {
             <>
               <Num label="Número de Parcelas" value={nParcelas} onChange={setNParcelas} step={1} min={2} max={24} />
               {taxaParcelado > 0 ? (
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5">
+                <div className="rounded-xl border border-blue-100 bg-blue-50/30 px-3 py-2.5">
                   <p className="text-xs text-blue-700 font-medium">Taxa para {nParcelas}x: <span className="font-bold">{taxaParcelado}%</span></p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-                  <p className="text-xs text-amber-700">Sem taxa configurada para {nParcelas}x. Configure em Configurações.</p>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <p className="text-xs text-slate-500">Sem taxa configurada para {nParcelas}x. Configure em Configurações.</p>
                 </div>
               )}
               <div>
@@ -253,14 +253,14 @@ export default function SimuladorPage() {
                       titulo: "Quitar a dívida",
                       desc: `Paga ${formatarMoeda(principal + jurosMes)} (principal + juros) → dívida encerrada`,
                       valor: principal + jurosMes,
-                      color: "bg-emerald-50 border-emerald-200",
+                      color: "bg-slate-50 border-slate-200",
                     },
                     {
                       op: "B",
                       titulo: "Pagar só os juros (renovação)",
                       desc: `Paga ${formatarMoeda(jurosMes)} → principal continua intacto no próximo mês`,
                       valor: jurosMes,
-                      color: "bg-blue-50 border-blue-200",
+                      color: "bg-blue-50/30 border-blue-100/50",
                     },
                     {
                       op: "C",
@@ -269,7 +269,7 @@ export default function SimuladorPage() {
                         ? `Paga juros (${formatarMoeda(jurosMes)}) + ${formatarMoeda(abatimento)} do principal → saldo reduz para ${formatarMoeda(Math.max(0, principal - abatimento))}`
                         : `Paga juros + valor extra → saldo devedor reduz, próximo mês juros menores`,
                       valor: abatimento > 0 ? jurosMes + Math.min(abatimento, principal) : null,
-                      color: "bg-amber-50 border-amber-200",
+                      color: "bg-slate-50 border-slate-200",
                     },
                   ].map((o) => (
                     <div key={o.op} className={`flex items-start gap-3 rounded-xl border p-3 ${o.color}`}>
@@ -328,30 +328,30 @@ export default function SimuladorPage() {
 
               {/* Cenário C — abatimento */}
               {abatimento > 0 && cenarioAbatimento.length > 0 && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/50 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-amber-200">
+                <div className="rounded-2xl border border-blue-100 bg-blue-50/10 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-blue-100">
                     <p className="text-sm font-semibold text-slate-900">Cenário C — Abatendo {formatarMoeda(abatimento)}/mês</p>
                     <p className="text-xs text-slate-500 mt-0.5">Juros calculados sobre o saldo devedor reduzido</p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-white/60">
-                        <tr className="border-b border-amber-200">
+                        <tr className="border-b border-blue-100">
                           {["Mês", "Vencimento", "Saldo Início", "Juros", "Abate", "Total a Pagar", "Saldo Fim"].map((h) => (
                             <th key={h} className="px-4 py-2.5 text-left font-semibold text-slate-500">{h}</th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-amber-100">
+                      <tbody className="divide-y divide-blue-50/50">
                         {cenarioAbatimento.map((p) => (
                           <tr key={p.mes} className="hover:bg-white/40">
                             <td className="px-4 py-2.5 font-bold text-slate-900">{p.mes}</td>
                             <td className="px-4 py-2.5 text-slate-500">{formatarData(p.venc.toISOString())}</td>
                             <td className="px-4 py-2.5 font-semibold text-slate-900 tabular-nums">{formatarMoeda(p.saldo_inicio)}</td>
                             <td className="px-4 py-2.5 text-blue-700 tabular-nums">{formatarMoeda(p.juros)}</td>
-                            <td className="px-4 py-2.5 text-emerald-600 tabular-nums">{formatarMoeda(p.abate)}</td>
+                            <td className="px-4 py-2.5 text-slate-700 tabular-nums">{formatarMoeda(p.abate)}</td>
                             <td className="px-4 py-2.5 font-bold text-slate-900 tabular-nums">{formatarMoeda(p.pagar)}</td>
-                            <td className={`px-4 py-2.5 font-semibold tabular-nums ${p.saldo_fim === 0 ? "text-emerald-600" : "text-slate-700"}`}>
+                            <td className={`px-4 py-2.5 font-semibold tabular-nums ${p.saldo_fim === 0 ? "text-blue-700" : "text-slate-700"}`}>
                               {p.saldo_fim === 0 ? "Quitado" : formatarMoeda(p.saldo_fim)}
                             </td>
                           </tr>

@@ -12,6 +12,7 @@ const defaultWhatsapp = {
   apiUrl: "", apiKey: "", instance: "", status: "NAO_CONFIGURADO" as const,
   numeroBusiness: "", notificacoes7h: true, notificacoes8h: true,
   notificacoes12h: true, enviarBemVindas: true, enviarLembrete3dias: true, enviarQuitacao: true,
+  webhookUrl: "",
 };
 const defaultTaxas = { 2:45, 3:60, 4:75, 5:90, 6:105, 7:120, 8:135, 9:150, 10:165 };
 

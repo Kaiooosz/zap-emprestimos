@@ -44,7 +44,7 @@ export default async function CobrancasPage() {
   }).sort((a, b) => b.diasAtraso - a.diasAtraso);
 
   const [templates, config] = await Promise.all([
-    prisma.template.findMany({ where: { ativo: true } }),
+    prisma.template.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.config.findUnique({ where: { id: "singleton" } }),
   ]);
 
