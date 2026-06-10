@@ -350,24 +350,24 @@ export function PainelAnalitico({ parcelasRaw, equipe }: PainelAnaliticoProps) {
       </div>
 
       {/* Grid de KPIs Reativos */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
         {[
           { label: "Total Recebido", value: formatarMoeda(kpis.totalRecebido), color: "text-blue-700", icon: DollarSign, bg: "bg-blue-50" },
           { label: "Juros Coletados", value: formatarMoeda(kpis.totalJuros), color: "text-emerald-600", icon: TrendingUp, bg: "bg-emerald-50" },
           { label: "Principal Amortizado", value: formatarMoeda(kpis.totalPrincipal), color: "text-purple-600", icon: Layers, bg: "bg-purple-50" },
-          { label: "Transações", value: `${kpis.transacoes} pagamentos`, color: "text-slate-700", icon: Calendar, bg: "bg-slate-50" },
+          { label: "Transações", value: `${kpis.transacoes} pgto`, color: "text-slate-700", icon: Calendar, bg: "bg-slate-50" },
           { label: "Ticket Médio", value: formatarMoeda(kpis.ticketMedio), color: "text-amber-600", icon: Users, bg: "bg-amber-50" },
         ].map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
-            <div key={idx} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{kpi.label}</span>
-                <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${kpi.bg}`}>
-                  <Icon size={12} className={kpi.color} />
+            <div key={idx} className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm flex flex-col justify-between min-w-0">
+              <div className="flex items-center justify-between mb-1.5 gap-1">
+                <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wide truncate">{kpi.label}</span>
+                <div className={`h-5 w-5 sm:h-6 sm:w-6 rounded-lg flex items-center justify-center shrink-0 ${kpi.bg}`}>
+                  <Icon size={10} className={kpi.color} />
                 </div>
               </div>
-              <p className={`text-base font-black tabular-nums ${kpi.color}`}>{kpi.value}</p>
+              <p className={`text-sm sm:text-base font-black tabular-nums truncate ${kpi.color}`}>{kpi.value}</p>
             </div>
           );
         })}
@@ -499,7 +499,7 @@ export function PainelAnalitico({ parcelasRaw, equipe }: PainelAnaliticoProps) {
 
         {/* Tabela de Lançamento Detalhado */}
         <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2">
               <Layers size={15} className="text-blue-700" />
               <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Histórico Detalhado</h3>
@@ -508,7 +508,7 @@ export function PainelAnalitico({ parcelasRaw, equipe }: PainelAnaliticoProps) {
             <button 
               onClick={exportarCSV} 
               disabled={dadosFiltrados.length === 0}
-              className="flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex items-center justify-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 px-3 py-2 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
             >
               <Download size={11} /> Exportar CSV
             </button>
@@ -524,7 +524,7 @@ export function PainelAnalitico({ parcelasRaw, equipe }: PainelAnaliticoProps) {
                   <th onClick={() => mudarOrdenacao("cliente")} className="px-4 py-3 text-left cursor-pointer hover:bg-slate-100 select-none">
                     Cliente {ordenacao.campo === "cliente" && (ordenacao.direcao === "asc" ? "▲" : "▼")}
                   </th>
-                  <th onClick={() => mudarOrdenacao("operador")} className="px-4 py-3 text-left cursor-pointer hover:bg-slate-100 select-none">
+                  <th onClick={() => mudarOrdenacao("operador")} className="px-4 py-3 text-left cursor-pointer hover:bg-slate-100 select-none hidden sm:table-cell">
                     Operador {ordenacao.campo === "operador" && (ordenacao.direcao === "asc" ? "▲" : "▼")}
                   </th>
                   <th onClick={() => mudarOrdenacao("valorPago")} className="px-4 py-3 text-right cursor-pointer hover:bg-slate-100 select-none">
@@ -540,7 +540,7 @@ export function PainelAnalitico({ parcelasRaw, equipe }: PainelAnaliticoProps) {
                       <p className="font-semibold text-slate-800">{p.emprestimo.cliente.nome}</p>
                       <p className="text-[10px] text-slate-400 font-medium">Parcela {p.numero} ({p.emprestimo.numParcelas > 1 ? "Parcelado" : "Mensal"})</p>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 font-medium">{p.emprestimo.operador.nome}</td>
+                    <td className="px-4 py-3 text-slate-500 font-medium hidden sm:table-cell">{p.emprestimo.operador.nome}</td>
                     <td className="px-4 py-3 text-right font-bold text-emerald-700 tabular-nums">
                       {formatarMoeda(p.valorPago)}
                       {p.modoPagamento === "SOMENTE_JUROS" && (
@@ -561,24 +561,24 @@ export function PainelAnalitico({ parcelasRaw, equipe }: PainelAnaliticoProps) {
 
           {/* Paginação */}
           {totalPaginas > 1 && (
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 font-medium text-center">
               <span>Mostrando {tabelaPaginada.length} de {tabelaOrdenada.length} recebimentos</span>
               
-              <div className="flex items-center gap-1">
+              <div className="flex items-center justify-center gap-2">
                 <button 
                   onClick={() => setPagina(prev => Math.max(1, prev - 1))}
                   disabled={pagina === 1}
-                  className="p-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+                  className="p-2 sm:p-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
                 >
-                  <ChevronLeft size={12} />
+                  <ChevronLeft size={14} className="sm:h-3 sm:w-3" />
                 </button>
-                <span className="px-2">Página {pagina} de {totalPaginas}</span>
+                <span className="px-1.5">Pág. {pagina} de {totalPaginas}</span>
                 <button 
                   onClick={() => setPagina(prev => Math.min(totalPaginas, prev + 1))}
                   disabled={pagina === totalPaginas}
-                  className="p-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+                  className="p-2 sm:p-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
                 >
-                  <ChevronRight size={12} />
+                  <ChevronRight size={14} className="sm:h-3 sm:w-3" />
                 </button>
               </div>
             </div>
