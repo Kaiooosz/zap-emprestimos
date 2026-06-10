@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { registrarLog } from "@/lib/audit";
 
 /** GET /api/configuracoes/taxas — retorna tabela de taxas de parcelamento */
 export async function GET() {
@@ -28,6 +29,12 @@ export async function POST(req: NextRequest) {
       create: { id: "singleton", data: safeData },
       update: { data: safeData },
     });
+
+    // Registra log de auditoria
+    await registrarLog(
+      "EDITAR_TAXAS",
+      "Tabela de taxas de parcelamento atualizada com novos valores de juros."
+    );
 
     return NextResponse.json({ ok: true });
   } catch (e) {

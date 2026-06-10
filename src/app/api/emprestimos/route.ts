@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calcularEmprestimo } from "@/lib/calculo/juros";
 import { getSession } from "@/lib/auth";
+import { registrarLog } from "@/lib/audit";
 
 const intervaloMap: Record<string, number> = {
   DIARIO: 1, SEMANAL: 7, QUINZENAL: 15, MENSAL: 30,
@@ -103,6 +104,12 @@ export async function POST(req: NextRequest) {
         cliente:  { select: { id: true, nome: true } },
       },
     });
+
+    // Registra log de auditoria
+    await registrarLog(
+      "CRIAR_EMPRESTIMO",
+      `Contrato de empréstimo ID ${emprestimo.id} no valor total de R$ ${Number(emprestimo.valorTotal).toFixed(2)} cadastrado para o cliente ${emprestimo.cliente.nome}.`
+    );
 
     return NextResponse.json(emprestimo, { status: 201 });
   } catch (e) {

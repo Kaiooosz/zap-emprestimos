@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { 
   MessageSquare, Send, CheckSquare, Square, AlertTriangle, 
   Clock, Wifi, WifiOff, Bell, Save, Loader2, ArrowLeft,
-  ChevronLeft, ChevronRight, FileText, CheckCircle
+  ChevronLeft, ChevronRight, FileText, CheckCircle, X
 } from "lucide-react";
 import Link from "next/link";
 import { TemplateMsg } from "@/lib/store";
@@ -102,6 +102,65 @@ export function CobrancasClient({
   const [disparando, setDisparando] = useState(false);
   const [disparados, setDisparados] = useState<Set<string>>(new Set());
 
+  const [queueStatus, setQueueStatus] = useState<{
+    pendentes: number;
+    enviados: number;
+    falhados: number;
+    total: number;
+    finalizado: boolean;
+  } | null>(null);
+  const [pollingFila, setPollingFila] = useState(false);
+  const [showQueueStatus, setShowQueueStatus] = useState(false);
+
+  // Polling para checar o status da fila de mensageria
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("/api/cobrancas/status-fila");
+        if (res.ok) {
+          const data = await res.json();
+          setQueueStatus(data);
+          if (data.finalizado) {
+            setPollingFila(false);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao buscar status da fila:", err);
+      }
+    };
+
+    if (pollingFila) {
+      fetchStatus();
+      intervalId = setInterval(fetchStatus, 3000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [pollingFila]);
+
+  // Checa se ha mensagens pendentes ao montar o componente
+  useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        const res = await fetch("/api/cobrancas/status-fila");
+        if (res.ok) {
+          const data = await res.json();
+          setQueueStatus(data);
+          if (data.pendentes > 0) {
+            setPollingFila(true);
+            setShowQueueStatus(true);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao verificar status inicial da fila:", err);
+      }
+    };
+    checkInitialStatus();
+  }, []);
+
   // --- Estados Aba Notificações ---
   const [notifs, setNotifs] = useState<ConfigNotificacoes>(NOTIF_DEFAULTS);
   const [notifLoading, setNotifLoading] = useState(true);
@@ -183,10 +242,38 @@ export function CobrancasClient({
   async function disparar() {
     if (!selecionados.size || !template) return;
     setDisparando(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setDisparados((prev) => new Set([...prev, ...selecionados]));
-    setSelecionados(new Set());
-    setDisparando(false);
+
+    const disparosParaEnviar = lista
+      .filter((p) => selecionados.has(p.id))
+      .map((p) => ({
+        clienteId: p.clienteId,
+        mensagem: renderTemplate(template.conteudo, getVars(p)),
+        telefone: p.clientePhone,
+      }));
+
+    try {
+      const res = await fetch("/api/cobrancas/enfileirar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ disparos: disparosParaEnviar }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao enfileirar mensagens.");
+      }
+
+      setDisparados((prev) => new Set([...prev, ...selecionados]));
+      setSelecionados(new Set());
+      setPollingFila(true);
+      setShowQueueStatus(true);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao enviar mensagens para a fila de disparos.");
+    } finally {
+      setDisparando(false);
+    }
   }
 
   // Ações de Gravação de Notificações
@@ -301,6 +388,60 @@ export function CobrancasClient({
               Ir para configurações de conexão
             </Link>
           </div>
+
+          {/* Painel de status da fila de disparos em lote */}
+          {showQueueStatus && queueStatus && queueStatus.total > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3 relative">
+              <button 
+                onClick={() => setShowQueueStatus(false)}
+                className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+              <div className="flex items-center justify-between pr-6">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-bold text-slate-900">Fila de Disparos de WhatsApp</p>
+                  <p className="text-[10px] text-slate-500">
+                    Processando em segundo plano com intervalo seguro de 10 segundos entre mensagens.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {pollingFila ? (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                      <Loader2 size={10} className="mr-1 animate-spin" /> Processando
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-700 ring-1 ring-inset ring-slate-700/10">
+                      Finalizado
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Barra de progresso */}
+              <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-700 transition-all duration-500" 
+                  style={{ width: `${Math.min(100, Math.round((queueStatus.enviados / queueStatus.total) * 100))}%` }}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-semibold">
+                <div className="bg-white rounded-lg border border-slate-200 p-2">
+                  <p className="text-slate-400">Aguardando</p>
+                  <p className="text-sm font-black text-slate-900 mt-0.5">{queueStatus.pendentes}</p>
+                </div>
+                <div className="bg-white rounded-lg border border-slate-200 p-2">
+                  <p className="text-slate-400">Enviados</p>
+                  <p className="text-sm font-black text-slate-900 mt-0.5">{queueStatus.enviados}</p>
+                </div>
+                <div className="bg-white rounded-lg border border-slate-200 p-2">
+                  <p className="text-slate-400">Falhas</p>
+                  <p className="text-sm font-black text-slate-900 mt-0.5">{queueStatus.falhados}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {/* Lista de devedores */}

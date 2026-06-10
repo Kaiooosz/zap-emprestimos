@@ -7,6 +7,7 @@ import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { GraficoBarras } from "@/components/dashboard/GraficoBarras";
 import { MiniCalendario } from "@/components/dashboard/MiniCalendario";
 import { OnboardingTour } from "@/components/shared/OnboardingTour";
+import { decryptCliente } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +28,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const hoje    = new Date();
   const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate() + 7);
 
-  const [parcelasRaw, empsRaw, clientes] = await Promise.all([
+  const [parcelasRaw, empsRaw, clientesRaw] = await Promise.all([
     prisma.parcela.findMany({ include: { emprestimo: { include: { cliente: { select: { id: true, nome: true } } } } } }),
     prisma.emprestimo.findMany({ include: { parcelas: { select: { status: true, valorDevido: true } } } }),
     prisma.cliente.findMany({ orderBy: { score: "desc" } }),
   ]);
+  const clientes = clientesRaw.map(decryptCliente);
 
   const toN = (v: any) => Number(v);
 

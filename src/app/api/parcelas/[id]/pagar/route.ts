@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { registrarLog } from "@/lib/audit";
 
 const TAXA_DIARIA = 1; // 1% ao dia
 
@@ -47,6 +48,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (todasPagas) {
       await prisma.emprestimo.update({ where: { id: parcela.emprestimoId }, data: { status: "QUITADO" } });
     }
+
+    // Registra log de auditoria
+    const txtQuitado = todasPagas ? " (Contrato quitado com sucesso)" : "";
+    await registrarLog(
+      "LIQUIDAR_PARCELA",
+      `Pagamento de R$ ${Number(valorPago).toFixed(2)} registrado para a parcela ${parcela.numero} (Contrato ID: ${parcela.emprestimoId}) do cliente ${parcela.emprestimo.cliente.nome}. Modo: ${modo}${txtQuitado}.`
+    );
 
     // Atualiza score do cliente
     const clienteId = parcela.emprestimo.clienteId;

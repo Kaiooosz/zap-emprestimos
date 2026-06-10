@@ -3,6 +3,7 @@ import { Plus, User } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { formatarData } from "@/lib/utils";
+import { decryptCliente } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function ClientesPage() {
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { emprestimos: true } } },
   });
-  const clientes = await Promise.all(raw.map(async (c) => {
+  const clientes = await Promise.all(raw.map(decryptCliente).map(async (c) => {
     const ativos = await prisma.emprestimo.count({ where: { clienteId: c.id, status: "ATIVO" } });
     return { ...c, emprestimosAtivos: ativos, totalEmprestimos: c._count.emprestimos };
   }));

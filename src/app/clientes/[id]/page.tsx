@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreGauge } from "@/components/clientes/ScoreGauge";
 import { formatarMoeda, formatarData } from "@/lib/utils";
 import { getPontosLabel, getFaixa } from "@/lib/score/calcularScore";
+import { decryptCliente } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,9 @@ const TAXA_DIARIA_ATRASO = 1; // 1% ao dia
 
 export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const c = store.clientes.get(id);
-  if (!c) notFound();
+  const cRaw = store.clientes.get(id);
+  if (!cRaw) notFound();
+  const c = decryptCliente(cRaw);
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);

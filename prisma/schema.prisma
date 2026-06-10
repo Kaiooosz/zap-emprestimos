@@ -244,3 +244,30 @@ model Template {
 
   @@map("templates")
 }
+
+// ─── Auditoria e Filas ────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userNome  String?
+  acao      String
+  detalhes  String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model MsgQueue {
+  id         String   @id @default(cuid())
+  clienteId  String
+  mensagem   String   @db.Text
+  telefone   String
+  status     String   @default("PENDENTE") // PENDENTE, ENVIADO, FALHOU
+  tentativas Int      @default(0)
+  erro       String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("msg_queue")
+}
