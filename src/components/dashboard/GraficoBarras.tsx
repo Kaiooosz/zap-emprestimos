@@ -42,7 +42,7 @@ export function GraficoBarras({ dados }: GraficoBarrasProps) {
             tick={{ fontSize: 10, fill: "#94a3b8" }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+            tickFormatter={(v) => v === 0 ? "R$ 0" : `R$ ${(v / 1000).toFixed(0)}k`}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
           <Bar dataKey="recebido" radius={[4, 4, 0, 0]}>

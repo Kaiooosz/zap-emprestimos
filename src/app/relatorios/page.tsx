@@ -1,6 +1,7 @@
-import { BarChart3, TrendingUp, DollarSign, Users, CalendarDays, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { BarChart3, TrendingUp, DollarSign, Users, CalendarDays, AlertCircle, CheckCircle2, Clock, Presentation } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/utils";
+import { PainelAnalitico } from "@/components/relatorios/PainelAnalitico";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +10,24 @@ export default async function RelatoriosPage() {
   const mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const em7dias = new Date(hoje.getTime() + 7 * 86_400_000);
 
-  const [clientes, emprestimosRaw, parcelas] = await Promise.all([
+  const [clientes, emprestimosRaw, parcelasRaw, equipe] = await Promise.all([
     prisma.cliente.findMany({ orderBy: { score: "desc" } }),
     prisma.emprestimo.findMany({ include: { parcelas: true } }),
-    prisma.parcela.findMany({ include: { emprestimo: { select: { clienteId: true, tipoProduto: true } } } }),
+    prisma.parcela.findMany({
+      include: {
+        emprestimo: {
+          include: {
+            cliente: { select: { id: true, nome: true } },
+            operador: { select: { id: true, nome: true } }
+          }
+        }
+      }
+    }),
+    prisma.user.findMany({ select: { id: true, nome: true } }),
   ]);
+
+  // Adaptador para manter compatibilidade com cálculos antigos
+  const parcelas = parcelasRaw;
 
   // ─── KPIs principais ──────────────────────────────────────────────────────
   const emprestimos = emprestimosRaw.map((e) => ({
@@ -90,20 +104,35 @@ export default async function RelatoriosPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header da Página */}
       <div className="flex items-center gap-2">
         <BarChart3 size={20} className="text-blue-700" />
         <div>
-          <h1 className="text-base font-bold text-slate-900 tracking-tight">Relatórios</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Visão consolidada do negócio</p>
+          <h1 className="text-base font-bold text-slate-900 tracking-tight">Relatórios & BI</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Visão consolidada e painel analítico interativo</p>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KPI label="Capital na Rua"     value={formatarMoeda(capitalNaRua)}   icon={DollarSign}  accent />
-        <KPI label="Lucro Projetado"    value={formatarMoeda(lucroProjetado)} icon={TrendingUp}  positive />
-        <KPI label="Recebido no Mês"    value={formatarMoeda(recebidoMes)}    icon={CheckCircle2} />
-        <KPI label="Adimplência"        value={`${taxaAdimplencia}%`}         icon={Users} positive={taxaAdimplencia >= 80} />
+      {/* Seção principal: Painel Analítico Interativo (Power BI de Recebimentos) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 text-slate-800 font-bold border-b border-slate-100 pb-3">
+          <Presentation size={18} className="text-blue-700" />
+          <h2 className="text-sm">Power BI — Análise do Histórico de Recebimentos</h2>
+        </div>
+        <PainelAnalitico parcelasRaw={parcelasRaw as any} equipe={equipe} />
+      </div>
+
+      <hr className="border-slate-200" />
+
+      {/* KPIs Gerais (Mês Atual) */}
+      <div>
+        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Métricas Gerais Consolidadas</h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KPI label="Capital na Rua"     value={formatarMoeda(capitalNaRua)}   icon={DollarSign}  accent />
+          <KPI label="Lucro Projetado"    value={formatarMoeda(lucroProjetado)} icon={TrendingUp}  positive />
+          <KPI label="Recebido no Mês"    value={formatarMoeda(recebidoMes)}    icon={CheckCircle2} />
+          <KPI label="Adimplência"        value={`${taxaAdimplencia}%`}         icon={Users} positive={taxaAdimplencia >= 80} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -124,7 +153,7 @@ export default async function RelatoriosPage() {
 
         {/* Adimplência visual */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-slate-900 mb-4">Adimplência</h2>
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Adimplência Geral</h2>
           <div className="flex items-center justify-center py-2">
             <div className="relative h-28 w-28">
               <svg viewBox="0 0 36 36" className="h-28 w-28 -rotate-90">

@@ -9,18 +9,62 @@ import { MiniCalendario } from "@/components/dashboard/MiniCalendario";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+interface PageProps {
+  searchParams: Promise<{
+    periodo?: string;
+    status?: string;
+  }>;
+}
+
+export default async function DashboardPage({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+  const periodo = resolvedParams.periodo ?? "mes";
+  const status = resolvedParams.status ?? "todos";
+
   const hoje    = new Date();
-  const mesIni  = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate() + 7);
 
-  const [parcelas, emps, clientes] = await Promise.all([
+  const [parcelasRaw, empsRaw, clientes] = await Promise.all([
     prisma.parcela.findMany({ include: { emprestimo: { include: { cliente: { select: { id: true, nome: true } } } } } }),
     prisma.emprestimo.findMany({ include: { parcelas: { select: { status: true, valorDevido: true } } } }),
     prisma.cliente.findMany({ orderBy: { score: "desc" } }),
   ]);
 
   const toN = (v: any) => Number(v);
+
+  // Status mapping
+  const statusMap: Record<string, string> = {
+    ativo: "ATIVO",
+    inadimplente: "INADIMPLENTE",
+    quitado: "QUITADO",
+  };
+  const statusFiltro = statusMap[status];
+
+  // Aplicar filtro de status
+  const parcelas = statusFiltro 
+    ? parcelasRaw.filter((p) => p.emprestimo.status === statusFiltro)
+    : parcelasRaw;
+
+  const emps = statusFiltro
+    ? empsRaw.filter((e) => e.status === statusFiltro)
+    : empsRaw;
+
+  // Datas de filtro baseadas no período
+  let dataInicioFiltro = new Date(hoje.getFullYear(), hoje.getMonth(), 1); // default mes
+  let dataFimFiltro = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
+
+  if (periodo === "hoje") {
+    dataInicioFiltro = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0);
+    dataFimFiltro = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+  } else if (periodo === "semana") {
+    dataInicioFiltro = new Date(hoje);
+    dataInicioFiltro.setDate(hoje.getDate() - 7);
+    dataInicioFiltro.setHours(0, 0, 0, 0);
+    dataFimFiltro = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+  } else if (periodo === "ano") {
+    dataInicioFiltro = new Date(hoje.getFullYear(), 0, 1, 0, 0, 0);
+    dataFimFiltro = new Date(hoje.getFullYear(), 11, 31, 23, 59, 59);
+  }
 
   const carteira = {
     ativo:    parcelas.filter((p) => p.status === "PENDENTE").reduce((s, p) => s + toN(p.valorDevido), 0),
@@ -33,12 +77,12 @@ export default async function DashboardPage() {
     .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status)))
     .reduce((s, p) => s + toN(p.valorDevido), 0);
 
-  const recebidoMes = parcelas
-    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= mesIni)
+  const recebidoPeriodo = parcelas
+    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= dataInicioFiltro && new Date(p.dataPagamento) <= dataFimFiltro)
     .reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
 
-  const lucroMes = parcelas
-    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= mesIni)
+  const lucroPeriodo = parcelas
+    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= dataInicioFiltro && new Date(p.dataPagamento) <= dataFimFiltro)
     .reduce((s, p) => s + toN(p.valorJuros), 0);
 
   const parcelasAtrasadas = parcelas.filter((p) =>
@@ -72,23 +116,70 @@ export default async function DashboardPage() {
 
   const adimplencia = parcelas.length > 0 ? Math.round((parcelas.filter((p) => p.status === "PAGO").length / parcelas.length) * 100) : 0;
 
-  const evolucaoMensal = Array.from({ length: 6 }, (_, i) => {
-    const d   = new Date(hoje.getFullYear(), hoje.getMonth() - (5 - i), 1);
-    const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
-    const rec = parcelas.filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= d && new Date(p.dataPagamento) <= fim).reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
-    return { mes: d.toLocaleString("pt-BR", { month: "short" }), recebido: rec };
-  });
+  // Evolução com agrupamento temporal dinâmico
+  let evolucaoMensal: Array<{ mes: string; recebido: number }> = [];
+
+  if (periodo === "semana" || periodo === "hoje") {
+    // Últimos 7 dias
+    evolucaoMensal = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(hoje);
+      d.setDate(hoje.getDate() - (6 - i));
+      const inicioDia = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0);
+      const fimDia = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+      const rec = parcelas
+        .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= inicioDia && new Date(p.dataPagamento) <= fimDia)
+        .reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
+      return {
+        mes: d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" }),
+        recebido: rec,
+      };
+    });
+  } else if (periodo === "ano") {
+    // Meses do ano corrente
+    evolucaoMensal = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(hoje.getFullYear(), i, 1);
+      const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+      const rec = parcelas
+        .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= d && new Date(p.dataPagamento) <= fim)
+        .reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
+      return {
+        mes: d.toLocaleString("pt-BR", { month: "short" }),
+        recebido: rec,
+      };
+    });
+  } else {
+    // Padrão: Últimos 6 meses
+    evolucaoMensal = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - (5 - i), 1);
+      const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+      const rec = parcelas
+        .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= d && new Date(p.dataPagamento) <= fim)
+        .reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
+      return {
+        mes: d.toLocaleString("pt-BR", { month: "short" }),
+        recebido: rec,
+      };
+    });
+  }
+
+  // Título dinâmico do histórico
+  const tituloEvolucao = 
+    periodo === "semana" || periodo === "hoje" ? "Últimos 7 dias" :
+    periodo === "ano" ? "Meses do ano" : "Últimos 6 meses";
 
   const data = {
-    capitalNaRua, recebidoMes, lucroMes,
+    capitalNaRua,
+    recebidoMes: recebidoPeriodo,
+    lucroMes: lucroPeriodo,
     parcelasAtrasadas: parcelasAtrasadas.length,
-    totalSemana, totalClientesAtivos: emps.filter((e) => e.status === "ATIVO").length,
+    totalSemana,
+    totalClientesAtivos: emps.filter((e) => e.status === "ATIVO").length,
     evolucaoMensal,
     projecoes: {
       lucroPrevisto:          emps.filter((e) => e.status === "ATIVO").flatMap((e) => e.parcelas.filter((p) => p.status === "PENDENTE")).reduce((s, p) => s + toN(p.valorDevido) * 0.1, 0),
       capitalEmRisco:         carteira.atrasado,
       recebidoOntem:          0,
-      mediaRecebimentoDiario: recebidoMes / Math.max(1, hoje.getDate()),
+      mediaRecebimentoDiario: recebidoPeriodo / Math.max(1, hoje.getDate()),
     },
   };
 
@@ -157,7 +248,7 @@ export default async function DashboardPage() {
           <div className="px-4 pt-4 pb-3 border-b border-slate-100 flex items-start justify-between">
             <div>
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Historico de Recebimentos</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">Ultimos 6 meses</p>
+              <p className="text-sm font-bold text-slate-900 mt-0.5">{tituloEvolucao}</p>
             </div>
             <Link href="/relatorios" className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors shrink-0 mt-1">
               Ver relatorio <ChevronRight size={11}/>
