@@ -24,15 +24,16 @@ function addDias(data: Date, dias: number): Date {
 
 export default function SimuladorPage() {
   const [modo,         setModo]      = useState<Modo>("mensal");
-  const [principal,    setPrincipal] = useState(10000);
-  const [taxaMensal,   setTaxaMensal]= useState(30);
-  const [meses,        setMeses]     = useState(3);
-  const [nParcelas,    setNParcelas] = useState(6);
+  const [principal,    setPrincipal] = useState<number | "">("");
+  const [taxaMensal,   setTaxaMensal]= useState<number | "">("");
+  const [meses,        setMeses]     = useState<number | "">(3);
+  const [nParcelas,    setNParcelas] = useState<number | "">(6);
   const [dataInicio,   setData]      = useState(new Date().toISOString().split("T")[0]);
   const [period,       setPeriod]    = useState<Periodo>("MENSAL");
   const [tabVis,       setTabVis]    = useState(false);
   const [diasAtraso,   setDiasAtraso]= useState(0);
   const [regraAtraso,  setRegra]     = useState<"A" | "B">("A");
+  const [tipoTaxaAtraso, setTipoTaxaAtraso] = useState<"fixa" | "custom">("fixa");
   const [taxaDiaria,   setTaxaDiaria]= useState(1);
   const [taxas,        setTaxas]     = useState<Record<number, number>>({});
   const [abatimento,   setAbatimento]= useState(0); // cenário C no mensal
@@ -54,9 +55,15 @@ export default function SimuladorPage() {
   }, []);
 
   // ─── Mensal Rolável ───────────────────────────────────────────────────────
+  const principalNum = Number(principal) || 0;
+  const taxaMensalNum = Number(taxaMensal) || 0;
+  const mesesNum = Number(meses) || 0;
+  const nParcelasNum = Number(nParcelas) || 0;
+
+  // ─── Mensal Rolável ───────────────────────────────────────────────────────
   const simulacaoMensal = useMemo(
-    () => simularMensalRolavel({ principal, taxaMensal, meses }),
-    [principal, taxaMensal, meses]
+    () => simularMensalRolavel({ principal: principalNum, taxaMensal: taxaMensalNum, meses: mesesNum }),
+    [principalNum, taxaMensalNum, mesesNum]
   );
   const jurosMes         = simulacaoMensal[0]?.juros ?? 0;
   const jurosTotalMensal = simulacaoMensal.reduce((s, p) => s + p.juros, 0);
@@ -65,30 +72,36 @@ export default function SimuladorPage() {
   const cenarioAbatimento = useMemo(() => {
     if (abatimento <= 0) return [];
     const periodos = [];
-    let saldo = principal;
-    for (let i = 1; i <= meses && saldo > 0; i++) {
-      const juros   = Number((saldo * taxaMensal / 100).toFixed(2));
+    let saldo = principalNum;
+    for (let i = 1; i <= mesesNum && saldo > 0; i++) {
+      const juros   = Number((saldo * taxaMensalNum / 100).toFixed(2));
       const abate   = Math.min(abatimento, saldo);
       const pagar   = Number((juros + abate).toFixed(2));
       saldo         = Number(Math.max(0, saldo - abate).toFixed(2));
-      const venc    = addDias(new Date(dataInicio), 30 * i);
+      
+      const venc    = new Date(dataInicio);
+      venc.setMonth(venc.getMonth() + i);
+      const day = new Date(dataInicio).getDate();
+      if (venc.getDate() !== day) {
+        venc.setDate(0);
+      }
       periodos.push({ mes: i, saldo_inicio: saldo + abate, juros, abate, pagar, saldo_fim: saldo, venc });
     }
     return periodos;
-  }, [principal, taxaMensal, meses, abatimento, dataInicio]);
+  }, [principalNum, taxaMensalNum, mesesNum, abatimento, dataInicio]);
 
   // ─── Parcelado ────────────────────────────────────────────────────────────
-  const taxaParcelado = taxas[nParcelas] ?? 0;
+  const taxaParcelado = taxas[nParcelasNum] ?? 0;
   const { dias }      = periodMap[period];
 
   const resultadoParcelado = useMemo(() => {
     if (taxaParcelado <= 0) return null;
     return calcularEmprestimo(
-      { valorPrincipal: principal, taxaJuros: taxaParcelado, numParcelas: nParcelas, tipo: "simples" },
+      { valorPrincipal: principalNum, taxaJuros: taxaParcelado, numParcelas: nParcelasNum, tipo: "simples" },
       new Date(dataInicio),
       dias
     );
-  }, [principal, taxaParcelado, nParcelas, dataInicio, dias]);
+  }, [principalNum, taxaParcelado, nParcelasNum, dataInicio, dias]);
 
   // ─── Juros de atraso ──────────────────────────────────────────────────────
   const valorBaseParcela = modo === "mensal" ? jurosMes : (resultadoParcelado?.valorParcela ?? 0);
@@ -98,17 +111,21 @@ export default function SimuladorPage() {
     return d;
   }, [dataInicio, modo, dias, diasAtraso]);
 
+  const taxaDiariaEfetiva = tipoTaxaAtraso === "fixa" ? 1 : taxaDiaria;
+
   const jurosAtrasoA = useMemo(() => {
     if (diasAtraso <= 0) return 0;
-    return Number((valorBaseParcela * diasAtraso * taxaDiaria / 100).toFixed(2));
-  }, [valorBaseParcela, diasAtraso, taxaDiaria]);
+    return Number((valorBaseParcela * diasAtraso * taxaDiariaEfetiva / 100).toFixed(2));
+  }, [valorBaseParcela, diasAtraso, taxaDiariaEfetiva]);
 
   // Para Regra B no mensal: base é o saldo devedor; no parcelado: saldo restante
   const jurosAtrasoB = useMemo(() => {
     if (diasAtraso <= 0) return 0;
-    const base = modo === "mensal" ? principal : (valorBaseParcela * 0.6); // estimativa saldo médio
-    return Number((base * diasAtraso * taxaDiaria / 100).toFixed(2));
-  }, [valorBaseParcela, diasAtraso, taxaDiaria, modo, principal]);
+    const base = modo === "mensal" ? principalNum : (valorBaseParcela * 0.6); // estimativa saldo médio
+    return Number((base * diasAtraso * taxaDiariaEfetiva / 100).toFixed(2));
+  }, [valorBaseParcela, diasAtraso, taxaDiariaEfetiva, modo, principalNum]);
+
+  const hasValues = principalNum > 0 && (modo === "mensal" ? taxaMensalNum > 0 : true);
 
   return (
     <div className="space-y-5">
@@ -149,15 +166,15 @@ export default function SimuladorPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
           <p className="text-sm font-semibold text-slate-900">Parâmetros</p>
 
-          <Num label="Valor do Empréstimo (R$)" value={principal} onChange={setPrincipal} step={500} min={100} />
+          <Num label="Valor do Empréstimo (R$)" value={principal} onChange={setPrincipal} step={500} min={0} />
 
           {modo === "mensal" && (
             <>
-              <Num label="Taxa Mensal (%)" value={taxaMensal} onChange={setTaxaMensal} step={1} min={1} max={100} />
+              <Num label="Taxa Mensal (%)" value={taxaMensal} onChange={setTaxaMensal} step={1} min={0} max={100} />
               <Num label="Meses para simular" value={meses} onChange={setMeses} step={1} min={1} max={24} />
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Abatimento mensal — Cenário C (R$)</label>
-                <input type="number" value={abatimento} step={500} min={0} max={principal}
+                <input type="number" value={abatimento} step={500} min={0} max={principalNum}
                   onChange={(e) => setAbatimento(Number(e.target.value))}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors" />
                 {abatimento > 0 && (
@@ -172,11 +189,11 @@ export default function SimuladorPage() {
               <Num label="Número de Parcelas" value={nParcelas} onChange={setNParcelas} step={1} min={2} max={24} />
               {taxaParcelado > 0 ? (
                 <div className="rounded-xl border border-blue-100 bg-blue-50/30 px-3 py-2.5">
-                  <p className="text-xs text-blue-700 font-medium">Taxa para {nParcelas}x: <span className="font-bold">{taxaParcelado}%</span></p>
+                  <p className="text-xs text-blue-700 font-medium">Taxa para {nParcelasNum}x: <span className="font-bold">{taxaParcelado}%</span></p>
                 </div>
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                  <p className="text-xs text-slate-500">Sem taxa configurada para {nParcelas}x. Configure em Configurações.</p>
+                  <p className="text-xs text-slate-500">Sem taxa configurada para {nParcelasNum}x. Configure em Configurações.</p>
                 </div>
               )}
               <div>
@@ -205,8 +222,23 @@ export default function SimuladorPage() {
               <Info size={12} className="text-slate-400" />
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Simular Atraso</p>
             </div>
-            <Num label="Dias em atraso" value={diasAtraso} onChange={setDiasAtraso} step={1} min={0} max={90} />
-            <Num label="Taxa de atraso (%/dia)" value={taxaDiaria} onChange={setTaxaDiaria} step={0.5} min={0.1} max={5} />
+            <Num label="Dias em atraso" value={diasAtraso} onChange={(v) => setDiasAtraso(Number(v))} step={1} min={0} max={90} />
+            <div>
+              <p className="text-[10px] font-medium text-slate-400 mb-1.5">Taxa de Atraso Diária</p>
+              <div className="grid grid-cols-2 gap-1.5 mb-2">
+                <button type="button" onClick={() => { setTipoTaxaAtraso("fixa"); setTaxaDiaria(1); }}
+                  className={`rounded-lg py-1.5 text-xs font-medium border transition-all ${tipoTaxaAtraso === "fixa" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
+                  Fixo (1%/dia)
+                </button>
+                <button type="button" onClick={() => setTipoTaxaAtraso("custom")}
+                  className={`rounded-lg py-1.5 text-xs font-medium border transition-all ${tipoTaxaAtraso === "custom" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
+                  Definido (Outro)
+                </button>
+              </div>
+            </div>
+            {tipoTaxaAtraso === "custom" && (
+              <Num label="Taxa de atraso (%/dia)" value={taxaDiaria} onChange={(v) => setTaxaDiaria(Number(v))} step={0.5} min={0.1} max={5} />
+            )}
             <div>
               <p className="text-[10px] font-medium text-slate-400 mb-1.5">Regra de atraso</p>
               <div className="grid grid-cols-2 gap-1.5">
@@ -236,22 +268,23 @@ export default function SimuladorPage() {
 
         {/* Resultados */}
         <div className="lg:col-span-2 space-y-4">
-
-          {/* ── Mensal Rolável ── */}
-          {modo === "mensal" && (
+          {hasValues ? (
             <>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  ["Principal",   formatarMoeda(principal)],
-                  ["Juros/mês",   formatarMoeda(jurosMes)],
-                  ["Taxa mensal", `${taxaMensal}%`],
-                ].map(([l, v]) => (
-                  <div key={l} className="rounded-xl border border-slate-200 bg-white p-3">
-                    <p className="text-xs text-slate-500">{l}</p>
-                    <p className="text-base font-bold text-slate-900 mt-0.5">{v}</p>
+              {/* ── Mensal Rolável ── */}
+              {modo === "mensal" && (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      ["Principal",   formatarMoeda(principalNum)],
+                      ["Juros/mês",   formatarMoeda(jurosMes)],
+                      ["Taxa mensal", `${taxaMensalNum}%`],
+                    ].map(([l, v]) => (
+                      <div key={l} className="rounded-xl border border-slate-200 bg-white p-3">
+                        <p className="text-xs text-slate-500">{l}</p>
+                        <p className="text-base font-bold text-slate-900 mt-0.5">{v}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
               {/* 3 Cenários */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
@@ -261,8 +294,8 @@ export default function SimuladorPage() {
                     {
                       op: "A",
                       titulo: "Quitar a dívida",
-                      desc: `Paga ${formatarMoeda(principal + jurosMes)} (principal + juros) → dívida encerrada`,
-                      valor: principal + jurosMes,
+                      desc: `Paga ${formatarMoeda(principalNum + jurosMes)} (principal + juros) → dívida encerrada`,
+                      valor: principalNum + jurosMes,
                       color: "bg-slate-50 border-slate-200",
                     },
                     {
@@ -276,9 +309,9 @@ export default function SimuladorPage() {
                       op: "C",
                       titulo: "Abatimento parcial do principal",
                       desc: abatimento > 0
-                        ? `Paga juros (${formatarMoeda(jurosMes)}) + ${formatarMoeda(abatimento)} do principal → saldo reduz para ${formatarMoeda(Math.max(0, principal - abatimento))}`
+                        ? `Paga juros (${formatarMoeda(jurosMes)}) + ${formatarMoeda(abatimento)} do principal → saldo reduz para ${formatarMoeda(Math.max(0, principalNum - abatimento))}`
                         : `Paga juros + valor extra → saldo devedor reduz, próximo mês juros menores`,
-                      valor: abatimento > 0 ? jurosMes + Math.min(abatimento, principal) : null,
+                      valor: abatimento > 0 ? jurosMes + Math.min(abatimento, principalNum) : null,
                       color: "bg-slate-50 border-slate-200",
                     },
                   ].map((o) => (
@@ -379,90 +412,97 @@ export default function SimuladorPage() {
             </>
           )}
 
-          {/* ── Parcelado ── */}
-          {modo === "parcelado" && resultadoParcelado && (
-            <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  ["Principal",       formatarMoeda(principal)],
-                  ["Taxa",            `${taxaParcelado}%`],
-                  ["Total",           formatarMoeda(resultadoParcelado.valorTotal)],
-                  ["Parcela",         formatarMoeda(resultadoParcelado.valorParcela)],
-                ].map(([l, v]) => (
-                  <div key={l} className="rounded-xl border border-slate-200 bg-white p-3">
-                    <p className="text-xs text-slate-500">{l}</p>
-                    <p className="text-base font-bold text-slate-900 mt-0.5">{v}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-2">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-slate-900">Resumo do Parcelamento</p>
-                  <p className="text-2xl font-black text-slate-900">{formatarMoeda(resultadoParcelado.valorParcela)}</p>
-                </div>
-                <div className="h-px bg-slate-100" />
-                {[
-                  ["Principal",                formatarMoeda(principal)],
-                  [`Juros totais (${taxaParcelado}%)`, formatarMoeda(resultadoParcelado.totalJuros)],
-                  ["Total do contrato",        formatarMoeda(resultadoParcelado.valorTotal)],
-                  [`${nParcelas}x de`,         formatarMoeda(resultadoParcelado.valorParcela)],
-                ].map(([l, v]) => (
-                  <div key={l} className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">{l}</span>
-                    <span className="text-sm font-semibold text-slate-900">{v}</span>
-                  </div>
-                ))}
-                <div className="pt-2 border-t border-slate-100 text-xs text-slate-400">
-                  Excedente de pagamento fica retido e desconta na próxima parcela · Sem entrada
-                </div>
-              </div>
-
-              {/* Tabela com decomposição por parcela */}
-              <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-900">Decomposição por Parcela</p>
-                  <button onClick={() => setTabVis(!tabVis)} className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1">
-                    {tabVis ? <><ChevronUp size={12} /> Ocultar</> : <><ChevronDown size={12} /> Ver todas</>}
-                  </button>
-                </div>
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-100">
-                    <tr>
-                      {["#", "Vencimento", "Principal", "Juros", "Total Parcela", "Saldo"].map((h) => (
-                        <th key={h} className="px-4 py-2.5 text-left font-semibold text-slate-500">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {(tabVis ? resultadoParcelado.parcelas : resultadoParcelado.parcelas.slice(0, 4)).map((row) => (
-                      <tr key={row.numero} className="hover:bg-slate-50">
-                        <td className="px-4 py-2.5 text-slate-400">{row.numero}</td>
-                        <td className="px-4 py-2.5 text-slate-500">{formatarData(row.dataVencimento.toISOString())}</td>
-                        <td className="px-4 py-2.5 text-slate-700 tabular-nums">{formatarMoeda(row.valorPrincipal)}</td>
-                        <td className="px-4 py-2.5 text-blue-700 tabular-nums">{formatarMoeda(row.valorJuros)}</td>
-                        <td className="px-4 py-2.5 font-semibold text-slate-900 tabular-nums">{formatarMoeda(row.valorDevido)}</td>
-                        <td className="px-4 py-2.5 text-slate-400 tabular-nums">{formatarMoeda(row.saldoDevedor)}</td>
-                      </tr>
+              {modo === "parcelado" && resultadoParcelado && (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      ["Principal",       formatarMoeda(principalNum)],
+                      ["Taxa",            `${taxaParcelado}%`],
+                      ["Total",           formatarMoeda(resultadoParcelado.valorTotal)],
+                      ["Parcela",         formatarMoeda(resultadoParcelado.valorParcela)],
+                    ].map(([l, v]) => (
+                      <div key={l} className="rounded-xl border border-slate-200 bg-white p-3">
+                        <p className="text-xs text-slate-500">{l}</p>
+                        <p className="text-base font-bold text-slate-900 mt-0.5">{v}</p>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
 
-              <a href={`/emprestimos/novo?principal=${principal}&taxa=${taxaParcelado}&parcelas=${nParcelas}&tipo=${period}`}
-                className="block w-full text-center rounded-xl border border-blue-700 bg-blue-700 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 transition-colors">
-                Criar Contrato Parcelado
-              </a>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-2">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-slate-900">Resumo do Parcelamento</p>
+                      <p className="text-2xl font-black text-slate-900">{formatarMoeda(resultadoParcelado.valorParcela)}</p>
+                    </div>
+                    <div className="h-px bg-slate-100" />
+                    {[
+                      ["Principal",                formatarMoeda(principalNum)],
+                      [`Juros totais (${taxaParcelado}%)`, formatarMoeda(resultadoParcelado.totalJuros)],
+                      ["Total do contrato",        formatarMoeda(resultadoParcelado.valorTotal)],
+                      [`${nParcelasNum}x de`,         formatarMoeda(resultadoParcelado.valorParcela)],
+                    ].map(([l, v]) => (
+                      <div key={l} className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">{l}</span>
+                        <span className="text-sm font-semibold text-slate-900">{v}</span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-slate-100 text-xs text-slate-400">
+                      Excedente de pagamento fica retido e desconta na próxima parcela · Sem entrada
+                    </div>
+                  </div>
+
+                  {/* Tabela com decomposição por parcela */}
+                  <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                    <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-900">Decomposição por Parcela</p>
+                      <button onClick={() => setTabVis(!tabVis)} className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1">
+                        {tabVis ? <><ChevronUp size={12} /> Ocultar</> : <><ChevronDown size={12} /> Ver todas</>}
+                      </button>
+                    </div>
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                          {["#", "Vencimento", "Principal", "Juros", "Total Parcela", "Saldo"].map((h) => (
+                            <th key={h} className="px-4 py-2.5 text-left font-semibold text-slate-500">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {(tabVis ? resultadoParcelado.parcelas : resultadoParcelado.parcelas.slice(0, 4)).map((row) => (
+                          <tr key={row.numero} className="hover:bg-slate-50">
+                            <td className="px-4 py-2.5 text-slate-400">{row.numero}</td>
+                            <td className="px-4 py-2.5 text-slate-500">{formatarData(row.dataVencimento.toISOString())}</td>
+                            <td className="px-4 py-2.5 text-slate-700 tabular-nums">{formatarMoeda(row.valorPrincipal)}</td>
+                            <td className="px-4 py-2.5 text-blue-700 tabular-nums">{formatarMoeda(row.valorJuros)}</td>
+                            <td className="px-4 py-2.5 font-semibold text-slate-900 tabular-nums">{formatarMoeda(row.valorDevido)}</td>
+                            <td className="px-4 py-2.5 text-slate-400 tabular-nums">{formatarMoeda(row.saldoDevedor)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <a href={`/emprestimos/novo?principal=${principalNum}&taxa=${taxaParcelado}&parcelas=${nParcelasNum}&tipo=${period}`}
+                    className="block w-full text-center rounded-xl border border-blue-700 bg-blue-700 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 transition-colors">
+                    Criar Contrato Parcelado
+                  </a>
+                </>
+              )}
+
+              {modo === "parcelado" && taxaParcelado <= 0 && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
+                  <p className="text-sm font-semibold text-amber-800">Taxa não configurada para {nParcelasNum}x</p>
+                  <p className="text-xs text-amber-600 mt-1">Configure as taxas de parcelamento em Configurações → Parcelamento</p>
+                  <a href="/configuracoes?tab=parcelamento" className="mt-3 inline-block text-xs text-amber-700 underline">
+                    Ir para Configurações
+                  </a>
+                </div>
+              )}
             </>
-          )}
-
-          {modo === "parcelado" && taxaParcelado <= 0 && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
-              <p className="text-sm font-semibold text-amber-800">Taxa não configurada para {nParcelas}x</p>
-              <p className="text-xs text-amber-600 mt-1">Configure as taxas de parcelamento em Configurações → Parcelamento</p>
-              <a href="/configuracoes?tab=parcelamento" className="mt-3 inline-block text-xs text-amber-700 underline">
-                Ir para Configurações
-              </a>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-2 h-full min-h-[300px]">
+              <Calculator size={32} className="text-slate-300 shrink-0" />
+              <p className="font-semibold text-slate-500 text-sm">Aguardando Parâmetros</p>
+              <p>Preencha o valor do empréstimo e a taxa de juros para ver a simulação.</p>
             </div>
           )}
         </div>
@@ -472,13 +512,13 @@ export default function SimuladorPage() {
 }
 
 function Num({ label, value, onChange, step, min, max }: {
-  label: string; value: number; onChange: (v: number) => void; step?: number; min?: number; max?: number;
+  label: string; value: number | ""; onChange: (v: number | "") => void; step?: number; min?: number; max?: number;
 }) {
   return (
     <div>
       <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
       <input type="number" value={value} step={step} min={min} max={max}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors" />
     </div>
   );

@@ -12,15 +12,19 @@ export default async function CalendarioPage() {
     data:  { status: "ATRASADO" },
   });
 
-  const parcelas = await prisma.parcela.findMany({
-    include: { emprestimo: { include: { cliente: { select: { id: true, nome: true, phone: true } } } } },
-    orderBy: { dataVencimento: "asc" },
-  });
-
-  const clientes = await prisma.cliente.findMany({
-    select: { id: true, nome: true },
-    orderBy: { nome: "asc" },
-  });
+  const [parcelas, clientes, despesas] = await Promise.all([
+    prisma.parcela.findMany({
+      include: { emprestimo: { include: { cliente: { select: { id: true, nome: true, phone: true } } } } },
+      orderBy: { dataVencimento: "asc" },
+    }),
+    prisma.cliente.findMany({
+      select: { id: true, nome: true },
+      orderBy: { nome: "asc" },
+    }),
+    prisma.contaPagar.findMany({
+      orderBy: { dataVencimento: "asc" },
+    }),
+  ]);
 
   const todasParcelas = parcelas.map((p) => ({
     ...p,
@@ -31,10 +35,19 @@ export default async function CalendarioPage() {
     clientePhone: p.emprestimo.cliente.phone,
   }));
 
+  const todasDespesas = despesas.map((d) => ({
+    id:             d.id,
+    descricao:      d.descricao,
+    valor:          Number(d.valor),
+    dataVencimento: d.dataVencimento.toISOString(),
+    status:         d.status,
+  }));
+
   return (
     <CalendarioClient
       parcelas={todasParcelas as any}
       clientes={clientes}
+      despesas={todasDespesas}
     />
   );
 }

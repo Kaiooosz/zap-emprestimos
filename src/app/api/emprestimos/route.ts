@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       observacoes, temGarantia, tipoGarantia, valorGarantia, temContrato,
       valorNominalCheque, dataCheque, custo, descricaoProduto,
       valorMensal, diaVencimento, semDataFim, plano,
+      regraAtraso, taxaAtraso,
     } = body;
 
     let operadorId = session?.sub;
@@ -77,6 +78,8 @@ export async function POST(req: NextRequest) {
         tipoGarantia:       tipoGarantia  || null,
         valorGarantia:      valorGarantia  ? Number(valorGarantia)  : null,
         temContrato:        temContrato   ?? false,
+        regraAtraso:        regraAtraso   || "PARCELA",
+        taxaAtraso:         taxaAtraso !== undefined ? Number(taxaAtraso) : 1.0,
         valorNominalCheque: valorNominalCheque ? Number(valorNominalCheque) : null,
         dataCheque:         dataCheque ? new Date(dataCheque) : null,
         custo:              custo        ? Number(custo) : null,

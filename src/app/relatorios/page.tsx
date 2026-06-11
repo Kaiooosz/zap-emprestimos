@@ -10,7 +10,7 @@ export default async function RelatoriosPage() {
   const mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const em7dias = new Date(hoje.getTime() + 7 * 86_400_000);
 
-  const [clientes, emprestimosRaw, parcelasRaw, equipe] = await Promise.all([
+  const [clientes, emprestimosRaw, parcelasRaw, equipe, despesasRaw] = await Promise.all([
     prisma.cliente.findMany({ orderBy: { score: "desc" } }),
     prisma.emprestimo.findMany({ include: { parcelas: true } }),
     prisma.parcela.findMany({
@@ -24,6 +24,7 @@ export default async function RelatoriosPage() {
       }
     }),
     prisma.user.findMany({ select: { id: true, nome: true } }),
+    prisma.contaPagar.findMany(),
   ]);
 
   // Adaptador para manter compatibilidade com cálculos antigos
@@ -51,6 +52,21 @@ export default async function RelatoriosPage() {
   const recebidoMes = parcelas
     .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= mesAtual)
     .reduce((s, p) => s + Number(p.valorPago ?? 0), 0);
+
+  // Despesas no mês atual
+  const despesasMes = despesasRaw
+    .filter((d) => {
+      const dataRef = d.dataPagamento ? new Date(d.dataPagamento) : new Date(d.dataVencimento);
+      return dataRef >= mesAtual;
+    })
+    .reduce((s, d) => s + Number(d.valor), 0);
+
+  // Lucro bruto no mês atual (juros pagos pelas parcelas no período)
+  const lucroBrutoMes = parcelas
+    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= mesAtual)
+    .reduce((s, p) => s + Number(p.valorJuros), 0);
+
+  const lucroLiquidoMes = lucroBrutoMes - despesasMes;
 
   // Adimplência = parcelas pagas / total de parcelas já vencidas
   const parcelasVencidas = parcelas.filter((p) => new Date(p.dataVencimento) <= hoje);
@@ -127,10 +143,11 @@ export default async function RelatoriosPage() {
       {/* KPIs Gerais (Mês Atual) */}
       <div>
         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Métricas Gerais Consolidadas</h2>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <KPI label="Capital na Rua"     value={formatarMoeda(capitalNaRua)}   icon={DollarSign}  accent />
-          <KPI label="Lucro Projetado"    value={formatarMoeda(lucroProjetado)} icon={TrendingUp}  positive />
           <KPI label="Recebido no Mês"    value={formatarMoeda(recebidoMes)}    icon={CheckCircle2} />
+          <KPI label="Despesas no Mês"    value={formatarMoeda(despesasMes)}    icon={AlertCircle} negative />
+          <KPI label="Lucro Líquido"      value={formatarMoeda(lucroLiquidoMes)} icon={TrendingUp} positive={lucroLiquidoMes > 0} negative={lucroLiquidoMes < 0} />
           <KPI label="Adimplência"        value={`${taxaAdimplencia}%`}         icon={Users} positive={taxaAdimplencia >= 80} />
         </div>
       </div>
@@ -292,18 +309,18 @@ export default async function RelatoriosPage() {
   );
 }
 
-function KPI({ label, value, icon: Icon, accent, positive }: {
-  label: string; value: string; icon: typeof DollarSign; accent?: boolean; positive?: boolean;
+function KPI({ label, value, icon: Icon, accent, positive, negative }: {
+  label: string; value: string; icon: any; accent?: boolean; positive?: boolean; negative?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
-        <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${accent ? "bg-blue-50 text-blue-700" : positive ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"}`}>
+        <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${accent ? "bg-blue-50 text-blue-700" : positive ? "bg-emerald-50 text-emerald-600" : negative ? "bg-red-50 text-red-600" : "bg-slate-50 text-slate-400"}`}>
           <Icon size={13} />
         </div>
       </div>
-      <p className={`text-lg font-bold ${accent ? "text-blue-700" : "text-slate-900"}`}>{value}</p>
+      <p className={`text-lg font-bold ${accent ? "text-blue-700" : negative ? "text-red-600" : "text-slate-900"}`}>{value}</p>
     </div>
   );
 }

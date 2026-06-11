@@ -37,15 +37,15 @@ describe("calcularEmprestimo", () => {
     });
 
     it("calcula o total de juros simples corretamente", () => {
-      // Juros simples: P × r × n = 10000 × 0.30 × 3 = 9000
+      // Juros simples: P × r = 10000 × 0.30 = 3000
       const res = calcularEmprestimo(params, BASE_DATE, 30);
-      expect(res.totalJuros).toBe(9000);
+      expect(res.totalJuros).toBe(3000);
     });
 
     it("calcula o valor total corretamente", () => {
-      // valorTotal = principal + totalJuros = 19000
+      // valorTotal = principal + totalJuros = 13000
       const res = calcularEmprestimo(params, BASE_DATE, 30);
-      expect(res.valorTotal).toBe(19000);
+      expect(res.valorTotal).toBe(13000);
     });
 
     it("a soma das parcelas é igual ao valorTotal", () => {
@@ -58,13 +58,17 @@ describe("calcularEmprestimo", () => {
       const res = calcularEmprestimo(params, BASE_DATE, 30);
       res.parcelas.forEach((p, i) => {
         const expectedDate = new Date(BASE_DATE);
-        expectedDate.setDate(expectedDate.getDate() + 30 * (i + 1));
+        const day = expectedDate.getDate();
+        expectedDate.setMonth(expectedDate.getMonth() + (i + 1));
+        if (expectedDate.getDate() !== day) {
+          expectedDate.setDate(0);
+        }
         expect(p.dataVencimento.toDateString()).toBe(expectedDate.toDateString());
       });
     });
 
     it("a última parcela absorve os centavos de arredondamento", () => {
-      // Com 3 parcelas de 19000/3 = 6333.33... — a última cobre o restante
+      // Com 3 parcelas de 13000/3 = 4333.33... — a última cobre o restante
       const res = calcularEmprestimo(params, BASE_DATE, 30);
       const somaAntes = arred(res.parcelas.slice(0, -1).reduce((acc, p) => acc + p.valorDevido, 0));
       const ultima = res.parcelas[res.parcelas.length - 1].valorDevido;
@@ -75,6 +79,16 @@ describe("calcularEmprestimo", () => {
       const res = calcularEmprestimo(params, BASE_DATE, 30);
       expect(res.valorPrincipal).toBe(10000);
       expect(res.taxaJuros).toBe(30);
+    });
+  });
+
+  describe("tipo: por_parcela", () => {
+    const params = { valorPrincipal: 10000, taxaJuros: 30, numParcelas: 3, tipo: "por_parcela" as const };
+
+    it("calcula o total de juros por parcela corretamente", () => {
+      // Juros por parcela: P × r × n = 10000 × 0.30 × 3 = 9000
+      const res = calcularEmprestimo(params, BASE_DATE, 30);
+      expect(res.totalJuros).toBe(9000);
     });
   });
 

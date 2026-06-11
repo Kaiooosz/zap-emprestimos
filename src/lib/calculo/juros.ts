@@ -31,6 +31,20 @@ export interface ResultadoEmprestimo {
 
 // ─── Cálculo de parcelas ──────────────────────────────────────────────────────
 
+function obterDataVencimento(dataInicio: Date, i: number, intervaloEmDias: number): Date {
+  const venc = new Date(dataInicio);
+  if (intervaloEmDias === 30) {
+    const day = venc.getDate();
+    venc.setMonth(venc.getMonth() + (i + 1));
+    if (venc.getDate() !== day) {
+      venc.setDate(0);
+    }
+  } else {
+    venc.setDate(venc.getDate() + intervaloEmDias * (i + 1));
+  }
+  return venc;
+}
+
 export function calcularEmprestimo(
   params: ParamsEmprestimo,
   dataInicio: Date,
@@ -57,8 +71,7 @@ export function calcularEmprestimo(
       const juros = saldo * r;
       const amort = parcela - juros;
       saldo = Math.max(0, saldo - amort);
-      const venc = new Date(dataInicio);
-      venc.setDate(venc.getDate() + intervaloEmDias * (i + 1));
+      const venc = obterDataVencimento(dataInicio, i, intervaloEmDias);
       return {
         numero: i + 1,
         valorDevido: arred(parcela),
@@ -75,8 +88,7 @@ export function calcularEmprestimo(
     const parcela = valorTotal / numParcelas;
 
     parcelas = Array.from({ length: numParcelas }, (_, i) => {
-      const venc = new Date(dataInicio);
-      venc.setDate(venc.getDate() + intervaloEmDias * (i + 1));
+      const venc = obterDataVencimento(dataInicio, i, intervaloEmDias);
       return {
         numero: i + 1,
         valorDevido: arred(parcela),
@@ -87,8 +99,12 @@ export function calcularEmprestimo(
       };
     });
   } else {
-    // Juros simples (padrão) ou por_parcela — mesma fórmula flat
-    totalJuros = valorPrincipal * r * numParcelas;
+    // Juros simples ou por_parcela
+    // simples: taxa total flat; por_parcela: taxa por parcela
+    totalJuros = tipo === "simples" 
+      ? valorPrincipal * r 
+      : valorPrincipal * r * numParcelas;
+
     valorTotal = valorPrincipal + totalJuros;
     const parcela = valorTotal / numParcelas;
     const jurosParcela = totalJuros / numParcelas;
@@ -96,8 +112,7 @@ export function calcularEmprestimo(
 
     parcelas = Array.from({ length: numParcelas }, (_, i) => {
       const isLast = i === numParcelas - 1;
-      const venc = new Date(dataInicio);
-      venc.setDate(venc.getDate() + intervaloEmDias * (i + 1));
+      const venc = obterDataVencimento(dataInicio, i, intervaloEmDias);
 
       const vDevido = isLast ? arred(valorTotal - parcela * (numParcelas - 1)) : arred(parcela);
       const vJuros  = isLast ? arred(totalJuros - jurosParcela * (numParcelas - 1)) : arred(jurosParcela);

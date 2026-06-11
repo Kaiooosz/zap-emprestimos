@@ -19,9 +19,18 @@ interface ParcelaCalendario {
   clientePhone: string;
 }
 
+interface DespesaCalendario {
+  id: string;
+  descricao: string;
+  valor: number;
+  dataVencimento: string;
+  status: string;
+}
+
 interface Props {
   parcelas: ParcelaCalendario[];
   clientes: { id: string; nome: string }[];
+  despesas?: DespesaCalendario[];
 }
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
@@ -30,7 +39,7 @@ const MESES = [
   "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
 ];
 
-export function CalendarioClient({ parcelas, clientes }: Props) {
+export function CalendarioClient({ parcelas, clientes, despesas = [] }: Props) {
   const hoje = new Date();
   const [ano,  setAno]        = useState(hoje.getFullYear());
   const [mes,  setMes]        = useState(hoje.getMonth());
@@ -66,6 +75,14 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
     return true;
   }), [parcelas, ano, mes, clienteFiltro, statusFiltro, busca]);
 
+  // Despesas filtradas para o mês (não afetadas por filtros de cliente)
+  const despesasMes = useMemo(() => despesas.filter((d) => {
+    const date = new Date(d.dataVencimento);
+    if (date.getFullYear() !== ano || date.getMonth() !== mes) return false;
+    if (busca && !d.descricao.toLowerCase().includes(busca.toLowerCase())) return false;
+    return true;
+  }), [despesas, ano, mes, busca]);
+
   // Parcelas por dia
   const porDia = useMemo(() => {
     const m: Record<number, ParcelaCalendario[]> = {};
@@ -77,8 +94,20 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
     return m;
   }, [parcelasMes]);
 
-  // Parcelas do dia selecionado
+  // Despesas por dia
+  const despesasPorDia = useMemo(() => {
+    const m: Record<number, DespesaCalendario[]> = {};
+    despesasMes.forEach((d) => {
+      const dia = new Date(d.dataVencimento).getDate();
+      if (!m[dia]) m[dia] = [];
+      m[dia].push(d);
+    });
+    return m;
+  }, [despesasMes]);
+
+  // Dados do dia selecionado
   const parcelasDia = diaSelecionado ? (porDia[diaSelecionado] ?? []) : parcelasMes;
+  const despesasDia = diaSelecionado ? (despesasPorDia[diaSelecionado] ?? []) : despesasMes;
 
   // Resumo do mês
   const resumo = useMemo(() => ({
@@ -113,7 +142,7 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
           <p className="text-xs text-slate-400 mt-0.5">{MESES[mes]} {ano}</p>
         </div>
         <button onClick={irHoje}
-          className="text-xs font-semibold text-blue-700 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors">
+          className="text-xs font-semibold text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5 hover:bg-slate-50 transition-colors">
           Ir para hoje
         </button>
       </div>
@@ -128,8 +157,8 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar cliente..."
-              className="w-full rounded-lg border border-slate-200 bg-white pl-8 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="Buscar..."
+              className="w-full rounded-lg border border-slate-200 bg-white pl-8 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-500"
             />
             {busca && (
               <button onClick={() => setBusca("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -140,14 +169,14 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
 
           {/* Cliente */}
           <select value={clienteFiltro} onChange={(e) => setClienteFiltro(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600">
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-500">
             <option value="">Todos os clientes</option>
             {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
 
           {/* Status */}
           <select value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600">
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-500">
             <option value="todos">Todos os status</option>
             <option value="pendente">Pendente</option>
             <option value="atrasado">Atrasado</option>
@@ -168,7 +197,7 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
       {/* Resumo do mês */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Total do mes",     value: formatarMoeda(resumo.totalValor), sub: `${resumo.total} parcelas` },
+          { label: "Cobranças no mes", value: formatarMoeda(resumo.totalValor), sub: `${resumo.total} parcelas` },
           { label: "A receber",        value: formatarMoeda(resumo.pendente),   sub: "Pendentes" },
           { label: "Em atraso",        value: formatarMoeda(resumo.atrasado),   sub: `${resumo.countAtraso} parcelas`, red: resumo.countAtraso > 0 },
           { label: "Recebido no mes",  value: formatarMoeda(resumo.pago),       sub: `${resumo.countPago} pagas` },
@@ -207,30 +236,32 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
             ))}
           </div>
 
-          {/* Dias */}
+          {/* Grid de Dias */}
           <div className="grid grid-cols-7 gap-1">
             {Array.from({ length: primeiroDia }).map((_, i) => <div key={`e${i}`}/>)}
             {Array.from({ length: diasNoMes }, (_, i) => {
               const dia = i + 1;
               const parcs = porDia[dia] ?? [];
+              const desps = despesasPorDia[dia] ?? [];
               const isHoje = dia === hoje.getDate() && mes === hoje.getMonth() && ano === hoje.getFullYear();
               const isSel  = dia === diaSelecionado;
 
               const temAtraso   = parcs.some(p => p.status === "ATRASADO");
               const temPendente = parcs.some(p => p.status === "PENDENTE");
               const temPago     = parcs.some(p => p.status === "PAGO");
+              const temDespesa  = desps.length > 0;
 
               return (
                 <button key={dia}
                   onClick={() => setDia(diaSelecionado === dia ? null : dia)}
                   className={`relative min-h-[52px] rounded-xl p-1.5 border text-left transition-all ${
-                    isSel  ? "bg-blue-700 border-blue-700" :
-                    isHoje ? "border-blue-300 bg-blue-50" :
-                    parcs.length > 0 ? "border-slate-200 hover:border-blue-200 hover:bg-slate-50" :
+                    isSel  ? "bg-slate-900 border-slate-900 text-white" :
+                    isHoje ? "border-slate-300 bg-slate-50" :
+                    (parcs.length > 0 || desps.length > 0) ? "border-slate-200 hover:border-slate-400 hover:bg-slate-50" :
                     "border-transparent hover:border-slate-100"
                   }`}
                 >
-                  <p className={`text-xs font-bold ${isSel ? "text-white" : isHoje ? "text-blue-700" : "text-slate-700"}`}>
+                  <p className={`text-xs font-bold ${isSel ? "text-white" : isHoje ? "text-slate-900" : "text-slate-700"}`}>
                     {dia}
                   </p>
                   {/* Dots de status */}
@@ -238,10 +269,11 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
                     {temAtraso   && <div className="h-1.5 w-1.5 rounded-full bg-red-500"/>}
                     {temPendente && <div className="h-1.5 w-1.5 rounded-full bg-blue-500"/>}
                     {temPago     && <div className="h-1.5 w-1.5 rounded-full bg-slate-300"/>}
+                    {temDespesa  && <div className="h-1.5 w-1.5 rounded-full bg-slate-400"/>}
                   </div>
-                  {parcs.length > 1 && (
-                    <p className={`text-xs leading-none mt-0.5 font-medium ${isSel ? "text-blue-100" : "text-slate-400"}`}>
-                      {parcs.length}
+                  {(parcs.length + desps.length) > 1 && (
+                    <p className={`text-[10px] leading-none mt-0.5 font-medium ${isSel ? "text-slate-200" : "text-slate-400"}`}>
+                      {parcs.length + desps.length}
                     </p>
                   )}
                 </button>
@@ -256,6 +288,7 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
               { cor: "bg-blue-500",  label: "Pendente" },
               { cor: "bg-amber-500", label: "Vence em breve" },
               { cor: "bg-slate-300", label: "Pago" },
+              { cor: "bg-slate-400", label: "Despesa Interna" },
             ].map(({ cor, label }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <div className={`h-2 w-2 rounded-full ${cor}`}/>
@@ -265,8 +298,8 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
           </div>
         </div>
 
-        {/* Painel direito: lista de parcelas */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        {/* Painel direito: lista de parcelas e despesas */}
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
           <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-slate-900">
@@ -275,8 +308,7 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
                   : `${MESES[mes]} completo`}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                {parcelasDia.length} vencimento{parcelasDia.length !== 1 ? "s" : ""}
-                {parcelasDia.length > 0 && ` · ${formatarMoeda(parcelasDia.reduce((s,p)=>s+p.valorDevido,0))}`}
+                {parcelasDia.length} cobrança{parcelasDia.length !== 1 ? "s" : ""} · {despesasDia.length} despesa{despesasDia.length !== 1 ? "s" : ""}
               </p>
             </div>
             {diaSelecionado && (
@@ -286,9 +318,13 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
             )}
           </div>
 
-          <div className="overflow-y-auto max-h-[420px] divide-y divide-slate-50">
+          <div className="overflow-y-auto max-h-[420px] divide-y divide-slate-100 flex-1">
+            {/* Seção de parcelas de clientes */}
+            <div className="px-5 py-2 bg-slate-50 text-[10px] font-semibold text-slate-400 uppercase tracking-wider sticky top-0">
+              Cobranças de Clientes
+            </div>
             {parcelasDia.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-12">Nenhum vencimento</p>
+              <p className="text-xs text-slate-400 text-center py-6">Nenhuma cobrança registrada</p>
             ) : (
               parcelasDia
                 .sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime())
@@ -302,30 +338,22 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
                     : 0;
 
                   return (
-                    <div key={p.id} className="flex items-start gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors">
-                      {/* Dot */}
+                    <div key={p.id} className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50 transition-colors">
                       <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${getDotColor(p)}`}/>
-
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                           <Link href={`/clientes/${p.clienteId}`}
-                            className="text-sm font-semibold text-slate-900 hover:text-blue-700 transition-colors truncate">
+                            className="text-sm font-semibold text-slate-800 hover:text-slate-900 transition-colors truncate">
                             {p.clienteNome}
                           </Link>
                           <StatusBadge status={p.status as any}/>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-slate-500">Parcela {p.numero}</span>
-                          {diasAtraso > 0 && (
-                            <span className="text-xs font-medium text-red-600">{diasAtraso}d atraso</span>
-                          )}
-                          {diasAte > 0 && (
-                            <span className="text-xs text-slate-400">
-                              {diasAte === 0 ? "hoje" : `em ${diasAte}d`}
-                            </span>
-                          )}
+                        <div className="flex items-center gap-3 text-slate-400 text-[10px]">
+                          <span>Parcela {p.numero}</span>
+                          {diasAtraso > 0 && <span className="font-semibold text-red-600">{diasAtraso}d atraso</span>}
+                          {diasAte > 0 && <span>em {diasAte}d</span>}
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <p className="text-[10px] text-slate-400 mt-0.5">
                           {venc.toLocaleDateString("pt-BR")}
                         </p>
                       </div>
@@ -340,9 +368,9 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
                               `Olá *${p.clienteNome}*! Sua parcela de *${formatarMoeda(p.valorDevido)}* vence em *${venc.toLocaleDateString("pt-BR")}*.\n_Zap Empréstimos_`
                             )}`}
                             target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-0.5 text-xs text-slate-400 hover:text-emerald-600 transition-colors mt-1"
+                            className="inline-flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-emerald-600 transition-colors mt-0.5"
                           >
-                            <MessageCircle size={11}/>
+                            <MessageCircle size={10}/>
                             WhatsApp
                           </a>
                         )}
@@ -351,21 +379,36 @@ export function CalendarioClient({ parcelas, clientes }: Props) {
                   );
                 })
             )}
-          </div>
 
-          {/* Faturamento total do mes filtrado */}
-          {parcelasDia.length > 0 && (
-            <div className="border-t border-slate-100 px-5 py-3 bg-slate-50">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500 font-medium uppercase tracking-wider">
-                  {diaSelecionado ? `Dia ${diaSelecionado}` : "Total do mes"}
-                </span>
-                <span className="font-black text-slate-900 tabular-nums text-sm">
-                  {formatarMoeda(parcelasDia.reduce((s, p) => s + p.valorDevido, 0))}
-                </span>
-              </div>
+            {/* Seção de despesas operacionais */}
+            <div className="px-5 py-2 bg-slate-50 text-[10px] font-semibold text-slate-400 uppercase tracking-wider sticky top-0">
+              Despesas Internas
             </div>
-          )}
+            {despesasDia.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-6">Nenhuma despesa registrada</p>
+            ) : (
+              despesasDia.map((d) => (
+                <div key={d.id} className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50 transition-colors">
+                  <div className="mt-1.5 h-2 w-2 rounded-full shrink-0 bg-slate-400"/>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{d.descricao}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400">Despesa</span>
+                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${d.status === "PAGO" ? "bg-slate-100 text-slate-700" : "bg-red-50 text-red-600"}`}>
+                        {d.status}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      Vencimento: {new Date(d.dataVencimento).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-slate-800 tabular-nums">-{formatarMoeda(d.valor)}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

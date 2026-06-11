@@ -28,10 +28,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const hoje    = new Date();
   const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate() + 7);
 
-  const [parcelasRaw, empsRaw, clientesRaw] = await Promise.all([
+  const [parcelasRaw, empsRaw, clientesRaw, despesasRaw] = await Promise.all([
     prisma.parcela.findMany({ include: { emprestimo: { include: { cliente: { select: { id: true, nome: true } } } } } }),
     prisma.emprestimo.findMany({ include: { parcelas: { select: { status: true, valorDevido: true } } } }),
     prisma.cliente.findMany({ orderBy: { score: "desc" } }),
+    prisma.contaPagar.findMany(),
   ]);
   const clientes = clientesRaw.map(decryptCliente);
 
@@ -89,6 +90,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const lucroPeriodo = parcelas
     .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= dataInicioFiltro && new Date(p.dataPagamento) <= dataFimFiltro)
     .reduce((s, p) => s + toN(p.valorJuros), 0);
+
+  const despesasNoPeriodo = despesasRaw.filter((d) => {
+    const dataRef = d.dataPagamento ? new Date(d.dataPagamento) : new Date(d.dataVencimento);
+    return dataRef >= dataInicioFiltro && dataRef <= dataFimFiltro;
+  });
+  const totalDespesas = despesasNoPeriodo.reduce((s, d) => s + toN(d.valor), 0);
+  const lucroLiquido = lucroPeriodo - totalDespesas;
 
   const parcelasAtrasadas = parcelas.filter((p) =>
     p.status === "ATRASADO" || (["PENDENTE","PARCIAL"].includes(p.status) && new Date(p.dataVencimento) < hoje)
@@ -176,6 +184,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     capitalNaRua,
     recebidoMes: recebidoPeriodo,
     lucroMes: lucroPeriodo,
+    lucroLiquido,
+    totalDespesas,
     parcelasAtrasadas: parcelasAtrasadas.length,
     totalSemana,
     totalClientesAtivos: emps.filter((e) => e.status === "ATIVO").length,
@@ -206,10 +216,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* KPIs — 4 cards */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {[
-          { label: "Na Rua",      value: formatarMoeda(data.capitalNaRua),  sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: null,     up: true },
-          { label: "Recebido",    value: formatarMoeda(data.recebidoMes),  sub: "Este mês",                              icon: Banknote,      trend: "+12%",   up: true },
-          { label: "Lucro",       value: formatarMoeda(data.lucroMes),     sub: "Juros cobrados",                        icon: TrendingUp,    trend: "+8%",    up: true },
-          { label: "Atrasadas",   value: String(data.parcelasAtrasadas),   sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? String(data.parcelasAtrasadas) : null, up: false },
+          { label: "Na Rua",      value: formatarMoeda(data.capitalNaRua),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: null,     up: true },
+          { label: "Recebido",    value: formatarMoeda(data.recebidoMes),   sub: "Este período",                          icon: Banknote,      trend: "+12%",   up: true },
+          { label: "Lucro Líquido", value: formatarMoeda(data.lucroLiquido), sub: `Bruto: ${formatarMoeda(data.lucroMes)} | Despesas: ${formatarMoeda(data.totalDespesas)}`, icon: TrendingUp, trend: "+8%", up: true },
+          { label: "Atrasadas",   value: String(data.parcelasAtrasadas),    sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? String(data.parcelasAtrasadas) : null, up: false },
         ].map(({ label, value, sub, icon: Icon, trend, up }) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
