@@ -1,5 +1,4 @@
 import { SignJWT, jwtVerify } from "jose";
-import { createHash } from "crypto";
 import { cookies } from "next/headers";
 
 const SECRET = new TextEncoder().encode(
@@ -14,10 +13,6 @@ export interface JWTPayload {
   email: string;
   nome:  string;
   role:  string;
-}
-
-export function hashSenha(senha: string): string {
-  return createHash("sha256").update(senha + "zap2026").digest("hex");
 }
 
 export async function signToken(payload: JWTPayload): Promise<string> {
