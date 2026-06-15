@@ -30,7 +30,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   const [parcelasRaw, empsRaw, clientesRaw, despesasRaw] = await Promise.all([
     prisma.parcela.findMany({ include: { emprestimo: { include: { cliente: { select: { id: true, nome: true } } } } } }),
-    prisma.emprestimo.findMany({ include: { parcelas: { select: { status: true, valorDevido: true } } } }),
+    prisma.emprestimo.findMany({ include: { parcelas: { select: { status: true, valorDevido: true, dataVencimento: true, valorJuros: true } } } }),
     prisma.cliente.findMany({ orderBy: { score: "desc" } }),
     prisma.contaPagar.findMany(),
   ]);
@@ -127,7 +127,66 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .slice(0, 5)
     .map((p) => ({ ...p, valorDevido: toN(p.valorDevido), clienteNome: p.emprestimo.cliente?.nome ?? "—" }));
 
-  const adimplencia = parcelas.length > 0 ? Math.round((parcelas.filter((p) => p.status === "PAGO").length / parcelas.length) * 100) : 0;
+  const parcelasVencidas = parcelas.filter((p) => new Date(p.dataVencimento) <= hoje);
+  const parcelasPagasCount = parcelasVencidas.filter((p) => p.status === "PAGO").length;
+  const adimplencia = parcelasVencidas.length > 0
+    ? Math.round((parcelasPagasCount / parcelasVencidas.length) * 100)
+    : 100;
+
+  // ─── Período Anterior para Variação Percentual ───
+  const diffTime = Math.abs(dataFimFiltro.getTime() - dataInicioFiltro.getTime());
+  const dataInicioAnterior = new Date(dataInicioFiltro.getTime() - diffTime - 1000);
+  const dataFimAnterior = new Date(dataFimFiltro.getTime() - diffTime - 1000);
+
+  const capitalNaRuaAnterior = empsRaw
+    .filter((e) => e.status === "ATIVO")
+    .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && new Date(p.dataVencimento) <= dataFimAnterior))
+    .reduce((s, p) => s + toN(p.valorDevido), 0);
+
+  const recebidoPeriodoAnterior = parcelas
+    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= dataInicioAnterior && new Date(p.dataPagamento) <= dataFimAnterior)
+    .reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
+
+  const lucroPeriodoAnterior = parcelas
+    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= dataInicioAnterior && new Date(p.dataPagamento) <= dataFimAnterior)
+    .reduce((s, p) => s + toN(p.valorJuros), 0);
+
+  const despesasNoPeriodoAnterior = despesasRaw.filter((d) => {
+    const dataRef = d.dataPagamento ? new Date(d.dataPagamento) : new Date(d.dataVencimento);
+    return dataRef >= dataInicioAnterior && dataRef <= dataFimAnterior;
+  });
+  const totalDespesasAnterior = despesasNoPeriodoAnterior.reduce((s, d) => s + toN(d.valor), 0);
+  const lucroLiquidoAnterior = lucroPeriodoAnterior - totalDespesasAnterior;
+
+  const parcelasAtrasadasAnterior = parcelas.filter((p) => {
+    const venc = new Date(p.dataVencimento);
+    return venc <= dataFimAnterior && (p.status === "ATRASADO" || (["PENDENTE","PARCIAL"].includes(p.status) && venc < new Date(dataFimAnterior)));
+  }).length;
+
+  const calcularCrescimento = (atual: number, anterior: number) => {
+    if (anterior <= 0) return atual > 0 ? "+100%" : "0%";
+    const diff = ((atual - anterior) / anterior) * 100;
+    const sinal = diff >= 0 ? "+" : "";
+    return `${sinal}${Math.round(diff)}%`;
+  };
+
+  const trendNaRua = calcularCrescimento(capitalNaRua, capitalNaRuaAnterior);
+  const trendRecebido = calcularCrescimento(recebidoPeriodo, recebidoPeriodoAnterior);
+  const trendLucro = calcularCrescimento(lucroLiquido, lucroLiquidoAnterior);
+  const trendAtrasadas = calcularCrescimento(parcelasAtrasadas.length, parcelasAtrasadasAnterior);
+
+  // Ontem Real
+  const ontemInicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 1, 0, 0, 0);
+  const ontemFim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 1, 23, 59, 59);
+  const recebidoOntem = parcelas
+    .filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento) >= ontemInicio && new Date(p.dataPagamento) <= ontemFim)
+    .reduce((s, p) => s + toN(p.valorPago ?? 0), 0);
+
+  // Lucro previsto real de juros pendentes
+  const lucroPrevistoReal = emps
+    .filter((e) => e.status === "ATIVO")
+    .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE", "PARCIAL", "ATRASADO"].includes(p.status)))
+    .reduce((s, p) => s + toN(p.valorJuros), 0);
 
   // Evolução com agrupamento temporal dinâmico
   let evolucaoMensal: Array<{ mes: string; recebido: number }> = [];
@@ -191,9 +250,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     totalClientesAtivos: emps.filter((e) => e.status === "ATIVO").length,
     evolucaoMensal,
     projecoes: {
-      lucroPrevisto:          emps.filter((e) => e.status === "ATIVO").flatMap((e) => e.parcelas.filter((p) => p.status === "PENDENTE")).reduce((s, p) => s + toN(p.valorDevido) * 0.1, 0),
+      lucroPrevisto:          lucroPrevistoReal,
       capitalEmRisco:         carteira.atrasado,
-      recebidoOntem:          0,
+      recebidoOntem,
       mediaRecebimentoDiario: recebidoPeriodo / Math.max(1, hoje.getDate()),
     },
   };
@@ -216,10 +275,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* KPIs — 4 cards */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {[
-          { label: "Na Rua",      value: formatarMoeda(data.capitalNaRua),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: null,     up: true },
-          { label: "Recebido",    value: formatarMoeda(data.recebidoMes),   sub: "Este período",                          icon: Banknote,      trend: "+12%",   up: true },
-          { label: "Lucro Líquido", value: formatarMoeda(data.lucroLiquido), sub: `Bruto: ${formatarMoeda(data.lucroMes)} | Despesas: ${formatarMoeda(data.totalDespesas)}`, icon: TrendingUp, trend: "+8%", up: true },
-          { label: "Atrasadas",   value: String(data.parcelasAtrasadas),    sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? String(data.parcelasAtrasadas) : null, up: false },
+          { label: "Na Rua",      value: formatarMoeda(data.capitalNaRua),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: trendNaRua,     up: !trendNaRua.startsWith("-") },
+          { label: "Recebido",    value: formatarMoeda(data.recebidoMes),   sub: "Este período",                          icon: Banknote,      trend: trendRecebido,   up: !trendRecebido.startsWith("-") },
+          { label: "Lucro Líquido", value: formatarMoeda(data.lucroLiquido), sub: `Bruto: ${formatarMoeda(data.lucroMes)} | Despesas: ${formatarMoeda(data.totalDespesas)}`, icon: TrendingUp, trend: trendLucro, up: !trendLucro.startsWith("-") },
+          { label: "Atrasadas",   value: String(data.parcelasAtrasadas),    sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? trendAtrasadas : null, up: trendAtrasadas.startsWith("-") },
         ].map(({ label, value, sub, icon: Icon, trend, up }) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
