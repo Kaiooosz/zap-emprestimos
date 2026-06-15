@@ -138,15 +138,15 @@ function NovoEmprestimoInner() {
     }
   }, [parcelaAlvo, valor, nParcelas, modalidade]);
 
-  // Se for mensal rolável simples, força 1 parcela
+  // Se for rolável, força 1 parcela
   useEffect(() => {
-    if (periodo === "MENSAL" && mensalRolavel) {
+    if (mensalRolavel) {
       setNParcelas(1);
     }
-  }, [periodo, mensalRolavel]);
+  }, [mensalRolavel]);
 
   const dias      = intervaloMap[periodo];
-  const isRola    = periodo === "MENSAL" && mensalRolavel;
+  const isRola    = mensalRolavel;
 
   const simResult = useMemo(() => {
     if (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") {
@@ -336,7 +336,7 @@ function NovoEmprestimoInner() {
                           <p className="text-xs font-medium text-slate-400 mb-1.5">Periodicidade</p>
                           <div className="grid grid-cols-4 gap-1.5">
                             {(["DIARIO","SEMANAL","QUINZENAL","MENSAL"] as Periodo[]).map((p) => (
-                              <button key={p} type="button" onClick={() => { setPeriodo(p); if (p !== "MENSAL") setMensalRolavel(false); }}
+                              <button key={p} type="button" onClick={() => setPeriodo(p)}
                                 className={`rounded-xl py-2 text-xs font-medium border transition-all ${periodo === p ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
                                 {p === "DIARIO" ? "Diário" : p === "SEMANAL" ? "Semanal" : p === "QUINZENAL" ? "Quinzenal" : "Mensal"}
                               </button>
@@ -344,17 +344,19 @@ function NovoEmprestimoInner() {
                           </div>
                         </div>
 
-                        {periodo === "MENSAL" && (
-                          <div className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50" onClick={() => setMensalRolavel(!mensalRolavel)}>
-                            <div className={`relative h-5 w-9 rounded-full transition-colors shrink-0 ${mensalRolavel ? "bg-slate-900" : "bg-slate-300"}`}>
-                              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${mensalRolavel ? "left-4" : "left-0.5"}`} />
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-slate-700">Mensal Rolável (Sem Parcelas Fixas)</p>
-                              <p className="text-[10px] text-slate-400">Cliente paga apenas juros mensais para estender o contrato</p>
-                            </div>
+                        <div className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50" onClick={() => setMensalRolavel(!mensalRolavel)}>
+                          <div className={`relative h-5 w-9 rounded-full transition-colors shrink-0 ${mensalRolavel ? "bg-slate-900" : "bg-slate-300"}`}>
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${mensalRolavel ? "left-4" : "left-0.5"}`} />
                           </div>
-                        )}
+                          <div>
+                            <p className="text-xs font-semibold text-slate-700">
+                              {periodo === "DIARIO" ? "Diário" : periodo === "SEMANAL" ? "Semanal" : periodo === "QUINZENAL" ? "Quinzenal" : "Mensal"} Rolável (Sem Parcelas Fixas)
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              Cliente paga apenas juros {periodo === "DIARIO" ? "diários" : periodo === "SEMANAL" ? "semanais" : periodo === "QUINZENAL" ? "quinzenais" : "mensais"} para estender o contrato
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
 

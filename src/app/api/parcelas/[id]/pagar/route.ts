@@ -27,8 +27,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const desconto    = body.desconto ?? 0;
 
     let novoStatus: "PAGO" | "PARCIAL" | "PENDENTE" = "PAGO";
-    if (modo === "SOMENTE_JUROS") novoStatus = "PARCIAL";
-    else if (valorPago < totalDevido - 0.01) novoStatus = "PARCIAL";
+    const isRolavel = parcela.emprestimo.numParcelas === 1;
+    if (modo === "SOMENTE_JUROS") {
+      novoStatus = isRolavel ? "PAGO" : "PARCIAL";
+    } else if (valorPago < totalDevido - 0.01) {
+      novoStatus = "PARCIAL";
+    }
 
     // Atualiza parcela
     const updated = await prisma.parcela.update({
@@ -41,6 +45,44 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         desconto:      desconto > 0 ? desconto : null,
       },
     });
+
+    // Se for rolável e pagou apenas juros, gera a próxima parcela pendente para renovação
+    if (isRolavel && modo === "SOMENTE_JUROS") {
+      const proxVenc = new Date(parcela.dataVencimento);
+      const tipo = parcela.emprestimo.tipo; // DIARIO, SEMANAL, QUINZENAL, MENSAL
+      
+      if (tipo === "MENSAL") {
+        proxVenc.setMonth(proxVenc.getMonth() + 1);
+        const day = new Date(parcela.dataVencimento).getDate();
+        if (proxVenc.getDate() !== day) {
+          proxVenc.setDate(0);
+        }
+      } else if (tipo === "QUINZENAL") {
+        proxVenc.setDate(proxVenc.getDate() + 15);
+      } else if (tipo === "SEMANAL") {
+        proxVenc.setDate(proxVenc.getDate() + 7);
+      } else if (tipo === "DIARIO") {
+        proxVenc.setDate(proxVenc.getDate() + 1);
+      }
+
+      await prisma.parcela.create({
+        data: {
+          emprestimoId:   parcela.emprestimoId,
+          numero:         parcela.numero + 1,
+          valorDevido:    parcela.valorDevido,
+          valorPrincipal: parcela.valorPrincipal,
+          valorJuros:     parcela.valorJuros,
+          status:         "PENDENTE",
+          dataVencimento: proxVenc,
+        },
+      });
+
+      // Atualiza dataVencimento final do empréstimo para o novo vencimento
+      await prisma.emprestimo.update({
+        where: { id: parcela.emprestimoId },
+        data: { dataVencimento: proxVenc },
+      });
+    }
 
     // Verifica se o empréstimo foi quitado
     const todasParcelas = await prisma.parcela.findMany({ where: { emprestimoId: parcela.emprestimoId } });
