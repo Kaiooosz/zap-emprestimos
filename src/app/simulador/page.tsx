@@ -174,7 +174,7 @@ export default function SimuladorPage() {
               <Num label="Meses para simular" value={meses} onChange={setMeses} step={1} min={1} max={24} />
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Abatimento mensal — Cenário C (R$)</label>
-                <input type="number" value={abatimento} step={500} min={0} max={principalNum}
+                <input type="number" value={abatimento === 0 ? "" : String(abatimento)} step={500} min={0} max={principalNum}
                   onChange={(e) => setAbatimento(Number(e.target.value))}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors" />
                 {abatimento > 0 && (
@@ -517,7 +517,7 @@ function Num({ label, value, onChange, step, min, max }: {
   return (
     <div>
       <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
-      <input type="number" value={value} step={step} min={min} max={max}
+      <input type="number" value={value === "" || value === undefined ? "" : String(Number(value))} step={step} min={min} max={max}
         onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors" />
     </div>

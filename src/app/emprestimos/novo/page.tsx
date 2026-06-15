@@ -324,7 +324,7 @@ function NovoEmprestimoInner() {
                     <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3">
                       <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1.5">Meta de Parcela (Alvo - R$)</label>
-                        <input type="number" value={parcelaAlvo} onChange={(e) => setParcelaAlvo(e.target.value === "" ? "" : Number(e.target.value))}
+                        <input type="number" value={parcelaAlvo === "" || parcelaAlvo === undefined ? "" : String(Number(parcelaAlvo))} onChange={(e) => setParcelaAlvo(e.target.value === "" ? "" : Number(e.target.value))}
                           placeholder="Calcula taxa automaticamente"
                           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors" />
                       </div>
@@ -686,7 +686,7 @@ function Num({ label, value, onChange, step = 1, min, max }: {
   return (
     <div>
       <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
-      <input type="number" value={value} step={step} min={min} max={max}
+      <input type="number" value={value === undefined ? "" : String(Number(value))} step={step} min={min} max={max}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-500 focus:border-transparent transition-colors" />
     </div>

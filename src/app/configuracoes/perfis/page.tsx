@@ -131,13 +131,13 @@ export default function PerfisFinanceirosPage() {
             </div>
 
             <FLabel label="Taxa Mensal (%)">
-              <input type="number" step="0.1" value={form.taxaMensalPct}
+              <input type="number" step="0.1" value={form.taxaMensalPct === undefined ? "" : String(Number(form.taxaMensalPct))}
                 onChange={(e) => setForm((f) => ({ ...f, taxaMensalPct: Number(e.target.value) }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-slate-400" />
             </FLabel>
 
             <FLabel label="Taxa de Atraso (% ao dia)">
-              <input type="number" step="0.1" value={form.taxaDiariaAtrasoPct}
+              <input type="number" step="0.1" value={form.taxaDiariaAtrasoPct === undefined ? "" : String(Number(form.taxaDiariaAtrasoPct))}
                 onChange={(e) => setForm((f) => ({ ...f, taxaDiariaAtrasoPct: Number(e.target.value) }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-slate-400" />
             </FLabel>
@@ -152,25 +152,25 @@ export default function PerfisFinanceirosPage() {
             </FLabel>
 
             <FLabel label="Max. Parcelas">
-              <input type="number" value={form.prazoMaxParcelado}
+              <input type="number" value={form.prazoMaxParcelado === undefined ? "" : String(Number(form.prazoMaxParcelado))}
                 onChange={(e) => setForm((f) => ({ ...f, prazoMaxParcelado: Number(e.target.value) }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-slate-400" />
             </FLabel>
 
             <FLabel label="Limite de Emprestimo (R$)">
-              <input type="number" value={form.limiteEmprestimo}
+              <input type="number" value={form.limiteEmprestimo === undefined ? "" : String(Number(form.limiteEmprestimo))}
                 onChange={(e) => setForm((f) => ({ ...f, limiteEmprestimo: Number(e.target.value) }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-slate-400" />
             </FLabel>
 
             <FLabel label="Max. Renovacoes (0 = ilimitado)">
-              <input type="number" value={form.maxRenovacoes}
+              <input type="number" value={form.maxRenovacoes === undefined ? "" : String(Number(form.maxRenovacoes))}
                 onChange={(e) => setForm((f) => ({ ...f, maxRenovacoes: Number(e.target.value) }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-slate-400" />
             </FLabel>
 
             <FLabel label="Desconto Quitacao Max. (%)">
-              <input type="number" step="0.1" value={form.descontoQuitacaoMaxPct}
+              <input type="number" step="0.1" value={form.descontoQuitacaoMaxPct === undefined ? "" : String(Number(form.descontoQuitacaoMaxPct))}
                 onChange={(e) => setForm((f) => ({ ...f, descontoQuitacaoMaxPct: Number(e.target.value) }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-slate-400" />
             </FLabel>

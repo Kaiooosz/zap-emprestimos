@@ -529,7 +529,7 @@ function Field({ label, value, defaultValue, onChange, type = "text", placeholde
       <input
         type={type}
         defaultValue={defaultValue}
-        value={value}
+        value={type === "number" && value !== "" && value !== undefined ? String(Number(value)) : value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors"

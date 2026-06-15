@@ -236,7 +236,7 @@ function F({ label, value, onChange, type = "text", placeholder, required }: {
   return (
     <div>
       <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)}
+      <input type={type} value={type === "number" && value !== "" && value !== undefined ? String(Number(value)) : value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder} required={required}
         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors" />
     </div>

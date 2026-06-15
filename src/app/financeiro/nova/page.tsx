@@ -93,7 +93,7 @@ export default function NovaContaPagarPage() {
 
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Valor (R$)</label>
-            <input type="number" value={valor} step={0.01} min={0.01} onChange={(e) => setValor(e.target.value === "" ? "" : Number(e.target.value))} required
+            <input type="number" value={valor === "" || valor === undefined ? "" : String(Number(valor))} step={0.01} min={0.01} onChange={(e) => setValor(e.target.value === "" ? "" : Number(e.target.value))} required
               placeholder="0,00"
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-500 transition-colors" />
           </div>
