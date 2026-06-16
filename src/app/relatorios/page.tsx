@@ -118,6 +118,56 @@ export default async function RelatoriosPage() {
     .filter((p) => p.status === "ATRASADO" || (p.status === "PENDENTE" && new Date(p.dataVencimento) < hoje))
     .length;
 
+  // ─── Retorno de Capital & Lucratividade para Parcelados ───────────────────
+  const parcelasDeParcelados = parcelasRaw.filter((p) => p.emprestimo.numParcelas > 1);
+  const capitalInvestidoP = parcelasDeParcelados.reduce((s, p) => s + Number(p.valorPrincipal), 0);
+  const capitalRetornadoP = parcelasDeParcelados.filter((p) => p.status === "PAGO").reduce((s, p) => s + Number(p.valorPrincipal), 0);
+  const lucroRealizadoP = parcelasDeParcelados.filter((p) => p.status === "PAGO").reduce((s, p) => s + Number(p.valorJuros), 0);
+  const capitalPendenteP = parcelasDeParcelados.filter((p) => ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status)).reduce((s, p) => s + Number(p.valorPrincipal), 0);
+  const lucroPendenteP = parcelasDeParcelados.filter((p) => ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status)).reduce((s, p) => s + Number(p.valorJuros), 0);
+
+  const pctRetornoCapital = capitalInvestidoP > 0 ? Math.round((capitalRetornadoP / capitalInvestidoP) * 100) : 0;
+  const totalJurosProjetado = lucroRealizadoP + lucroPendenteP;
+  const pctLucroRealizado = totalJurosProjetado > 0 ? Math.round((lucroRealizadoP / totalJurosProjetado) * 100) : 0;
+
+  // ─── Saúde da Carteira de Clientes e Inadimplência ─────────────────────────
+  const clientesMetricas = clientes.map((c) => {
+    const parcelasDoCliente = parcelasRaw.filter((p) => p.emprestimo.clienteId === c.id);
+    const parcelasAtivas = parcelasDoCliente.filter((p) => p.emprestimo.status === "ATIVO");
+    const temContratoAtivo = parcelasAtivas.length > 0;
+    
+    let temAtrasada = false;
+    let totalAtrasado = 0;
+    let diasAtrasoMax = 0;
+    
+    parcelasAtivas.forEach((p) => {
+      const venc = new Date(p.dataVencimento);
+      const isAtrasada = p.status === "ATRASADO" || (["PENDENTE", "PARCIAL"].includes(p.status) && venc < hoje);
+      if (isAtrasada) {
+        temAtrasada = true;
+        totalAtrasado += Number(p.valorDevido);
+        const dias = Math.floor((hoje.getTime() - venc.getTime()) / 86400000);
+        if (dias > diasAtrasoMax) diasAtrasoMax = dias;
+      }
+    });
+    
+    const status = temAtrasada ? "INADIMPLENTE" : temContratoAtivo ? "EM_DIA" : "SEM_CONTRATO";
+    
+    return {
+      id: c.id,
+      nome: c.nome,
+      phone: c.phone,
+      status,
+      totalAtrasado,
+      diasAtrasoMax
+    };
+  });
+  
+  const totalClientes = clientesMetricas.length;
+  const inadimplentesCount = clientesMetricas.filter((c) => c.status === "INADIMPLENTE").length;
+  const emDiaCount = clientesMetricas.filter((c) => c.status === "EM_DIA").length;
+  const semContratoCount = clientesMetricas.filter((c) => c.status === "SEM_CONTRATO").length;
+
   return (
     <div className="space-y-6">
       {/* Header da Página */}
@@ -149,6 +199,136 @@ export default async function RelatoriosPage() {
           <KPI label="Despesas no Mês"    value={formatarMoeda(despesasMes)}    icon={AlertCircle} negative />
           <KPI label="Lucro Líquido"      value={formatarMoeda(lucroLiquidoMes)} icon={TrendingUp} positive={lucroLiquidoMes > 0} negative={lucroLiquidoMes < 0} />
           <KPI label="Adimplência"        value={`${taxaAdimplencia}%`}         icon={Users} positive={taxaAdimplencia >= 80} />
+        </div>
+      </div>
+
+      {/* Seção de Retorno de Capital & Lucratividade (Empréstimos Parcelados) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Controle de Retorno de Capital & Lucratividade</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Visão de amortização de principal (capital) e receita de juros (lucro) em contratos parcelados ativos e quitados</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card Capital Principal */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Retorno de Principal (Capital)</span>
+              <span className="text-xs font-bold text-blue-700">{pctRetornoCapital}% retornado</span>
+            </div>
+            <div>
+              <p className="text-xl font-bold text-slate-900">{formatarMoeda(capitalRetornadoP)}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">de {formatarMoeda(capitalInvestidoP)} investidos</p>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full bg-blue-700 transition-all" style={{ width: `${pctRetornoCapital}%` }} />
+            </div>
+            <div className="flex justify-between text-[10px] text-slate-400">
+              <span>Retornado: {formatarMoeda(capitalRetornadoP)}</span>
+              <span>Em aberto: {formatarMoeda(capitalPendenteP)}</span>
+            </div>
+          </div>
+
+          {/* Card Receita de Juros */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Lucro Realizado (Juros)</span>
+              <span className="text-xs font-bold text-emerald-600">{pctLucroRealizado}% realizado</span>
+            </div>
+            <div>
+              <p className="text-xl font-bold text-slate-900">{formatarMoeda(lucroRealizadoP)}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">de {formatarMoeda(lucroRealizadoP + lucroPendenteP)} projetados</p>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${pctLucroRealizado}%` }} />
+            </div>
+            <div className="flex justify-between text-[10px] text-slate-400">
+              <span>Realizado: {formatarMoeda(lucroRealizadoP)}</span>
+              <span>Pendente: {formatarMoeda(lucroPendenteP)}</span>
+            </div>
+          </div>
+
+          {/* Card Rentabilidade do Portfólio */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 flex flex-col justify-between">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Rentabilidade Total Estimada</span>
+              <span className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">%</span>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-950">
+                {capitalInvestidoP > 0 ? ((lucroRealizadoP + lucroPendenteP) / capitalInvestidoP * 100).toFixed(1) : 0}%
+              </p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Retorno sobre o capital total alocado em contratos parcelados</p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex justify-between text-[10px] text-slate-500">
+              <span>Principal na Rua: <strong className="text-slate-900 font-semibold">{formatarMoeda(capitalPendenteP)}</strong></span>
+              <span>Lucro Estimado: <strong className="text-emerald-600 font-semibold">{formatarMoeda(lucroPendenteP)}</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Relatório de Saúde da Carteira & Inadimplência */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Saúde da Carteira */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Saúde da Carteira de Clientes</h2>
+            <p className="text-xs text-slate-400 mt-0.5 font-normal">Saúde financeira dos clientes baseada nos pagamentos</p>
+          </div>
+          <div className="space-y-3">
+            <BarRow label="Clientes em Dia" value={emDiaCount} total={totalClientes} color="bg-emerald-500" />
+            <BarRow label="Clientes Inadimplentes (Em Atraso)" value={inadimplentesCount} total={totalClientes} color="bg-red-500" />
+            <BarRow label="Clientes Sem Contratos Ativos" value={semContratoCount} total={totalClientes} color="bg-slate-400" />
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-normal">
+            <span>Total de Clientes Cadastrados</span>
+            <span className="font-bold text-slate-900">{totalClientes}</span>
+          </div>
+        </div>
+
+        {/* Clientes em Atraso (Devedores) */}
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden lg:col-span-2 flex flex-col">
+          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Clientes Atualmente em Atraso</h2>
+              <p className="text-xs text-slate-400 mt-0.5 font-normal">Lista de devedores ativos ordenados pelo maior tempo de atraso</p>
+            </div>
+            <span className="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/10">
+              {inadimplentesCount} em atraso
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto max-h-60 divide-y divide-slate-100">
+            {clientesMetricas.filter(c => c.status === "INADIMPLENTE").length === 0 ? (
+              <div className="text-center py-12 text-xs text-slate-400 font-normal">Nenhum cliente inadimplente no momento. Excelente!</div>
+            ) : (
+              clientesMetricas
+                .filter(c => c.status === "INADIMPLENTE")
+                .sort((a, b) => b.diasAtrasoMax - a.diasAtrasoMax)
+                .map(c => (
+                  <div key={c.id} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{c.nome}</p>
+                      <p className="text-xs text-slate-400 mt-0.5 font-normal">{c.diasAtrasoMax} dias de atraso (mais antigo)</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-red-600 tabular-nums">{formatarMoeda(c.totalAtrasado)}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-normal">total vencido</p>
+                      </div>
+                      <a
+                        href={`https://api.whatsapp.com/send?phone=${c.phone.replace(/\D/g, "")}&text=${encodeURIComponent(`Ola, ${c.nome}. Constatamos parcelas em aberto no total de ${formatarMoeda(c.totalAtrasado)} vencidas. Favor regularizar o pagamento o quanto antes. Obrigado.`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-emerald-600 hover:border-emerald-600 transition-colors"
+                      >
+                        Cobrar
+                      </a>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
         </div>
       </div>
 

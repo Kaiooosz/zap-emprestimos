@@ -35,6 +35,7 @@ export default function SimuladorPage() {
   const [regraAtraso,  setRegra]     = useState<"A" | "B">("A");
   const [tipoTaxaAtraso, setTipoTaxaAtraso] = useState<"fixa" | "custom">("fixa");
   const [taxaDiaria,   setTaxaDiaria]= useState(1);
+  const [tipoValorAtraso, setTipoValorAtraso] = useState<"PERCENTUAL" | "VALOR">("PERCENTUAL");
   const [taxas,        setTaxas]     = useState<Record<number, number>>({});
   const [abatimento,   setAbatimento]= useState(0); // cenário C no mensal
 
@@ -112,18 +113,42 @@ export default function SimuladorPage() {
   }, [dataInicio, modo, dias, diasAtraso]);
 
   const taxaDiariaEfetiva = tipoTaxaAtraso === "fixa" ? 1 : taxaDiaria;
+  const isPercentual = tipoTaxaAtraso === "fixa" || tipoValorAtraso === "PERCENTUAL";
 
   const jurosAtrasoA = useMemo(() => {
     if (diasAtraso <= 0) return 0;
+    if (!isPercentual) {
+      return Number((taxaDiariaEfetiva * diasAtraso).toFixed(2));
+    }
     return Number((valorBaseParcela * diasAtraso * taxaDiariaEfetiva / 100).toFixed(2));
-  }, [valorBaseParcela, diasAtraso, taxaDiariaEfetiva]);
+  }, [valorBaseParcela, diasAtraso, taxaDiariaEfetiva, isPercentual]);
 
-  // Para Regra B no mensal: base é o saldo devedor; no parcelado: saldo restante
+  // Para Regra B no mensal: base é o saldo devedor (principalNum); no parcelado: saldo restante estimado (60% do valor da parcela)
   const jurosAtrasoB = useMemo(() => {
     if (diasAtraso <= 0) return 0;
-    const base = modo === "mensal" ? principalNum : (valorBaseParcela * 0.6); // estimativa saldo médio
+    if (!isPercentual) {
+      return Number((taxaDiariaEfetiva * diasAtraso).toFixed(2));
+    }
+    const base = modo === "mensal" ? principalNum : (valorBaseParcela * 0.6);
     return Number((base * diasAtraso * taxaDiariaEfetiva / 100).toFixed(2));
-  }, [valorBaseParcela, diasAtraso, taxaDiariaEfetiva, modo, principalNum]);
+  }, [valorBaseParcela, diasAtraso, taxaDiariaEfetiva, modo, principalNum, isPercentual]);
+
+  const projecaoAtraso = useMemo(() => {
+    const intervalos = [1, 5, 15, 30, 45, 60];
+    return intervalos.map((d) => {
+      let jA = 0;
+      let jB = 0;
+      if (isPercentual) {
+        jA = Number((valorBaseParcela * d * taxaDiariaEfetiva / 100).toFixed(2));
+        const baseB = modo === "mensal" ? principalNum : (valorBaseParcela * 0.6);
+        jB = Number((baseB * d * taxaDiariaEfetiva / 100).toFixed(2));
+      } else {
+        jA = Number((taxaDiariaEfetiva * d).toFixed(2));
+        jB = jA;
+      }
+      return { dias: d, jurosA: jA, jurosB: jB };
+    });
+  }, [valorBaseParcela, taxaDiariaEfetiva, isPercentual, modo, principalNum]);
 
   const hasValues = principalNum > 0 && (modo === "mensal" ? taxaMensalNum > 0 : true);
 
@@ -220,27 +245,54 @@ export default function SimuladorPage() {
           <div className="rounded-xl border border-slate-200 p-3 space-y-3">
             <div className="flex items-center gap-1.5">
               <Info size={12} className="text-slate-400" />
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Simular Atraso</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Simular Atraso Diário</p>
             </div>
+            
             <Num label="Dias em atraso" value={diasAtraso} onChange={(v) => setDiasAtraso(Number(v))} step={1} min={0} max={90} />
+            
             <div>
               <p className="text-[10px] font-medium text-slate-400 mb-1.5">Taxa de Atraso Diária</p>
               <div className="grid grid-cols-2 gap-1.5 mb-2">
                 <button type="button" onClick={() => { setTipoTaxaAtraso("fixa"); setTaxaDiaria(1); }}
                   className={`rounded-lg py-1.5 text-xs font-medium border transition-all ${tipoTaxaAtraso === "fixa" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
-                  Fixo (1%/dia)
+                  Padrão (1%/dia)
                 </button>
                 <button type="button" onClick={() => setTipoTaxaAtraso("custom")}
                   className={`rounded-lg py-1.5 text-xs font-medium border transition-all ${tipoTaxaAtraso === "custom" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
-                  Definido (Outro)
+                  Personalizada
                 </button>
               </div>
             </div>
+
             {tipoTaxaAtraso === "custom" && (
-              <Num label="Taxa de atraso (%/dia)" value={taxaDiaria} onChange={(v) => setTaxaDiaria(Number(v))} step={0.5} min={0.1} max={5} />
+              <div className="space-y-3 border-l-2 border-slate-100 pl-2">
+                <div>
+                  <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Tipo de Cobrança</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <button type="button" onClick={() => setTipoValorAtraso("PERCENTUAL")}
+                      className={`rounded-md py-1 text-[10px] font-medium border transition-all ${tipoValorAtraso === "PERCENTUAL" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
+                      Percentual (%)
+                    </button>
+                    <button type="button" onClick={() => setTipoValorAtraso("VALOR")}
+                      className={`rounded-md py-1 text-[10px] font-medium border transition-all ${tipoValorAtraso === "VALOR" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
+                      Valor Fixo (R$)
+                    </button>
+                  </div>
+                </div>
+                
+                <Num 
+                  label={tipoValorAtraso === "PERCENTUAL" ? "Taxa de atraso (% ao dia)" : "Taxa de atraso (R$ ao dia)"} 
+                  value={taxaDiaria} 
+                  onChange={(v) => setTaxaDiaria(Number(v))} 
+                  step={tipoValorAtraso === "PERCENTUAL" ? 0.1 : 1} 
+                  min={0.1} 
+                  max={tipoValorAtraso === "PERCENTUAL" ? 10 : 200} 
+                />
+              </div>
             )}
+
             <div>
-              <p className="text-[10px] font-medium text-slate-400 mb-1.5">Regra de atraso</p>
+              <p className="text-[10px] font-medium text-slate-400 mb-1.5">Regra de Incidência (Projeção)</p>
               <div className="grid grid-cols-2 gap-1.5">
                 {(["A", "B"] as const).map((r) => (
                   <button key={r} onClick={() => setRegra(r)}
@@ -249,17 +301,49 @@ export default function SimuladorPage() {
                   </button>
                 ))}
               </div>
+              
               {diasAtraso > 0 && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Regra A (parcela inteira):</span>
-                    <span className="font-bold text-red-600">+{formatarMoeda(jurosAtrasoA)}</span>
+                <div className="mt-3 space-y-2.5">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-2 text-xs space-y-1.5 font-normal text-slate-700">
+                    <div className="flex justify-between">
+                      <span>Juros Regra A:</span>
+                      <span className="font-bold text-red-600">+{formatarMoeda(jurosAtrasoA)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Juros Regra B:</span>
+                      <span className="font-bold text-orange-500">+{formatarMoeda(jurosAtrasoB)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Regra B (saldo restante):</span>
-                    <span className="font-bold text-orange-500">+{formatarMoeda(jurosAtrasoB)}</span>
+                  
+                  {/* Projeção do Atraso no Tempo (Simulação de Tempo) */}
+                  <div className="space-y-1.5 border-t border-slate-100 pt-2.5">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Simulação do Tempo de Atraso</p>
+                    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                      <table className="w-full text-[10px] text-left">
+                        <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                          <tr>
+                            <th className="px-2.5 py-1.5">Atraso</th>
+                            <th className="px-2.5 py-1.5 text-right">Regra A</th>
+                            <th className="px-2.5 py-1.5 text-right">Regra B</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                          {projecaoAtraso.map((p) => (
+                            <tr key={p.dias} className={p.dias === diasAtraso ? "bg-blue-50/50 font-bold text-slate-900" : "hover:bg-slate-50"}>
+                              <td className="px-2.5 py-1.5">{p.dias} dia{p.dias > 1 ? "s" : ""}</td>
+                              <td className="px-2.5 py-1.5 text-right text-red-600 tabular-nums">{formatarMoeda(p.jurosA)}</td>
+                              <td className="px-2.5 py-1.5 text-right text-orange-600 tabular-nums">{formatarMoeda(p.jurosB)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-normal leading-relaxed">
+                      * <strong>Regra A</strong>: Incide sobre o valor integral da parcela ({formatarMoeda(valorBaseParcela)}).<br/>
+                      * <strong>Regra B</strong>: Incide sobre o saldo restante {isPercentual ? `(estimado em ${formatarMoeda(modo === "mensal" ? principalNum : valorBaseParcela * 0.6)})` : ""}.<br/>
+                      {!isPercentual && "* Como a taxa é Valor Fixo (R$/dia), ambas as regras cobram o mesmo valor nominal."}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-slate-400 pt-1">Regra configurável por perfil em Configurações</p>
                 </div>
               )}
             </div>

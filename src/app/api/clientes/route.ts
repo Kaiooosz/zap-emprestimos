@@ -29,26 +29,30 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     
     // Criptografa dados sensíveis para conformidade com a LGPD
-    const dataCliente = encryptCliente({
-      tipo:             body.tipo ?? "PESSOA_FISICA",
-      nome:             body.nome,
-      cpf:              body.cpf || null,
-      phone:            body.phone,
-      email:            body.email || null,
-      endereco:         body.endereco || null,
-      cidade:           body.cidade || null,
-      estado:           body.estado || null,
-      profissao:        body.profissao || null,
-      rendaMensal:      body.rendaMensal ? Number(body.rendaMensal) : null,
-      score:            500,
-      temContrato:      body.temContrato ?? false,
-      garantia:         body.garantia ?? false,
-      tipoGarantia:     body.tipoGarantia || null,
-      valorGarantia:    body.valorGarantia ? Number(body.valorGarantia) : null,
-      descGarantia:     body.descricaoGarantia || null,
-      referencia:       body.referencia || null,
-      observacoes:      body.observacoes || null,
-    });
+    const dataCliente = {
+      ...encryptCliente({
+        tipo:             body.tipo ?? "PESSOA_FISICA",
+        nome:             body.nome,
+        cpf:              body.cpf || null,
+        phone:            body.phone,
+        email:            body.email || null,
+        endereco:         body.endereco || null,
+        cidade:           body.cidade || null,
+        estado:           body.estado || null,
+        profissao:        body.profissao || null,
+        rendaMensal:      body.rendaMensal ? Number(body.rendaMensal) : null,
+        score:            500,
+        temContrato:      body.temContrato ?? false,
+        garantia:         body.garantia ?? false,
+        tipoGarantia:     body.tipoGarantia || null,
+        valorGarantia:    body.valorGarantia ? Number(body.valorGarantia) : null,
+        descGarantia:     body.descricaoGarantia || null,
+        referencia:       body.referencia || null,
+        observacoes:      body.observacoes || null,
+      }),
+      perfilTaxa:       body.perfilTaxa || null,
+      taxaPadrao:       body.taxaPadrao ? Number(body.taxaPadrao) : null,
+    };
 
     const cliente = await prisma.cliente.create({
       data: dataCliente,

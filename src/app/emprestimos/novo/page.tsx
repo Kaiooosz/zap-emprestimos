@@ -68,7 +68,7 @@ function NovoEmprestimoInner() {
   const searchParams= useSearchParams();
   const [step,      setStep]      = useState(0);   // 0=tipo, 1=dados, 2=garantias, 3=revisão
   const [loading,   setLoading]   = useState(false);
-  const [clientes,  setClientes]  = useState<Array<{ id: string; nome: string; score: number; phone: string }>>([]);
+  const [clientes,  setClientes]  = useState<Array<{ id: string; nome: string; score: number; phone: string; taxaPadrao?: number }>>([]);
 
   // Passo 0 — tipo
   const [tipoOp, setTipoOp] = useState<TipoOp>("EMPRESTIMO");
@@ -124,25 +124,50 @@ function NovoEmprestimoInner() {
     fetch("/api/clientes").then((r) => r.json()).then(setClientes);
   }, []);
 
-  // Recalcula a taxa se a parcela alvo for informada
-  useEffect(() => {
-    if (parcelaAlvo && typeof parcelaAlvo === "number" && parcelaAlvo > 0 && valor > 0 && nParcelas > 0) {
-      let taxaCalculada = 0;
+  // Recalcula o número de parcelas a partir da parcela alvo
+  const handleParcelaAlvoChange = (val: number | "") => {
+    setParcelaAlvo(val);
+    if (val && val > 0 && valor > 0 && taxa > 0) {
+      let nCalculado = 0;
       if (modalidade === "SIMPLES") {
-        taxaCalculada = ((parcelaAlvo * nParcelas / valor) - 1) * 100;
+        const valorTotal = valor * (1 + taxa / 100);
+        nCalculado = Math.round(valorTotal / val);
       } else {
-        taxaCalculada = ((parcelaAlvo - (valor / nParcelas)) / valor) * 100;
+        const jurosPorParcela = valor * (taxa / 100);
+        if (val > jurosPorParcela) {
+          nCalculado = Math.round(valor / (val - jurosPorParcela));
+        }
       }
-      setTaxa(Number(Math.max(0, taxaCalculada).toFixed(2)));
+      if (nCalculado > 0) {
+        setNParcelas(Math.max(1, nCalculado));
+      }
     }
-  }, [parcelaAlvo, valor, nParcelas, modalidade]);
+  };
 
-  // Se for rolável, força 1 parcela
+  const handleNParcelasChange = (val: number) => {
+    setNParcelas(val);
+    setParcelaAlvo("");
+  };
+
   useEffect(() => {
-    if (mensalRolavel) {
-      setNParcelas(1);
+    if (parcelaAlvo && typeof parcelaAlvo === "number" && parcelaAlvo > 0 && valor > 0 && taxa > 0) {
+      let nCalculado = 0;
+      if (modalidade === "SIMPLES") {
+        const valorTotal = valor * (1 + taxa / 100);
+        nCalculado = Math.round(valorTotal / parcelaAlvo);
+      } else {
+        const jurosPorParcela = valor * (taxa / 100);
+        if (parcelaAlvo > jurosPorParcela) {
+          nCalculado = Math.round(valor / (parcelaAlvo - jurosPorParcela));
+        }
+      }
+      if (nCalculado > 0) {
+        setNParcelas(Math.max(1, nCalculado));
+      }
     }
-  }, [mensalRolavel]);
+  }, [valor, taxa, modalidade]);
+
+
 
   const dias      = intervaloMap[periodo];
   const isRola    = mensalRolavel;
@@ -294,7 +319,14 @@ function NovoEmprestimoInner() {
               {/* Cliente */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cliente</p>
-                <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} required
+                <select value={clienteId} onChange={(e) => {
+                  const cid = e.target.value;
+                  setClienteId(cid);
+                  const selectedCli = clientes.find((c) => c.id === cid);
+                  if (selectedCli && selectedCli.taxaPadrao) {
+                    setTaxa(Number(selectedCli.taxaPadrao));
+                  }
+                }} required
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500">
                   <option value="">Selecione um cliente...</option>
                   {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome} — Score {c.score} — {c.phone}</option>)}
@@ -315,7 +347,7 @@ function NovoEmprestimoInner() {
                       <Num label="Valor Principal (R$)" value={valor} onChange={setValor} step={100} min={100} />
                       <Num label="Taxa de Juros (%)" value={taxa} onChange={setTaxa} step={0.5} min={0.1} />
                       <div className={isRola ? "hidden" : "block"}>
-                        <Num label="Número de Parcelas" value={nParcelas} onChange={setNParcelas} step={1} min={1} />
+                        <Num label="Número de Parcelas" value={nParcelas} onChange={handleNParcelasChange} step={1} min={1} />
                       </div>
                       <Inp label="Data de Início" value={dataInicio} onChange={setDataInicio} type="date" />
                     </div>
@@ -324,8 +356,8 @@ function NovoEmprestimoInner() {
                     <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3">
                       <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1.5">Meta de Parcela (Alvo - R$)</label>
-                        <input type="number" value={parcelaAlvo === "" || parcelaAlvo === undefined ? "" : String(Number(parcelaAlvo))} onChange={(e) => setParcelaAlvo(e.target.value === "" ? "" : Number(e.target.value))}
-                          placeholder="Calcula taxa automaticamente"
+                        <input type="number" value={parcelaAlvo === "" || parcelaAlvo === undefined ? "" : String(Number(parcelaAlvo))} onChange={(e) => handleParcelaAlvoChange(e.target.value === "" ? "" : Number(e.target.value))}
+                          placeholder="Calcula quantidade de parcelas"
                           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors" />
                       </div>
                     </div>
@@ -459,7 +491,7 @@ function NovoEmprestimoInner() {
                       <Num label="Custo do Produto (R$)" value={custo} onChange={setCusto} step={100} min={0} />
                       <Num label="Preço de Venda (R$)" value={valor} onChange={setValor} step={100} min={0} />
                       <Num label="Taxa de Juros (%)" value={taxa} onChange={setTaxa} step={0.5} min={0} />
-                      <Num label="Número de Parcelas" value={nParcelas} onChange={setNParcelas} step={1} min={1} />
+                      <Num label="Número de Parcelas" value={nParcelas} onChange={handleNParcelasChange} step={1} min={1} />
                       <Inp label="Data de Início" value={dataInicio} onChange={setDataInicio} type="date" />
                     </div>
                     {custo > 0 && valor > 0 && (
@@ -521,15 +553,19 @@ function NovoEmprestimoInner() {
                 <Toggle active={temContrato} />
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-slate-600 cursor-pointer" onClick={() => setTemGarantia(!temGarantia)}>
-                <div className="flex items-center gap-3">
-                  <Shield size={16} className="text-slate-400" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">Deixou Garantia</p>
-                    <p className="text-xs text-slate-500">Imóvel, veículo, cheque, nota promissória ou fiador</p>
-                  </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setTemGarantia(false)}
+                    className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${!temGarantia ? "bg-slate-100 border-slate-900" : "border-slate-200 hover:border-slate-400"}`}>
+                    <span className={`text-xs font-semibold ${!temGarantia ? "text-slate-900" : "text-slate-700"}`}>Não Deixou Garantias</span>
+                    <span className="text-[10px] text-slate-500 mt-0.5">Operação sem colateral associado</span>
+                  </button>
+                  <button type="button" onClick={() => setTemGarantia(true)}
+                    className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${temGarantia ? "bg-slate-100 border-slate-900" : "border-slate-200 hover:border-slate-400"}`}>
+                    <span className={`text-xs font-semibold ${temGarantia ? "text-slate-900" : "text-slate-700"}`}>Deixou Garantia</span>
+                    <span className="text-[10px] text-slate-500 mt-0.5">Imóvel, veículo, fiador, promissória</span>
+                  </button>
                 </div>
-                <Toggle active={temGarantia} />
               </div>
 
               {temGarantia && (
@@ -607,47 +643,90 @@ function NovoEmprestimoInner() {
         </div>
 
         {/* Simulador ao vivo */}
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Calculator size={15} className="text-slate-400" />
-              <p className="text-sm font-semibold text-slate-900">Simulador ao Vivo</p>
-            </div>
-            <div className="space-y-2.5">
-              {[
-                ["Principal",    formatarMoeda(tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA" ? valorMensal : valor)],
-                ["Total Juros",  formatarMoeda(simResult.totalJuros)],
-                ["Total",        formatarMoeda(simResult.total)],
-                ["Parcela",      isRola ? `Mensal de ${formatarMoeda(simResult.parcela)} (juros)` : `${calendario.length}x ${formatarMoeda(simResult.parcela)}`],
-              ].map(([l, v]) => (
-                <div key={l} className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">{l}</span>
-                  <span className="text-sm font-semibold text-slate-900">{v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Calendário de vencimentos */}
-          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden max-h-80 overflow-y-auto">
-            <div className="px-4 py-3 border-b border-slate-200 sticky top-0 bg-white">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vencimentos</p>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {calendario.map((d, i) => (
-                <div key={i} className="flex items-center justify-between px-4 py-2.5">
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-400">{i + 1}</span>
-                    <span className="text-xs text-slate-400">{d.toLocaleDateString("pt-BR")}</span>
+        {step >= 1 && (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA" || isRola || (nParcelas > 0 && !isNaN(nParcelas))) && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Calculator size={15} className="text-slate-400" />
+                <p className="text-sm font-semibold text-slate-900">Simulador ao Vivo</p>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  ["Principal",    formatarMoeda(tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA" ? valorMensal : valor)],
+                  ["Total Juros",  formatarMoeda(simResult.totalJuros)],
+                  ["Total",        formatarMoeda(simResult.total)],
+                  ["Parcela",      isRola ? `Mensal de ${formatarMoeda(simResult.parcela)} (juros)` : `${calendario.length}x ${formatarMoeda(simResult.parcela)}`],
+                ].map(([l, v]) => (
+                  <div key={l} className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">{l}</span>
+                    <span className="text-sm font-semibold text-slate-900">{v}</span>
                   </div>
-                  <span className="text-sm font-semibold text-slate-900">
-                    {isRola && i === 0 ? formatarMoeda(simResult.total) : formatarMoeda(simResult.parcela)}
-                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Projeção de Atraso Diário */}
+            {tipoOp !== "ALUGUEL" && tipoOp !== "ASSINATURA" && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield size={14} className="text-slate-400" />
+                  <p className="text-xs font-semibold text-slate-900 uppercase tracking-wider">Projeção de Atraso Diário</p>
                 </div>
-              ))}
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Regra Aplicada</span>
+                    <span className="font-semibold text-slate-950">
+                      {regraAtraso === "PARCELA" ? "Regra A (Valor Parcela)" : "Regra B (Saldo Devedor)"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Taxa de Atraso</span>
+                    <span className="font-semibold text-slate-950">
+                      {tipoTaxaAtraso === "FIXA"
+                        ? "1.0% ao dia"
+                        : modoTaxaAtraso === "PERCENTUAL"
+                        ? `${taxaAtraso}% ao dia`
+                        : `${formatarMoeda(taxaAtraso)} fixo ao dia`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-100 pt-2 font-semibold text-slate-950">
+                    <span>Multa por dia de atraso</span>
+                    <span>
+                      {tipoTaxaAtraso === "CUSTOM" && modoTaxaAtraso === "VALOR"
+                        ? formatarMoeda(taxaAtraso)
+                        : formatarMoeda(simResult.parcela * ((tipoTaxaAtraso === "FIXA" ? 1.0 : taxaAtraso) / 100))
+                      }
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                    * Projeção de cobrança diária extra sobre parcelas vencidas.
+                    {regraAtraso === "SALDO" && " Na Regra B, juros incidem apenas sobre o saldo devedor restante da parcela após deduções de amortizações parciais."}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Calendário de vencimentos */}
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden max-h-80 overflow-y-auto">
+              <div className="px-4 py-3 border-b border-slate-200 sticky top-0 bg-white">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vencimentos</p>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {calendario.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-400">{i + 1}</span>
+                      <span className="text-xs text-slate-400">{d.toLocaleDateString("pt-BR")}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-900">
+                      {isRola && i === 0 ? formatarMoeda(simResult.total) : formatarMoeda(simResult.parcela)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Modal de Sucesso */}

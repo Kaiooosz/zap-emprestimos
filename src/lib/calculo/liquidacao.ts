@@ -211,3 +211,26 @@ export function simularMensalRolavel(params: SimulacaoMensalParams): SimulacaoMe
   }
   return periodos;
 }
+
+export interface LiquidacaoDetalhadaInput {
+  valorPrincipal: number;
+  valorJuros: number;
+  vPrincipalPago: number;
+  vJurosPago: number;
+}
+
+export interface LiquidacaoDetalhadaResult {
+  novoPrincipal: number;
+  novoJuros: number;
+  novoDevido: number;
+  status: "PAGO" | "PARCIAL";
+}
+
+export function liquidarDetalhado(params: LiquidacaoDetalhadaInput): LiquidacaoDetalhadaResult {
+  const { valorPrincipal, valorJuros, vPrincipalPago, vJurosPago } = params;
+  const novoPrincipal = Math.max(0, Number((valorPrincipal - vPrincipalPago).toFixed(2)));
+  const novoJuros = Math.max(0, Number((valorJuros - vJurosPago).toFixed(2)));
+  const novoDevido = Number((novoPrincipal + novoJuros).toFixed(2));
+  const status = novoDevido <= 0.01 ? "PAGO" : "PARCIAL";
+  return { novoPrincipal, novoJuros, novoDevido, status };
+}

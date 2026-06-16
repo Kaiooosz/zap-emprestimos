@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { registrarLog } from "@/lib/audit";
-
-const TAXA_DIARIA = 1; // 1% ao dia
+import { liquidarDetalhado } from "@/lib/calculo/liquidacao";
+import { getSession } from "@/lib/auth";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,6 +14,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       include: { emprestimo: { include: { cliente: true } } },
     });
     if (!parcela) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const cobrarJurosAtraso = body.cobrarJurosAtraso ?? true;
+    const destinoAbatimento = body.destinoAbatimento ?? "PRINCIPAL"; // "PRINCIPAL" | "JUROS" | "NENHUM"
 
     const modo       = body.modo ?? "COMPLETO";
     const hoje       = new Date();
@@ -27,32 +30,97 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       ? Math.max(0, Number(parcela.valorDevido) - Number(parcela.valorPago || 0))
       : Number(parcela.valorDevido);
 
-    const jurosAtraso = diasAtraso > 0
+    const jurosAtraso = (diasAtraso > 0 && cobrarJurosAtraso)
       ? (tipoTaxa === "VALOR"
           ? Number((taxaDiaria * diasAtraso).toFixed(2))
           : Number((baseCalculo * diasAtraso * taxaDiaria / 100).toFixed(2)))
       : 0;
     const totalDevido = Number((Number(parcela.valorDevido) + jurosAtraso).toFixed(2));
-    const valorPago   = body.valorPago ?? totalDevido;
+    let valorPago     = Number(body.valorPago ?? totalDevido);
     const desconto    = body.desconto ?? 0;
 
     let novoStatus: "PAGO" | "PARCIAL" | "PENDENTE" = "PAGO";
     const isRolavel = parcela.emprestimo.numParcelas === 1;
-    if (modo === "SOMENTE_JUROS") {
-      novoStatus = isRolavel ? "PAGO" : "PARCIAL";
-    } else if (valorPago < totalDevido - 0.01) {
-      novoStatus = "PARCIAL";
+
+    let novoPrincipal = Number(parcela.valorPrincipal);
+    let novoJuros     = Number(parcela.valorJuros);
+    let novoDevido    = Number(parcela.valorDevido);
+
+    if (modo === "DETALHADO") {
+      const vPrincipalPago = Number(body.valorPrincipalPago ?? 0);
+      const vJurosPago = Number(body.valorJurosPago ?? 0);
+      const vJurosAtrasoPago = Number(body.valorJurosAtrasoPago ?? 0);
+
+      valorPago = Number((vPrincipalPago + vJurosPago + vJurosAtrasoPago).toFixed(2));
+      
+      const resDet = liquidarDetalhado({
+        valorPrincipal: Number(parcela.valorPrincipal),
+        valorJuros: Number(parcela.valorJuros),
+        vPrincipalPago,
+        vJurosPago,
+      });
+
+      novoPrincipal = resDet.novoPrincipal;
+      novoJuros = resDet.novoJuros;
+      novoDevido = resDet.novoDevido;
+      novoStatus = resDet.status;
+    } else {
+      if (modo === "SOMENTE_JUROS") {
+        novoStatus = isRolavel ? "PAGO" : "PARCIAL";
+      } else if (valorPago < totalDevido - 0.01) {
+        novoStatus = "PARCIAL";
+      }
+
+      if (novoStatus === "PARCIAL") {
+        let valorRestante = valorPago;
+        let jurosAtrasoPago = 0;
+        if (jurosAtraso > 0) {
+          jurosAtrasoPago = Math.min(jurosAtraso, valorRestante);
+          valorRestante = Math.max(0, valorRestante - jurosAtrasoPago);
+        }
+
+        if (valorRestante > 0) {
+          if (destinoAbatimento === "PRINCIPAL") {
+            novoPrincipal = Math.max(0, Number(parcela.valorPrincipal) - valorRestante);
+          } else if (destinoAbatimento === "JUROS") {
+            novoJuros = Math.max(0, Number(parcela.valorJuros) - valorRestante);
+          }
+        }
+        novoDevido = Number((novoPrincipal + novoJuros).toFixed(2));
+      }
     }
+
+    // Meios de pagamento e entradas
+    const formasPagamento = body.formasPagamento ?? [];
+    const session = await getSession();
+    const operadorNome = session?.nome ?? "Sistema";
+
+    // Acumula histórico de entradas parciais
+    const entradasAntigas: any[] = JSON.parse((parcela as any).entradas ?? "[]");
+    const novaEntrada = {
+      id: `ENT-${Date.now()}`,
+      valor: Number(valorPago.toFixed(2)),
+      data: hoje.toISOString(),
+      operador: operadorNome,
+      formas: formasPagamento,
+      modo,
+    };
+    const entradasAtualizadas = [...entradasAntigas, novaEntrada];
 
     // Atualiza parcela
     const updated = await prisma.parcela.update({
       where: { id },
       data: {
-        status:        novoStatus,
-        valorPago:     Number(valorPago),
-        dataPagamento: hoje,
-        modoPagamento: modo,
-        desconto:      desconto > 0 ? desconto : null,
+        status:          novoStatus,
+        valorPago:       Number((Number(parcela.valorPago || 0) + valorPago).toFixed(2)),
+        dataPagamento:   hoje,
+        modoPagamento:   modo,
+        desconto:        desconto > 0 ? desconto : null,
+        valorPrincipal:  novoPrincipal,
+        valorJuros:      novoJuros,
+        valorDevido:     novoDevido,
+        formasPagamento: JSON.stringify(formasPagamento),
+        entradas:        JSON.stringify(entradasAtualizadas),
       },
     });
 
@@ -103,10 +171,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Registra log de auditoria
     const txtQuitado = todasPagas ? " (Contrato quitado com sucesso)" : "";
-    await registrarLog(
-      "LIQUIDAR_PARCELA",
-      `Pagamento de R$ ${Number(valorPago).toFixed(2)} registrado para a parcela ${parcela.numero} (Contrato ID: ${parcela.emprestimoId}) do cliente ${parcela.emprestimo.cliente.nome}. Modo: ${modo}${txtQuitado}.`
-    );
+    let msgLog = `Pagamento de R$ ${Number(valorPago).toFixed(2)} registrado para a parcela ${parcela.numero} (Contrato ID: ${parcela.emprestimoId}) do cliente ${parcela.emprestimo.cliente.nome}. Modo: ${modo}${txtQuitado}.`;
+    if (modo === "DETALHADO") {
+      msgLog = `Pagamento DETALHADO de R$ ${Number(valorPago).toFixed(2)} registrado para a parcela ${parcela.numero} (Principal Pago: R$ ${body.valorPrincipalPago ?? 0}, Juros Pago: R$ ${body.valorJurosPago ?? 0}, Juros Atraso Pago: R$ ${body.valorJurosAtrasoPago ?? 0}) (Contrato ID: ${parcela.emprestimoId}) do cliente ${parcela.emprestimo.cliente.nome}.${txtQuitado}`;
+    }
+    await registrarLog("LIQUIDAR_PARCELA", msgLog);
 
     // Atualiza score do cliente
     const clienteId = parcela.emprestimo.clienteId;
@@ -147,7 +216,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
-    return NextResponse.json({ ...updated, jurosAtraso, totalDevido });
+    const idTransferencia = `TXN-${id.slice(-8).toUpperCase()}-${hoje.toISOString().slice(0, 10).replace(/-/g, "")}`;
+    return NextResponse.json({
+      ...updated,
+      jurosAtraso,
+      totalDevido,
+      idTransferencia,
+      dataPagamento: hoje.toISOString(),
+      parcelaNumero: parcela.numero,
+      clienteNome: parcela.emprestimo.cliente.nome,
+      emprestimoId: parcela.emprestimoId,
+      contratado: todasPagas,
+      operadorNome,
+      formasPagamento,
+      entradas: entradasAtualizadas,
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Erro ao registrar pagamento." }, { status: 500 });

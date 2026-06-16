@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { 
   MessageSquare, Send, CheckSquare, Square, AlertTriangle, 
   Clock, Wifi, WifiOff, Bell, Save, Loader2, ArrowLeft,
-  ChevronLeft, ChevronRight, FileText, CheckCircle, X
+  ChevronLeft, ChevronRight, FileText, CheckCircle, X, Plus
 } from "lucide-react";
 import Link from "next/link";
 import { TemplateMsg } from "@/lib/store";
@@ -89,6 +89,48 @@ export function CobrancasClient({
 }: Props) {
   const [tab, setTab] = useState<Tab>("disparos");
   const [templates, setTemplates] = useState<TemplateMsg[]>(templatesProp);
+
+  // --- Estados do Lançador de Despesa ---
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    descricao: "",
+    valor: "",
+    categoria: "OUTROS",
+    dataVencimento: new Date().toISOString().split("T")[0],
+    recorrente: false,
+  });
+  const [expenseLoading, setExpenseLoading] = useState(false);
+
+  async function handleSaveExpense(e: React.FormEvent) {
+    e.preventDefault();
+    if (!expenseForm.descricao || !expenseForm.valor) {
+      alert("Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+    setExpenseLoading(true);
+    try {
+      const res = await fetch("/api/financeiro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expenseForm),
+      });
+      if (!res.ok) throw new Error("Erro ao salvar despesa.");
+      alert("Despesa lançada com sucesso!");
+      setShowExpenseModal(false);
+      setExpenseForm({
+        descricao: "",
+        valor: "",
+        categoria: "OUTROS",
+        dataVencimento: new Date().toISOString().split("T")[0],
+        recorrente: false,
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao salvar a despesa.");
+    } finally {
+      setExpenseLoading(false);
+    }
+  }
 
   // --- Estados Aba Disparos ---
   const [filtro, setFiltro] = useState<"todos" | "atrasado" | "pendente">("todos");
@@ -333,12 +375,18 @@ export function CobrancasClient({
     <div className="space-y-5">
       {/* Menu Superior com Abas */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <MessageSquare size={20} className="text-blue-700" />
-          <div>
-            <h1 className="text-base font-bold text-slate-900 tracking-tight">Cobranças & Notificações</h1>
-            <p className="text-xs text-slate-400 mt-0.5">{atrasados} atrasadas · {pendenteCount} pendentes</p>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <MessageSquare size={20} className="text-blue-700" />
+            <div>
+              <h1 className="text-base font-bold text-slate-900 tracking-tight">Cobranças & Notificações</h1>
+              <p className="text-xs text-slate-400 mt-0.5">{atrasados} atrasadas · {pendenteCount} pendentes</p>
+            </div>
           </div>
+          <button onClick={() => setShowExpenseModal(true)} className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer">
+            <Plus size={13} />
+            Lançar Despesa
+          </button>
         </div>
 
         {/* Abas */}
@@ -788,6 +836,106 @@ export function CobrancasClient({
               {templateSaving ? <Loader2 size={12} className="animate-spin" /> : templateSaved ? <CheckCircle size={12} className="text-emerald-300" /> : <Save size={12} />}
               {templateSaved ? "Modelo Salvo!" : "Salvar Alterações de Modelo"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Lançamento de Despesa Rápida */}
+      {showExpenseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 font-normal">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-sm font-bold text-slate-900">Lançar Nova Despesa</h2>
+              <button onClick={() => setShowExpenseModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveExpense} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Descrição *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Conta de internet, Aluguel da sala..."
+                  value={expenseForm.descricao}
+                  onChange={(e) => setExpenseForm(prev => ({ ...prev, descricao: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Valor (R$) *</label>
+                  <input
+                    type="number"
+                    required
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.00"
+                    value={expenseForm.valor}
+                    onChange={(e) => setExpenseForm(prev => ({ ...prev, valor: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Data Vencimento *</label>
+                  <input
+                    type="date"
+                    required
+                    value={expenseForm.dataVencimento}
+                    onChange={(e) => setExpenseForm(prev => ({ ...prev, dataVencimento: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Categoria</label>
+                <select
+                  value={expenseForm.categoria}
+                  onChange={(e) => setExpenseForm(prev => ({ ...prev, categoria: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors"
+                >
+                  <option value="OUTROS">Outros</option>
+                  <option value="ALUGUEL">Aluguel</option>
+                  <option value="SALARIO">Salário / Comissão</option>
+                  <option value="IMPOSTO">Imposto / Taxa</option>
+                  <option value="TECNOLOGIA">Tecnologia / Software</option>
+                  <option value="MARKETING">Marketing / Anúncios</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700">Despesa Recorrente</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Repetir esta despesa mensalmente</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={expenseForm.recorrente}
+                  onChange={(e) => setExpenseForm(prev => ({ ...prev, recorrente: e.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500 cursor-pointer"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowExpenseModal(false)}
+                  className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={expenseLoading}
+                  className="flex-1 rounded-xl bg-slate-900 py-3 text-center text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {expenseLoading ? "Salvando..." : "Lançar Despesa"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -1,204 +1,242 @@
-import { Activity, CreditCard, MessageSquare, User, HandCoins, CheckCircle, AlertTriangle, FileText, TrendingUp } from "lucide-react";
+import {
+  Activity, CreditCard, HandCoins, CheckCircle, AlertTriangle,
+  FileText, TrendingUp, UserPlus, Settings, Shield, ArrowDownCircle, Filter
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { formatarMoeda, formatarData } from "@/lib/utils";
-import { NovaAtividadeForm } from "@/components/atividades/NovaAtividadeForm";
+import { formatarMoeda } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-type TipoAtividade =
-  | "PAGAMENTO"
-  | "ACORDO"
-  | "CONTATO"
-  | "NOVO_EMPRESTIMO"
-  | "QUITACAO"
-  | "ATRASO"
-  | "OBSERVACAO"
-  | "RENOVACAO";
+// ── Mapeamento de ações do AuditLog ──────────────────────────────────────────
 
-interface Atividade {
-  id: string;
-  tipo: TipoAtividade;
-  descricao: string;
-  valor?: number;
-  clienteNome: string;
-  clienteId: string;
-  data: string;
-  operador: string;
-  tag?: string;
+type TipoEvento =
+  | "PAGAMENTO" | "NOVO_EMPRESTIMO" | "QUITACAO" | "ATRASO"
+  | "IMPORTACAO" | "CONFIG" | "CLIENTE" | "COBRANCA" | "OUTRO";
+
+function classificarAcao(acao: string): TipoEvento {
+  if (acao === "LIQUIDAR_PARCELA") return "PAGAMENTO";
+  if (acao === "CRIAR_EMPRESTIMO" || acao === "NOVO_EMPRESTIMO") return "NOVO_EMPRESTIMO";
+  if (acao === "QUITAR_CONTRATO") return "QUITACAO";
+  if (acao === "INADIMPLENCIA") return "ATRASO";
+  if (acao === "IMPORTAR_CSV") return "IMPORTACAO";
+  if (acao.startsWith("CONFIG")) return "CONFIG";
+  if (acao.startsWith("CLIENTE")) return "CLIENTE";
+  if (acao.startsWith("COBRANCA") || acao === "ENFILEIRAR_COBRANCA") return "COBRANCA";
+  return "OUTRO";
 }
 
-const iconPorTipo: Record<TipoAtividade, { icon: typeof CreditCard; cor: string; bg: string }> = {
-  PAGAMENTO:      { icon: CreditCard,    cor: "text-emerald-600", bg: "bg-emerald-50" },
-  ACORDO:         { icon: FileText,      cor: "text-blue-600",    bg: "bg-blue-50" },
-  CONTATO:        { icon: MessageSquare, cor: "text-slate-600",   bg: "bg-slate-50" },
-  NOVO_EMPRESTIMO:{ icon: HandCoins,     cor: "text-blue-700",   bg: "bg-blue-50" },
-  QUITACAO:       { icon: CheckCircle,   cor: "text-emerald-700", bg: "bg-emerald-50" },
-  ATRASO:         { icon: AlertTriangle, cor: "text-red-600",     bg: "bg-red-50" },
-  OBSERVACAO:     { icon: FileText,      cor: "text-slate-500",   bg: "bg-slate-50" },
-  RENOVACAO:      { icon: TrendingUp,    cor: "text-blue-600",    bg: "bg-blue-50" },
+const estiloEvento: Record<TipoEvento, { icon: typeof CreditCard; cor: string; bg: string; label: string }> = {
+  PAGAMENTO:       { icon: CreditCard,       cor: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200", label: "Pagamento" },
+  NOVO_EMPRESTIMO: { icon: HandCoins,        cor: "text-blue-700",   bg: "bg-blue-50 border-blue-200",       label: "Novo Contrato" },
+  QUITACAO:        { icon: CheckCircle,      cor: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", label: "Quitação" },
+  ATRASO:          { icon: AlertTriangle,    cor: "text-red-600",    bg: "bg-red-50 border-red-200",         label: "Inadimplência" },
+  IMPORTACAO:      { icon: ArrowDownCircle,  cor: "text-purple-600", bg: "bg-purple-50 border-purple-200",   label: "Importação" },
+  CONFIG:          { icon: Settings,         cor: "text-slate-500",  bg: "bg-slate-50 border-slate-200",     label: "Configuração" },
+  CLIENTE:         { icon: UserPlus,         cor: "text-blue-500",   bg: "bg-blue-50 border-blue-200",       label: "Cliente" },
+  COBRANCA:        { icon: Shield,           cor: "text-orange-600", bg: "bg-orange-50 border-orange-200",   label: "Cobrança" },
+  OUTRO:           { icon: FileText,         cor: "text-slate-500",  bg: "bg-slate-50 border-slate-200",     label: "Operação" },
 };
 
-async function gerarAtividades(): Promise<Atividade[]> {
-  const atividades: Atividade[] = [];
-  const emprestimos = await prisma.emprestimo.findMany({
-    include: { cliente: true, parcelas: { where: { status: "PAGO" } } },
-  });
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-  for (const e of emprestimos) {
-    const nomeCliente = e.cliente.nome;
-    const parcelas = e.parcelas;
+function formatarDataRelativa(data: Date): string {
+  const agora = new Date();
+  const diffMs = agora.getTime() - data.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffH   = Math.floor(diffMs / 3600000);
+  const diffD   = Math.floor(diffMs / 86400000);
 
-    // Criacao do emprestimo
-    atividades.push({
-      id: `${e.id}-criado`,
-      tipo: "NOVO_EMPRESTIMO",
-      descricao: `Novo contrato criado — ${e.tipoProduto} de ${formatarMoeda(Number(e.valorPrincipal))} em ${e.numParcelas}x`,
-      valor: Number(e.valorPrincipal),
-      clienteNome: nomeCliente,
-      clienteId: e.clienteId,
-      data: e.createdAt.toISOString(),
-      operador: "Admin",
-      tag: e.tipoProduto,
-    });
-
-    // Quitacao
-    if (e.status === "QUITADO") {
-      atividades.push({
-        id: `${e.id}-quitado`,
-        tipo: "QUITACAO",
-        descricao: `Contrato quitado — Total pago: ${formatarMoeda(Number(e.valorTotal))}`,
-        valor: Number(e.valorTotal),
-        clienteNome: nomeCliente,
-        clienteId: e.clienteId,
-        data: (parcelas[parcelas.length - 1]?.dataPagamento ?? e.dataVencimento).toISOString(),
-        operador: "Sistema",
-      });
-    }
-
-    // Inadimplencia
-    if (e.status === "INADIMPLENTE") {
-      atividades.push({
-        id: `${e.id}-inadimplente`,
-        tipo: "ATRASO",
-        descricao: `Contrato marcado como inadimplente`,
-        valor: Number(e.valorTotal),
-        clienteNome: nomeCliente,
-        clienteId: e.clienteId,
-        data: e.dataVencimento.toISOString(),
-        operador: "Sistema",
-      });
-    }
-
-    // Pagamentos
-    for (const p of parcelas.filter((pp) => pp.status === "PAGO" && pp.dataPagamento)) {
-      atividades.push({
-        id: `${p.id}-pago`,
-        tipo: "PAGAMENTO",
-        descricao: `Parcela ${p.numero}/${e.numParcelas} recebida${p.modoPagamento === "SOMENTE_JUROS" ? " (somente juros)" : p.modoPagamento === "QUITACAO_TOTAL" ? " (quitacao total)" : ""}`,
-        valor: p.valorPago ? Number(p.valorPago) : undefined,
-        clienteNome: nomeCliente,
-        clienteId: e.clienteId,
-        data: p.dataPagamento!.toISOString(),
-        operador: "Operador",
-        tag: p.modoPagamento ?? undefined,
-      });
-    }
-  }
-
-  return atividades.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  if (diffMin < 1) return "Agora";
+  if (diffMin < 60) return `${diffMin}min atrás`;
+  if (diffH < 24) return `${diffH}h atrás`;
+  if (diffD === 1) return "Ontem";
+  if (diffD < 7) return `${diffD} dias atrás`;
+  return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export default async function AtividadesPage() {
-  const [atividades, clientes] = await Promise.all([
-    gerarAtividades(),
-    prisma.cliente.findMany({ select: { id: true, nome: true }, orderBy: { nome: "asc" } }),
-  ]);
-  const hoje = new Date().toDateString();
+function extrairValor(detalhes: string): number | null {
+  const m = detalhes.match(/R\$\s*([\d.,]+)/);
+  if (!m) return null;
+  const n = parseFloat(m[1].replace(/\./g, "").replace(",", "."));
+  return isNaN(n) ? null : n;
+}
 
-  const por_tipo = {
-    pagamentos: atividades.filter((a) => a.tipo === "PAGAMENTO").length,
-    novos:      atividades.filter((a) => a.tipo === "NOVO_EMPRESTIMO").length,
-    quitacoes:  atividades.filter((a) => a.tipo === "QUITACAO").length,
-    atrasos:    atividades.filter((a) => a.tipo === "ATRASO").length,
+function formatarHora(data: Date): string {
+  return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+// ── Agrupar por data ──────────────────────────────────────────────────────────
+
+function agruparPorDia(logs: { id: string; acao: string; detalhes: string; userNome: string | null; createdAt: Date }[]) {
+  const grupos: Record<string, typeof logs> = {};
+  for (const log of logs) {
+    const chave = log.createdAt.toDateString();
+    if (!grupos[chave]) grupos[chave] = [];
+    grupos[chave].push(log);
+  }
+  return Object.entries(grupos).map(([chave, itens]) => ({
+    data: new Date(chave),
+    itens,
+  }));
+}
+
+function labelDia(data: Date): string {
+  const hoje = new Date().toDateString();
+  const ontem = new Date(Date.now() - 86400000).toDateString();
+  if (data.toDateString() === hoje)  return "Hoje";
+  if (data.toDateString() === ontem) return "Ontem";
+  return data.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default async function AtividadesPage() {
+  const [logs, totais] = await Promise.all([
+    prisma.auditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    }),
+    prisma.auditLog.groupBy({
+      by: ["acao"],
+      _count: { id: true },
+    }),
+  ]);
+
+  const grupos = agruparPorDia(logs);
+
+  const contPorTipo = {
+    pagamentos: totais.filter(t => t.acao === "LIQUIDAR_PARCELA").reduce((s, t) => s + t._count.id, 0),
+    contratos:  totais.filter(t => t.acao === "CRIAR_EMPRESTIMO" || t.acao === "NOVO_EMPRESTIMO").reduce((s, t) => s + t._count.id, 0),
+    clientes:   totais.filter(t => t.acao.startsWith("CLIENTE")).reduce((s, t) => s + t._count.id, 0),
+    total:      logs.length,
   };
 
   return (
     <div className="space-y-5">
+
+      {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Activity size={18} className="text-slate-500 shrink-0" />
           <div className="min-w-0">
-            <h1 className="text-base font-semibold text-slate-900 tracking-tight truncate">Atividades</h1>
-            <p className="text-xs text-slate-500 mt-0.5">{atividades.length} eventos</p>
+            <h1 className="text-base font-semibold text-slate-900 tracking-tight">Atividades da Equipe</h1>
+            <p className="text-xs text-slate-500 mt-0.5">{logs.length} operações registradas</p>
           </div>
         </div>
-        <NovaAtividadeForm clientes={clientes as any} />
       </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* Cards de resumo */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
-          { label: "Pagamentos", value: por_tipo.pagamentos, cor: "text-emerald-600" },
-          { label: "Contratos",  value: por_tipo.novos,      cor: "text-blue-700" },
-          { label: "Quitacoes",  value: por_tipo.quitacoes,  cor: "text-emerald-700" },
-          { label: "Atrasos",    value: por_tipo.atrasos,    cor: "text-red-600" },
+          { label: "Total de Eventos",  value: contPorTipo.total,      cor: "text-slate-700",    bg: "bg-slate-50" },
+          { label: "Pagamentos",        value: contPorTipo.pagamentos,  cor: "text-emerald-600",  bg: "bg-emerald-50" },
+          { label: "Contratos Criados", value: contPorTipo.contratos,   cor: "text-blue-700",     bg: "bg-blue-50" },
+          { label: "Clientes",          value: contPorTipo.clientes,    cor: "text-purple-600",   bg: "bg-purple-50" },
         ].map((k) => (
-          <div key={k.label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="text-[10px] font-medium text-slate-500 truncate">{k.label}</p>
-            <p className={`text-xl font-bold mt-0.5 ${k.cor}`}>{k.value}</p>
+          <div key={k.label} className={`rounded-xl border border-slate-200 ${k.bg} p-3 shadow-sm`}>
+            <p className="text-[10px] font-semibold text-slate-500 truncate">{k.label}</p>
+            <p className={`text-2xl font-bold mt-0.5 ${k.cor}`}>{k.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Feed */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Feed de Atividades</h2>
-        </div>
-
-        {atividades.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-12">Nenhuma atividade registrada</p>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {atividades.map((a) => {
-              const cfg = iconPorTipo[a.tipo];
-              const Icon = cfg.icon;
-              const isHoje = new Date(a.data).toDateString() === hoje;
-              return (
-                <div key={a.id} className="flex items-start gap-3 px-3 py-3 hover:bg-slate-50 transition-colors">
-                  <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${cfg.bg}`}>
-                    <Icon size={16} className={cfg.cor} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <span className="text-sm font-semibold text-slate-800">{a.clienteNome}</span>
-                      {a.tag && (
-                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full capitalize">
-                          {a.tag.toLowerCase().replace("_", " ")}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-slate-600">{a.descricao}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-slate-400">
-                        {isHoje ? "Hoje" : formatarData(a.data)} — {a.operador}
-                      </span>
-                      {a.valor !== undefined && (
-                        <span className={`text-xs font-semibold ${a.tipo === "ATRASO" ? "text-red-600" : "text-emerald-600"}`}>
-                          {a.tipo === "ATRASO" ? "-" : "+"}{formatarMoeda(a.valor)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right text-xs text-slate-400 shrink-0 hidden sm:block">
-                    {new Date(a.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                </div>
-              );
-            })}
+      {/* Feed agrupado por dia */}
+      <div className="space-y-6">
+        {grupos.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+            <Activity size={32} className="mx-auto text-slate-300 mb-3" />
+            <p className="text-sm font-medium text-slate-500">Nenhuma atividade registrada ainda</p>
+            <p className="text-xs text-slate-400 mt-1">As operações da equipe aparecerão aqui automaticamente</p>
           </div>
+        ) : (
+          grupos.map(({ data, itens }) => (
+            <div key={data.toDateString()} className="space-y-2">
+
+              {/* Label do dia */}
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-xs font-semibold text-slate-500 capitalize whitespace-nowrap">
+                  {labelDia(data)} — {data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                </span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+
+              {/* Eventos do dia */}
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {itens.map((log) => {
+                    const tipo   = classificarAcao(log.acao);
+                    const cfg    = estiloEvento[tipo];
+                    const Icon   = cfg.icon;
+                    const valor  = extrairValor(log.detalhes);
+                    const isPagamento = tipo === "PAGAMENTO";
+                    const isNegativo  = tipo === "ATRASO";
+
+                    return (
+                      <div key={log.id} className="flex items-start gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors group">
+
+                        {/* Ícone */}
+                        <div className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 ${cfg.bg}`}>
+                          <Icon size={16} className={cfg.cor} />
+                        </div>
+
+                        {/* Conteúdo */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              {/* Badge tipo + ação */}
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.cor} border`}>
+                                  {cfg.label}
+                                </span>
+                                <span className="text-[10px] font-mono text-slate-400">{log.acao}</span>
+                              </div>
+                              {/* Descrição */}
+                              <p className="text-xs text-slate-700 leading-relaxed line-clamp-2">
+                                {log.detalhes}
+                              </p>
+                            </div>
+
+                            {/* Valor */}
+                            {valor !== null && (
+                              <div className="text-right shrink-0">
+                                <span className={`text-sm font-bold tabular-nums ${
+                                  isNegativo ? "text-red-600" :
+                                  isPagamento ? "text-emerald-600" :
+                                  "text-slate-800"
+                                }`}>
+                                  {isNegativo ? "-" : "+"}{formatarMoeda(valor)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Rodapé: operador + hora */}
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                              <span className="text-[9px] font-bold text-slate-600">
+                                {(log.userNome ?? "S")[0].toUpperCase()}
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-semibold text-slate-700">
+                              {log.userNome ?? "Sistema"}
+                            </span>
+                            <span className="text-[11px] text-slate-400">·</span>
+                            <span className="text-[11px] text-slate-400">
+                              {formatarDataRelativa(log.createdAt)} às {formatarHora(log.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
+
     </div>
   );
 }

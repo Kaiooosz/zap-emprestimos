@@ -58,6 +58,8 @@ model Cliente {
   descGarantia     String?
   referencia       String?
   observacoes      String?
+  perfilTaxa       String?
+  taxaPadrao       Decimal?    @db.Decimal(6, 2)
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
@@ -170,6 +172,10 @@ model Parcela {
   status           StatusParcela  @default(PENDENTE)
   modoPagamento    ModoPagamento?
   desconto         Decimal?       @db.Decimal(12, 2)
+  // Meios de pagamento: [{tipo, descricao?, valor}]
+  formasPagamento  String?        @db.Text
+  // Histórico de entradas parciais: [{valor, data, formas, operador}]
+  entradas         String?        @db.Text
   createdAt        DateTime       @default(now())
 
   emprestimo Emprestimo @relation(fields: [emprestimoId], references: [id], onDelete: Cascade)

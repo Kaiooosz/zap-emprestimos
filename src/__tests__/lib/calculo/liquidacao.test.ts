@@ -13,6 +13,7 @@ import {
   liquidarMensal,
   liquidarParcelado,
   simularMensalRolavel,
+  liquidarDetalhado,
 } from "@/lib/calculo/liquidacao";
 
 // ─── calcJurosAtraso ──────────────────────────────────────────────────────────
@@ -304,3 +305,60 @@ describe("simularMensalRolavel", () => {
     });
   });
 });
+
+// ─── liquidarDetalhado ────────────────────────────────────────────────────────
+
+describe("liquidarDetalhado", () => {
+  it("quita a parcela (status PAGO) se o principal e juros forem pagos integralmente", () => {
+    const res = liquidarDetalhado({
+      valorPrincipal: 1000,
+      valorJuros: 200,
+      vPrincipalPago: 1000,
+      vJurosPago: 200,
+    });
+    expect(res.novoPrincipal).toBe(0);
+    expect(res.novoJuros).toBe(0);
+    expect(res.novoDevido).toBe(0);
+    expect(res.status).toBe("PAGO");
+  });
+
+  it("mantém a parcela PARCIAL se restar saldo de principal", () => {
+    const res = liquidarDetalhado({
+      valorPrincipal: 1000,
+      valorJuros: 200,
+      vPrincipalPago: 600,
+      vJurosPago: 200,
+    });
+    expect(res.novoPrincipal).toBe(400);
+    expect(res.novoJuros).toBe(0);
+    expect(res.novoDevido).toBe(400);
+    expect(res.status).toBe("PARCIAL");
+  });
+
+  it("mantém a parcela PARCIAL se restar saldo de juros", () => {
+    const res = liquidarDetalhado({
+      valorPrincipal: 1000,
+      valorJuros: 200,
+      vPrincipalPago: 1000,
+      vJurosPago: 50,
+    });
+    expect(res.novoPrincipal).toBe(0);
+    expect(res.novoJuros).toBe(150);
+    expect(res.novoDevido).toBe(150);
+    expect(res.status).toBe("PARCIAL");
+  });
+
+  it("não reduz os valores abaixo de zero se o pagamento exceder os limites", () => {
+    const res = liquidarDetalhado({
+      valorPrincipal: 1000,
+      valorJuros: 200,
+      vPrincipalPago: 1200,
+      vJurosPago: 300,
+    });
+    expect(res.novoPrincipal).toBe(0);
+    expect(res.novoJuros).toBe(0);
+    expect(res.novoDevido).toBe(0);
+    expect(res.status).toBe("PAGO");
+  });
+});
+
