@@ -12,7 +12,7 @@ import { formatarMoeda, formatarData } from "@/lib/utils";
 // ─── Tipos de operação ────────────────────────────────────────────────────────
 
 const TIPOS_OPERACAO = [
-  { id: "EMPRESTIMO",      icon: HandCoins,  label: "Empréstimo Padrão",    desc: "Datas flexíveis, juros simples ou por parcela" },
+  { id: "EMPRESTIMO",      icon: HandCoins,  label: "Empréstimo",           desc: "Datas flexíveis, juros simples ou por parcela" },
   { id: "RENOVACAO",       icon: FileCheck,  label: "Renovação",            desc: "Renovar empréstimo existente com nova taxa" },
   { id: "VENDA",           icon: ShoppingBag,label: "Venda Parcelada",      desc: "Produto/veículo com custo e margem de lucro" },
   { id: "ALUGUEL",         icon: Home,       label: "Aluguel / Contrato",   desc: "Mensalidade recorrente sem data fim definida" },
