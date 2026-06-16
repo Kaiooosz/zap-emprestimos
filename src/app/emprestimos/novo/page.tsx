@@ -376,7 +376,7 @@ function NovoEmprestimoInner() {
                     {/* Juros de Atraso */}
                     <div className="border-t border-slate-100 pt-4 space-y-3">
                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Configuração de Atraso</p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1.5">Regra de Atraso</label>
                           <div className="grid grid-cols-2 gap-1.5">
