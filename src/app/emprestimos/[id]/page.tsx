@@ -36,6 +36,7 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
     taxaJuros:      Number(raw.taxaJuros),
     regraAtraso:    raw.regraAtraso,
     taxaAtraso:     Number(raw.taxaAtraso),
+    tipoTaxaAtraso: raw.tipoTaxaAtraso,
     valorGarantia:  raw.valorGarantia ? Number(raw.valorGarantia) : undefined,
     valorNominalCheque: raw.valorNominalCheque ? Number(raw.valorNominalCheque) : undefined,
     valorMensal:    raw.valorMensal ? Number(raw.valorMensal) : undefined,
@@ -133,6 +134,7 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
             dataInicio={e.dataInicio instanceof Date ? e.dataInicio.toISOString() : String(e.dataInicio)}
             regraAtraso={e.regraAtraso}
             taxaAtraso={e.taxaAtraso}
+            tipoTaxaAtraso={e.tipoTaxaAtraso}
           />
         </div>
 

@@ -92,6 +92,18 @@ describe("calcJurosAtraso", () => {
       });
       expect(resultado).toBeGreaterThanOrEqual(0);
     });
+
+    it("tipoTaxa VALOR — ignora saldo e aplica valor fixo por dia de atraso", () => {
+      const resultado = calcJurosAtraso({
+        valorParcela: 1000,
+        valorPago: 400,
+        diasAtraso: 4,
+        taxaDiaria: 10, // R$ 10 fixo por dia
+        regra: "SALDO",
+        tipoTaxa: "VALOR",
+      });
+      expect(resultado).toBe(40); // 10 * 4 = 40
+    });
   });
 });
 

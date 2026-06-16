@@ -21,13 +21,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const diasAtraso = Math.max(0, Math.floor((hoje.getTime() - venc.getTime()) / 86400000));
     const taxaDiaria = Number(parcela.emprestimo.taxaAtraso ?? 1);
     const regra = parcela.emprestimo.regraAtraso ?? "PARCELA";
+    const tipoTaxa = parcela.emprestimo.tipoTaxaAtraso ?? "PERCENTUAL";
     
     const baseCalculo = regra === "SALDO"
       ? Math.max(0, Number(parcela.valorDevido) - Number(parcela.valorPago || 0))
       : Number(parcela.valorDevido);
 
     const jurosAtraso = diasAtraso > 0
-      ? Number((baseCalculo * diasAtraso * taxaDiaria / 100).toFixed(2))
+      ? (tipoTaxa === "VALOR"
+          ? Number((taxaDiaria * diasAtraso).toFixed(2))
+          : Number((baseCalculo * diasAtraso * taxaDiaria / 100).toFixed(2)))
       : 0;
     const totalDevido = Number((Number(parcela.valorDevido) + jurosAtraso).toFixed(2));
     const valorPago   = body.valorPago ?? totalDevido;

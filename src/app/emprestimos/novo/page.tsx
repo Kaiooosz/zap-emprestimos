@@ -88,6 +88,7 @@ function NovoEmprestimoInner() {
   // Regras de atraso e juros diários
   const [regraAtraso, setRegraAtraso] = useState<"PARCELA" | "SALDO">("PARCELA");
   const [tipoTaxaAtraso, setTipoTaxaAtraso] = useState<"FIXA" | "CUSTOM">("FIXA");
+  const [modoTaxaAtraso, setModoTaxaAtraso] = useState<"PERCENTUAL" | "VALOR">("PERCENTUAL");
   const [taxaAtraso,  setTaxaAtraso]  = useState(1.0);
 
   // Parcela alvo e mensal rolável
@@ -180,6 +181,7 @@ function NovoEmprestimoInner() {
         temContrato,
         regraAtraso,
         taxaAtraso: tipoTaxaAtraso === "FIXA" ? 1.0 : taxaAtraso,
+        tipoTaxaAtraso: tipoTaxaAtraso === "FIXA" ? "PERCENTUAL" : modoTaxaAtraso,
         // tipo-specific
         taxaRenovacao: tipoOp === "RENOVACAO" ? taxaRenovacao : undefined,
         custo: tipoOp === "VENDA" ? custo : undefined,
@@ -407,14 +409,37 @@ function NovoEmprestimoInner() {
                       </div>
 
                       <p className="text-[10px] text-slate-400 leading-relaxed mt-1">
-                        {regraAtraso === "PARCELA"
+                        {tipoTaxaAtraso === "CUSTOM" && modoTaxaAtraso === "VALOR"
+                          ? "O juro diário acumula o valor fixo definido em reais a cada dia de atraso."
+                          : regraAtraso === "PARCELA"
                           ? "Regra A: O atraso é cobrado sobre o valor total da parcela."
                           : "Regra B: O atraso é cobrado apenas sobre o que sobrou da parcela (caso o cliente já tenha feito um pagamento parcial)."}
                       </p>
 
                       {tipoTaxaAtraso === "CUSTOM" && (
-                        <div className="w-1/2">
-                          <Num label="Taxa diária de atraso (%)" value={taxaAtraso} onChange={setTaxaAtraso} step={0.1} min={0} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Tipo da Taxa Customizada</label>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <button type="button" onClick={() => setModoTaxaAtraso("PERCENTUAL")}
+                                className={`rounded-xl py-2 text-xs font-medium border transition-all ${modoTaxaAtraso === "PERCENTUAL" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
+                                Percentual (%)
+                              </button>
+                              <button type="button" onClick={() => setModoTaxaAtraso("VALOR")}
+                                className={`rounded-xl py-2 text-xs font-medium border transition-all ${modoTaxaAtraso === "VALOR" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:border-slate-400"}`}>
+                                Valor Fixo (R$)
+                              </button>
+                            </div>
+                          </div>
+                          <div>
+                            <Num
+                              label={modoTaxaAtraso === "PERCENTUAL" ? "Taxa diária de atraso (%)" : "Valor diário de atraso (R$)"}
+                              value={taxaAtraso}
+                              onChange={setTaxaAtraso}
+                              step={modoTaxaAtraso === "PERCENTUAL" ? 0.1 : 1}
+                              min={0}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>

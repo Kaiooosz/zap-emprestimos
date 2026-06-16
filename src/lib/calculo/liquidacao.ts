@@ -32,11 +32,17 @@ export function calcJurosAtraso(params: {
   valorParcela:   number;
   valorPago:      number;   // o que já foi pago na parcela
   diasAtraso:     number;
-  taxaDiaria:     number;   // ex: 1 (%)
+  taxaDiaria:     number;   // ex: 1 (%) ou R$ 1 fixo por dia
   regra:          RegraJurosAtraso;
+  tipoTaxa?:      "PERCENTUAL" | "VALOR";
 }): number {
-  const { valorParcela, valorPago, diasAtraso, taxaDiaria, regra } = params;
+  const { valorParcela, valorPago, diasAtraso, taxaDiaria, regra, tipoTaxa = "PERCENTUAL" } = params;
   if (diasAtraso <= 0) return 0;
+
+  if (tipoTaxa === "VALOR") {
+    return Number((taxaDiaria * diasAtraso).toFixed(2));
+  }
+
   const base   = regra === "PARCELA" ? valorParcela : Math.max(0, valorParcela - valorPago);
   return Number((base * diasAtraso * taxaDiaria / 100).toFixed(2));
 }
@@ -50,6 +56,7 @@ export interface LiquidacaoMensalInput {
   taxaDiaria:     number;
   diasAtraso:     number;
   regraAtraso:    RegraJurosAtraso;
+  tipoTaxaAtraso?: "PERCENTUAL" | "VALOR";
 }
 
 export interface LiquidacaoMensalResult {
@@ -66,7 +73,7 @@ export function liquidarMensal(
   params: LiquidacaoMensalInput,
   principalOriginal: number
 ): LiquidacaoMensalResult {
-  const { saldoDevedor, taxaMensal, valorRecebido, taxaDiaria, diasAtraso, regraAtraso } = params;
+  const { saldoDevedor, taxaMensal, valorRecebido, taxaDiaria, diasAtraso, regraAtraso, tipoTaxaAtraso } = params;
   const jurosDevidos = Number((saldoDevedor * taxaMensal / 100).toFixed(2));
   const totalDevido  = Number((saldoDevedor + jurosDevidos).toFixed(2));
 
@@ -77,6 +84,7 @@ export function liquidarMensal(
     diasAtraso,
     taxaDiaria,
     regra: regraAtraso,
+    tipoTaxa: tipoTaxaAtraso,
   });
 
   const totalComAtraso = Number((totalDevido + jurosAtraso).toFixed(2));
@@ -131,6 +139,7 @@ export interface LiquidacaoParceladaInput {
   diasAtraso:     number;
   regraAtraso:    RegraJurosAtraso;
   valorPago:      number;   // o que já foi pago nesta parcela (para regra B)
+  tipoTaxaAtraso?: "PERCENTUAL" | "VALOR";
 }
 
 export interface LiquidacaoParceladaResult {
@@ -142,9 +151,9 @@ export interface LiquidacaoParceladaResult {
 }
 
 export function liquidarParcelado(params: LiquidacaoParceladaInput): LiquidacaoParceladaResult {
-  const { valorParcela, saldoRetido, valorRecebido, taxaDiaria, diasAtraso, regraAtraso, valorPago } = params;
+  const { valorParcela, saldoRetido, valorRecebido, taxaDiaria, diasAtraso, regraAtraso, valorPago, tipoTaxaAtraso } = params;
 
-  const jurosAtraso  = calcJurosAtraso({ valorParcela, valorPago, diasAtraso, taxaDiaria, regra: regraAtraso });
+  const jurosAtraso  = calcJurosAtraso({ valorParcela, valorPago, diasAtraso, taxaDiaria, regra: regraAtraso, tipoTaxa: tipoTaxaAtraso });
   const totalEfetivo = Number((saldoRetido + valorRecebido).toFixed(2));
   const totalNecessario = Number((valorParcela + jurosAtraso).toFixed(2));
 

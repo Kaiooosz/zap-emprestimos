@@ -236,8 +236,9 @@ export interface ResultadoAtraso {
 export function calcularJurosAtraso(
   valorBase: number,                       // valor da parcela ou saldo restante
   dataVencimento: Date,
-  taxaDiariaPct: number = 1,              // 1% ao dia (padrão)
-  modo: "parcela" | "saldo" = "parcela"  // Regra A ou B
+  taxaDiariaPct: number = 1,              // 1% ao dia (padrão) ou R$ 1 fixo por dia
+  modo: "parcela" | "saldo" = "parcela",  // Regra A ou B
+  tipoTaxa: "PERCENTUAL" | "VALOR" = "PERCENTUAL"
 ): ResultadoAtraso {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -245,8 +246,9 @@ export function calcularJurosAtraso(
   venc.setHours(0, 0, 0, 0);
 
   const diasAtraso = Math.max(0, Math.floor((hoje.getTime() - venc.getTime()) / 86400000));
-  const taxa = taxaDiariaPct / 100;
-  const jurosAtraso = arred(valorBase * taxa * diasAtraso);
+  const jurosAtraso = tipoTaxa === "VALOR"
+    ? arred(taxaDiariaPct * diasAtraso)
+    : arred(valorBase * (taxaDiariaPct / 100) * diasAtraso);
   const valorAtualizado = arred(valorBase + jurosAtraso);
 
   return {

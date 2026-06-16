@@ -17,10 +17,11 @@ interface Props {
   dataInicio: string;
   regraAtraso: string;
   taxaAtraso: number;
+  tipoTaxaAtraso: string;
 }
 
 export function DetalheEmprestimoClient({
-  parcelas, saldoDevedor, clientePhone, clienteNome, taxaJuros, dataInicio, regraAtraso, taxaAtraso
+  parcelas, saldoDevedor, clientePhone, clienteNome, taxaJuros, dataInicio, regraAtraso, taxaAtraso, tipoTaxaAtraso
 }: Props) {
   const [modalParcela, setModalParcela] = useState<Parcela | null>(null);
   const router = useRouter();
@@ -57,6 +58,7 @@ export function DetalheEmprestimoClient({
           dataInicioPeriodo={getInicioPeriodo(modalParcela)}
           regraAtraso={regraAtraso}
           taxaAtraso={taxaAtraso}
+          tipoTaxaAtraso={tipoTaxaAtraso}
           onClose={() => setModalParcela(null)}
         />
       )}

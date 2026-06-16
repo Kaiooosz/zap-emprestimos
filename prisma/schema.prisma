@@ -120,6 +120,7 @@ model Emprestimo {
   observacoes      String?
   regraAtraso      String           @default("PARCELA")
   taxaAtraso       Decimal          @default(1.0) @db.Decimal(5, 2)
+  tipoTaxaAtraso   String           @default("PERCENTUAL")
   // Campos específicos por tipo
   valorNominalCheque Decimal?       @db.Decimal(12, 2)
   dataCheque         DateTime?

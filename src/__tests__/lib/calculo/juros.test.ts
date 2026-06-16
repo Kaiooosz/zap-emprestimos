@@ -277,6 +277,15 @@ describe("calcularJurosAtraso", () => {
     const res = calcularJurosAtraso(1000, ontem, 2, "parcela"); // 2% ao dia
     expect(res.jurosAtraso).toBeCloseTo(40, 1); // 1000 × 2% × 2
   });
+
+  it("tipoTaxa VALOR — calcula juros diários fixos em reais por dia", () => {
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 3); // 3 dias
+
+    const res = calcularJurosAtraso(1000, ontem, 5, "parcela", "VALOR"); // R$ 5 fixo por dia
+    expect(res.jurosAtraso).toBe(15); // 5 * 3 = 15
+    expect(res.valorAtualizado).toBe(1015);
+  });
 });
 
 // ─── calcularCET ──────────────────────────────────────────────────────────────

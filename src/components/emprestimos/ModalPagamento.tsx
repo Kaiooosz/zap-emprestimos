@@ -14,12 +14,13 @@ interface Props {
   dataInicioPeriodo: string;
   regraAtraso: string;
   taxaAtraso: number;
+  tipoTaxaAtraso: string;
   onClose: () => void;
 }
 
 type Modo = "COMPLETO" | "SOMENTE_JUROS" | "ANTECIPADO" | "QUITACAO_TOTAL";
 
-export function ModalPagamento({ parcela, saldoDevedor, taxaJuros, dataInicioPeriodo, regraAtraso, taxaAtraso, onClose }: Props) {
+export function ModalPagamento({ parcela, saldoDevedor, taxaJuros, dataInicioPeriodo, regraAtraso, taxaAtraso, tipoTaxaAtraso, onClose }: Props) {
   const [modo, setModo]         = useState<Modo>("COMPLETO");
   const [desconto, setDesconto] = useState(0);
   const [loading, setLoading]   = useState(false);
@@ -38,8 +39,14 @@ export function ModalPagamento({ parcela, saldoDevedor, taxaJuros, dataInicioPer
       ? Math.max(0, Number(parcela.valorDevido) - Number(parcela.valorPago ?? 0))
       : Number(parcela.valorDevido);
 
-    return calcularJurosAtraso(base, new Date(parcela.dataVencimento), taxaAtraso, regraAtraso === "SALDO" ? "saldo" : "parcela");
-  }, [parcela, regraAtraso, taxaAtraso]);
+    return calcularJurosAtraso(
+      base,
+      new Date(parcela.dataVencimento),
+      taxaAtraso,
+      regraAtraso === "SALDO" ? "saldo" : "parcela",
+      tipoTaxaAtraso as "PERCENTUAL" | "VALOR"
+    );
+  }, [parcela, regraAtraso, taxaAtraso, tipoTaxaAtraso]);
 
   const antecipado = useMemo(() =>
     podeAntecipar
@@ -99,7 +106,9 @@ export function ModalPagamento({ parcela, saldoDevedor, taxaJuros, dataInicioPer
         {/* Alerta de atraso */}
         {atraso && atraso.diasAtraso > 0 && (
           <div className="mx-5 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-xs font-semibold text-red-700 mb-1">Juros de atraso ({atraso.diasAtraso} dias a {taxaAtraso}%/dia)</p>
+            <p className="text-xs font-semibold text-red-700 mb-1">
+              Juros de atraso ({atraso.diasAtraso} dias a {tipoTaxaAtraso === "VALOR" ? `R$ ${taxaAtraso}` : `${taxaAtraso}%`}/dia)
+            </p>
             <div className="flex justify-between text-xs font-bold text-red-700 mt-1">
               <span>Total com juros de atraso</span>
               <span>{formatarMoeda(atraso.valorAtualizado)}</span>
