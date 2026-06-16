@@ -406,6 +406,12 @@ function NovoEmprestimoInner() {
                         </div>
                       </div>
 
+                      <p className="text-[10px] text-slate-400 leading-relaxed mt-1">
+                        {regraAtraso === "PARCELA"
+                          ? "Regra A: O atraso é cobrado sobre o valor total da parcela."
+                          : "Regra B: O atraso é cobrado apenas sobre o que sobrou da parcela (caso o cliente já tenha feito um pagamento parcial)."}
+                      </p>
+
                       {tipoTaxaAtraso === "CUSTOM" && (
                         <div className="w-1/2">
                           <Num label="Taxa diária de atraso (%)" value={taxaAtraso} onChange={setTaxaAtraso} step={0.1} min={0} />
