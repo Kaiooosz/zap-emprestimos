@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { hashSenha } from "@/lib/password";
 
 export async function GET() {
@@ -17,6 +18,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json({ error: "Apenas administradores podem criar membros." }, { status: 403 });
+    }
+
     const body = await req.json();
     const { nome, email, phone, role, senha } = body;
 

@@ -10,7 +10,7 @@ import { PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const links = [
+const allLinks = [
   { href: "/dashboard",     label: "Dashboard",   icon: LayoutDashboard },
   { href: "/emprestimos",   label: "Contratos",   icon: HandCoins },
   { href: "/clientes",      label: "Clientes",    icon: Users },
@@ -20,13 +20,23 @@ const links = [
   { href: "/simulador",     label: "Simulador",   icon: Calculator },
   { href: "/calendario",    label: "Calendário",  icon: CalendarDays },
   { href: "/financeiro",    label: "Financeiro",  icon: Wallet },
-  { href: "/equipe",        label: "Equipe",      icon: UsersRound },
-  { href: "/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/equipe",        label: "Equipe",      icon: UsersRound, adminOnly: true },
+  { href: "/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [role, setRole] = useState<string>("OPERADOR");
+
+  useEffect(() => {
+    fetch("/api/perfil")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.role) setRole(data.role);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed");
@@ -73,7 +83,8 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 py-3 px-2 overflow-y-auto">
-        {links.map(({ href, label, icon: Icon }) => {
+        {allLinks.map(({ href, label, icon: Icon, adminOnly }) => {
+          if (adminOnly && role !== "ADMIN") return null;
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link

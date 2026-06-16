@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { hashSenha } from "@/lib/password";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getSession();
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json({ error: "Apenas administradores podem atualizar membros." }, { status: 403 });
+    }
+
     const { id } = await params;
     const body   = await req.json();
     const { role, ativo, senha } = body;
@@ -28,6 +34,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getSession();
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json({ error: "Apenas administradores podem remover membros." }, { status: 403 });
+    }
+
     const { id } = await params;
 
     // Verifica se há empréstimos vinculados

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Bell, LogOut, X } from "lucide-react";
+import { Plus, Bell, LogOut, X, User } from "lucide-react";
 import Image from "next/image";
 
 interface Evento {
@@ -169,6 +169,16 @@ export function Topbar() {
           <Plus size={13} strokeWidth={2.5} />
           Novo Emprestimo
         </Link>
+
+        {/* Link Meu Perfil */}
+        <Link
+          href="/perfil"
+          title="Meu Perfil"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+        >
+          <User size={15} />
+        </Link>
+
         <button
           onClick={logout}
           title="Sair"
