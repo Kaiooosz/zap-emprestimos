@@ -13,14 +13,12 @@ import { formatarMoeda, formatarData } from "@/lib/utils";
 
 const TIPOS_OPERACAO = [
   { id: "EMPRESTIMO",      icon: HandCoins,  label: "Empréstimo Padrão",    desc: "Datas flexíveis, juros simples ou por parcela" },
-  { id: "DIARIO",          icon: Calculator, label: "Empréstimo Diário",    desc: "Fluxo rápido — cobrança todos os dias" },
   { id: "RENOVACAO",       icon: FileCheck,  label: "Renovação",            desc: "Renovar empréstimo existente com nova taxa" },
   { id: "VENDA",           icon: ShoppingBag,label: "Venda Parcelada",      desc: "Produto/veículo com custo e margem de lucro" },
   { id: "ALUGUEL",         icon: Home,       label: "Aluguel / Contrato",   desc: "Mensalidade recorrente sem data fim definida" },
-  { id: "ASSINATURA",      icon: Tv,         label: "Assinatura",           desc: "Micro-recorrência com alerta de vencimento" },
 ];
 
-type TipoOp = typeof TIPOS_OPERACAO[number]["id"];
+type TipoOp = "EMPRESTIMO" | "DIARIO" | "RENOVACAO" | "VENDA" | "ALUGUEL" | "ASSINATURA";
 type Periodo = "DIARIO" | "SEMANAL" | "QUINZENAL" | "MENSAL";
 type Modalidade = "SIMPLES" | "POR_PARCELA";
 
