@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest) {
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const body = await req.json();
-    const { nome, email, phone, senha } = body;
+    const { nome, email, phone, senha, avatar } = body;
 
     if (!nome || !email) {
       return NextResponse.json({ error: "Nome e e-mail são obrigatórios." }, { status: 400 });
@@ -44,7 +44,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "E-mail já está em uso por outra conta." }, { status: 409 });
     }
 
-    const updateData: any = { nome, email, phone: phone || null };
+    const updateData: any = { nome, email, phone: phone || null, avatar: avatar || null };
     if (senha && senha.trim() !== "") {
       updateData.passwordHash = hashSenha(senha);
     }

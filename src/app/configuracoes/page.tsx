@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { ConfiguracoesClient } from "@/components/configuracoes/ConfiguracoesClient";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +18,11 @@ const defaultWhatsapp = {
 const defaultTaxas = { 2:45, 3:60, 4:75, 5:90, 6:105, 7:120, 8:135, 9:150, 10:165 };
 
 export default async function ConfiguracoesPage() {
-  const [configRow, templates] = await Promise.all([
+  const session = await getSession();
+  const [configRow, templates, user] = await Promise.all([
     prisma.config.findUnique({ where: { id: "singleton" } }),
     prisma.template.findMany({ orderBy: { createdAt: "asc" } }),
+    session ? prisma.user.findUnique({ where: { id: session.sub } }) : null,
   ]);
 
   const cfg               = (configRow?.data as any) ?? {};
@@ -37,6 +40,7 @@ export default async function ConfiguracoesPage() {
       whatsapp={whatsapp}
       templates={templatesMapped}
       taxasParcelamento={taxasParcelamento}
+      usuario={user ? { nome: user.nome, email: user.email, phone: user.phone, role: user.role, avatar: user.avatar } : undefined}
     />
   );
 }

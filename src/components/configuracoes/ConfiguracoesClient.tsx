@@ -45,6 +45,7 @@ interface Props {
   whatsapp: ConfigWhatsApp;
   templates: TemplateMsg[];
   taxasParcelamento: TaxasParcelamento;
+  usuario?: { nome: string; email: string; phone?: string | null; role: string; avatar?: string | null };
 }
 
 const tabs: { id: Tab; label: string; icon: typeof User }[] = [
@@ -118,7 +119,8 @@ As mensagens usam as seguintes variáveis dinâmicas:
 - \`{{telefone_empresa}}\` — Contato da empresa
 `;
 
-export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcelamento: taxasInit }: Props) {
+export function ConfiguracoesClient(props: Props) {
+  const { empresa, whatsapp, templates, taxasParcelamento: taxasInit } = props;
   const searchParams = useSearchParams();
   const tabInicial   = (searchParams.get("tab") as Tab) ?? "perfil";
 
@@ -128,6 +130,60 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
   const [qrVisible, setQrVisible] = useState(false);
   const [taxas, setTaxas]         = useState<TaxasParcelamento>({ ...taxasInit });
   const [taxasSaved, setTaxasSaved] = useState(false);
+
+  // Perfil
+  const [perfil, setPerfil] = useState({
+    nome: props.usuario?.nome || "",
+    email: props.usuario?.email || "",
+    phone: props.usuario?.phone || "",
+    senha: "",
+    senhaConfirm: "",
+    avatar: props.usuario?.avatar || ""
+  });
+  const [perfilSaving, setPerfilSaving] = useState(false);
+  const [perfilSaved, setPerfilSaved] = useState(false);
+
+  async function salvarPerfil() {
+    if (perfil.senha && perfil.senha !== perfil.senhaConfirm) {
+      alert("As senhas não coincidem!");
+      return;
+    }
+    setPerfilSaving(true);
+    try {
+      const res = await fetch("/api/perfil", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: perfil.nome,
+          email: perfil.email,
+          phone: perfil.phone,
+          senha: perfil.senha,
+          avatar: perfil.avatar
+        }),
+      });
+      if (res.ok) {
+        setPerfilSaved(true);
+        setTimeout(() => setPerfilSaved(false), 2500);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Erro ao salvar perfil");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPerfilSaving(false);
+    }
+  }
+
+  function handleFotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setPerfil(p => ({ ...p, avatar: event.target?.result as string }));
+    };
+    reader.readAsDataURL(file);
+  }
 
   // Formulário empresa
   const [emp, setEmp] = useState({ ...empresa });
@@ -230,22 +286,31 @@ export function ConfiguracoesClient({ empresa, whatsapp, templates, taxasParcela
         <div className="flex-1 min-w-0">
           {/* ── Perfil ── */}
           {tab === "perfil" && (
-            <Section title="Perfil do Usuário" onSave={onSave} saved={saved}>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl font-bold text-slate-700">A</div>
+            <Section title="Perfil do Usuário" onSave={salvarPerfil} saved={perfilSaved}>
+              <div className="flex items-center gap-4 mb-6 relative">
+                {perfil.avatar ? (
+                  <img src={perfil.avatar} alt="Avatar" className="h-16 w-16 rounded-2xl object-cover bg-slate-100 border border-slate-200" />
+                ) : (
+                  <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl font-bold text-slate-700">
+                    {perfil.nome ? perfil.nome.charAt(0).toUpperCase() : "U"}
+                  </div>
+                )}
                 <div>
-                  <p className="font-semibold text-slate-900">Admin Zap</p>
-                  <p className="text-xs text-slate-400">admin@zap.com</p>
-                  <button className="text-xs text-slate-500 hover:text-slate-700 mt-1 underline">Trocar foto</button>
+                  <p className="font-semibold text-slate-900">{perfil.nome || "Usuário"}</p>
+                  <p className="text-xs text-slate-400">{perfil.email || "email@exemplo.com"}</p>
+                  <label className="text-xs text-slate-500 hover:text-slate-700 mt-1 underline cursor-pointer inline-block">
+                    Trocar foto
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
+                  </label>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Nome" defaultValue="Admin Zap" />
-                <Field label="E-mail" defaultValue="admin@zap.com" type="email" />
-                <Field label="Telefone" defaultValue="(11) 99000-0001" />
-                <Field label="Cargo" defaultValue="Administrador" />
-                <Field label="Nova Senha" placeholder="••••••••" type="password" />
-                <Field label="Confirmar Senha" placeholder="••••••••" type="password" />
+                <Field label="Nome" value={perfil.nome} onChange={(v) => setPerfil(p => ({ ...p, nome: v }))} />
+                <Field label="E-mail" value={perfil.email} onChange={(v) => setPerfil(p => ({ ...p, email: v }))} type="email" />
+                <Field label="Telefone" value={perfil.phone} onChange={(v) => setPerfil(p => ({ ...p, phone: v }))} />
+                <Field label="Cargo" value={props.usuario?.role === "ADMIN" ? "Administrador" : "Operador"} disabled />
+                <Field label="Nova Senha" placeholder="••••••••" type="password" value={perfil.senha} onChange={(v) => setPerfil(p => ({ ...p, senha: v }))} />
+                <Field label="Confirmar Senha" placeholder="••••••••" type="password" value={perfil.senhaConfirm} onChange={(v) => setPerfil(p => ({ ...p, senhaConfirm: v }))} />
               </div>
             </Section>
           )}
@@ -519,9 +584,9 @@ function Section({ title, children, onSave, saved }: { title: string; children: 
   );
 }
 
-function Field({ label, value, defaultValue, onChange, type = "text", placeholder }: {
+function Field({ label, value, defaultValue, onChange, type = "text", placeholder, disabled }: {
   label: string; value?: string; defaultValue?: string;
-  onChange?: (v: string) => void; type?: string; placeholder?: string;
+  onChange?: (v: string) => void; type?: string; placeholder?: string; disabled?: boolean;
 }) {
   return (
     <div>
@@ -532,7 +597,8 @@ function Field({ label, value, defaultValue, onChange, type = "text", placeholde
         value={type === "number" && value !== "" && value !== undefined ? String(Number(value)) : value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors"
+        disabled={disabled}
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-600 focus:outline-none focus:border-slate-500 transition-colors disabled:bg-slate-50 disabled:text-slate-500"
       />
     </div>
   );

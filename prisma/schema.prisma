@@ -23,6 +23,7 @@ model User {
   passwordHash String
   role         Role     @default(OPERADOR)
   ativo        Boolean  @default(true)
+  avatar       String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
