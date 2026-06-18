@@ -66,7 +66,6 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@zap.com"
                   required
                   className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
                 />
@@ -81,7 +80,6 @@ export default function LoginPage() {
                   type={verSenha ? "text" : "password"}
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  placeholder="••••••••"
                   required
                   className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
                 />
@@ -113,6 +111,7 @@ export default function LoginPage() {
             Nao tem conta?{" "}
             <Link href="/register" className="text-blue-700 font-semibold hover:underline">Criar agora</Link>
           </p>
+        </div>
       </div>
     </div>
   );

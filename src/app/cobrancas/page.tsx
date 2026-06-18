@@ -17,7 +17,7 @@ export default async function CobrancasPage() {
 
   const parcelas = await prisma.parcela.findMany({
     where:   { status: { in: ["ATRASADO", "PENDENTE"] } },
-    include: { emprestimo: { include: { cliente: true } } },
+    include: { emprestimo: { include: { cliente: true, parcelas: true } } },
     orderBy: { dataVencimento: "asc" },
   });
 
@@ -40,6 +40,11 @@ export default async function CobrancasPage() {
       status:        p.status,
       diasAtraso,
       emprestimoId:  p.emprestimoId,
+      fullParcela:   p as any,
+      saldoDevedor:  p.emprestimo.parcelas.filter((parc) => parc.status !== "PAGO").reduce((acc, parc) => acc + Number(parc.valorDevido) - Number(parc.valorPago || 0), 0),
+      taxaJuros:     Number(p.emprestimo.taxaJuros),
+      dataInicioPeriodo: p.emprestimo.dataInicio.toISOString(),
+      tipoTaxaAtraso: "PERCENTUAL",
     };
   }).sort((a, b) => b.diasAtraso - a.diasAtraso);
 

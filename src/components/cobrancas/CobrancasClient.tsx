@@ -11,6 +11,7 @@ import { TemplateMsg } from "@/lib/store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { formatarMoeda, formatarData } from "@/lib/utils";
+import { ModalPagamento } from "../emprestimos/ModalPagamento";
 
 type Tab = "disparos" | "notificacoes" | "templates";
 
@@ -28,6 +29,11 @@ interface Pendente {
   status: string;
   diasAtraso: number;
   emprestimoId: string;
+  fullParcela: any;
+  saldoDevedor: number;
+  taxaJuros: number;
+  dataInicioPeriodo: string;
+  tipoTaxaAtraso: string;
 }
 
 interface Props {
@@ -143,6 +149,8 @@ export function CobrancasClient({
   const [preview, setPreview] = useState<Pendente | null>(null);
   const [disparando, setDisparando] = useState(false);
   const [disparados, setDisparados] = useState<Set<string>>(new Set());
+
+  const [parcelaParaPagar, setParcelaParaPagar] = useState<Pendente | null>(null);
 
   const [queueStatus, setQueueStatus] = useState<{
     pendentes: number;
@@ -583,19 +591,24 @@ export function CobrancasClient({
                             <StatusBadge status={p.status as any}/>
                           </div>
 
-                          <div className="text-right shrink-0 hidden sm:block">
+                          <div className="text-right shrink-0 hidden sm:block w-24">
                             {p.diasAtraso > 0 ? (
-                              <div className="flex items-center justify-end gap-1 text-xs text-red-500 font-semibold">
+                              <div className="flex items-center justify-end gap-1 text-xs text-red-500 font-semibold mb-1">
                                 <AlertTriangle size={11}/>
                                 {p.diasAtraso}d atraso
                               </div>
                             ) : (
-                              <div className="flex items-center justify-end gap-1 text-xs text-slate-500">
+                              <div className="flex items-center justify-end gap-1 text-xs text-slate-500 mb-1">
                                 <Clock size={11}/>
                                 {formatarData(p.dataVencimento)}
                               </div>
                             )}
-                            <p className="text-[10px] text-slate-400 mt-0.5">Parcela {p.parcelaNum}/{p.totalParcelas}</p>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setParcelaParaPagar(p); }}
+                              className="w-full rounded bg-blue-50 border border-blue-200 py-1 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+                            >
+                              Dar Baixa
+                            </button>
                           </div>
                         </div>
                       );
@@ -662,6 +675,21 @@ export function CobrancasClient({
               </div>
             </div>
           </div>
+          
+          {parcelaParaPagar && (
+            <ModalPagamento
+              parcela={parcelaParaPagar.fullParcela}
+              saldoDevedor={parcelaParaPagar.saldoDevedor}
+              taxaJuros={parcelaParaPagar.taxaJuros}
+              dataInicioPeriodo={parcelaParaPagar.dataInicioPeriodo}
+              regraAtraso={regraAtraso}
+              taxaAtraso={taxaDiaria}
+              tipoTaxaAtraso={parcelaParaPagar.tipoTaxaAtraso}
+              clienteNome={parcelaParaPagar.clienteNome}
+              clientePhone={parcelaParaPagar.clientePhone}
+              onClose={() => setParcelaParaPagar(null)}
+            />
+          )}
         </div>
       )}
 
