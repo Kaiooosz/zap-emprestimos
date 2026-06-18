@@ -113,13 +113,6 @@ export default function LoginPage() {
             Nao tem conta?{" "}
             <Link href="/register" className="text-blue-700 font-semibold hover:underline">Criar agora</Link>
           </p>
-        </div>
-
-        {/* Demo hint */}
-        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-3 text-center">
-          <p className="text-xs text-blue-600 font-medium">Acesso demo</p>
-          <p className="text-xs text-blue-500 mt-0.5">admin@zap.com / admin123</p>
-        </div>
       </div>
     </div>
   );
