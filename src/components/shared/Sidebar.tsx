@@ -59,18 +59,15 @@ export function Sidebar() {
     >
       {/* Logo + toggle */}
       <div className="flex h-14 items-center border-b border-slate-100 px-3 gap-2">
-        <Link href="/dashboard" className="flex items-center gap-2 flex-1 min-w-0">
+        <Link href="/dashboard" className="flex items-center justify-center flex-1">
           <Image
             src="/logo-icon.png"
             alt="Zap"
-            width={34}
-            height={34}
+            width={48}
+            height={48}
             priority
-            className="h-8 w-8 object-contain shrink-0"
+            className="h-10 w-10 object-contain shrink-0"
           />
-          {!collapsed && (
-            <span className="text-sm font-bold text-slate-900 truncate">Zap Empréstimos</span>
-          )}
         </Link>
         <button
           onClick={toggle}
