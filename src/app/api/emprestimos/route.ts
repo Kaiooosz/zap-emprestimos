@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       valorPrincipal, taxaJuros, numParcelas, dataInicio,
       observacoes, temGarantia, tipoGarantia, valorGarantia, temContrato,
       valorNominalCheque, dataCheque, custo, descricaoProduto,
-      valorMensal, diaVencimento, semDataFim, plano,
+      valorMensal, diaVencimento, vencimentoDiaUtil, semDataFim, plano,
       regraAtraso, taxaAtraso, tipoTaxaAtraso,
     } = body;
 
@@ -48,7 +48,14 @@ export async function POST(req: NextRequest) {
     const intervalo = intervaloMap[tipo as string] ?? 30;
     const tipoCalc  = modalidadeJuros === "POR_PARCELA" ? "por_parcela" : "simples";
     const resultado = calcularEmprestimo(
-      { valorPrincipal: Number(valorPrincipal), taxaJuros: Number(taxaJuros), numParcelas: Number(numParcelas), tipo: tipoCalc },
+      { 
+        valorPrincipal: Number(valorPrincipal), 
+        taxaJuros: Number(taxaJuros), 
+        numParcelas: Number(numParcelas), 
+        tipo: tipoCalc,
+        diaVencimento: diaVencimento ? Number(diaVencimento) : undefined,
+        vencimentoDiaUtil: vencimentoDiaUtil ?? false
+      },
       new Date(dataInicio),
       intervalo
     );
@@ -87,6 +94,7 @@ export async function POST(req: NextRequest) {
         descricaoProduto:   descricaoProduto  || null,
         valorMensal:        valorMensal   ? Number(valorMensal) : null,
         diaVencimento:      diaVencimento ? Number(diaVencimento) : null,
+        vencimentoDiaUtil:  vencimentoDiaUtil ?? false,
         semDataFim:         semDataFim    ?? false,
         plano:              plano         || null,
         parcelas: {

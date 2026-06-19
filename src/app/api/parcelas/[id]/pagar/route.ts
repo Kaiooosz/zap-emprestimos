@@ -131,9 +131,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       
       if (tipo === "MENSAL") {
         proxVenc.setMonth(proxVenc.getMonth() + 1);
-        const day = new Date(parcela.dataVencimento).getDate();
-        if (proxVenc.getDate() !== day) {
-          proxVenc.setDate(0);
+        if (parcela.emprestimo.vencimentoDiaUtil && parcela.emprestimo.diaVencimento) {
+          proxVenc.setDate(1);
+          let count = 0;
+          while (count < parcela.emprestimo.diaVencimento) {
+            const dayOfWeek = proxVenc.getDay();
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+              count++;
+            }
+            if (count < parcela.emprestimo.diaVencimento) {
+              proxVenc.setDate(proxVenc.getDate() + 1);
+            }
+          }
+        } else if (parcela.emprestimo.diaVencimento) {
+          const targetMonth = proxVenc.getMonth();
+          proxVenc.setDate(parcela.emprestimo.diaVencimento);
+          if (proxVenc.getMonth() !== targetMonth) {
+            proxVenc.setDate(0);
+          }
+        } else {
+          const day = new Date(parcela.dataVencimento).getDate();
+          if (proxVenc.getDate() !== day) {
+            proxVenc.setDate(0);
+          }
         }
       } else if (tipo === "QUINZENAL") {
         proxVenc.setDate(proxVenc.getDate() + 15);

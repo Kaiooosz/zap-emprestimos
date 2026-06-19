@@ -131,6 +131,7 @@ model Emprestimo {
   descricaoProduto   String?
   valorMensal        Decimal?       @db.Decimal(12, 2)
   diaVencimento      Int?
+  vencimentoDiaUtil  Boolean        @default(false)
   semDataFim         Boolean        @default(false)
   plano              String?
   createdAt          DateTime       @default(now())

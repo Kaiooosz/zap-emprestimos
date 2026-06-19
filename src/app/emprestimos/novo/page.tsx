@@ -108,6 +108,7 @@ function NovoEmprestimoInner() {
   // Aluguel / Assinatura
   const [valorMensal,  setValorMensal]  = useState(800);
   const [diaVencimento,setDiaVencimento]= useState(10);
+  const [vencimentoDiaUtil, setVencimentoDiaUtil] = useState(false);
   const [semDataFim,   setSemDataFim]   = useState(true);
   const [plano,        setPlano]        = useState("");
 
@@ -209,7 +210,8 @@ function NovoEmprestimoInner() {
         taxaRenovacao: tipoOp === "RENOVACAO" ? taxaRenovacao : undefined,
         custo: tipoOp === "VENDA" ? custo : undefined,
         descricaoProduto: tipoOp === "VENDA" ? descProduto : undefined,
-        diaVencimento: (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") ? diaVencimento : undefined,
+        diaVencimento: (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA" || (tipoOp === "EMPRESTIMO" && isRola)) ? diaVencimento : undefined,
+        vencimentoDiaUtil: (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA" || (tipoOp === "EMPRESTIMO" && isRola)) ? vencimentoDiaUtil : undefined,
         semDataFim: (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") ? semDataFim : undefined,
       };
 
@@ -389,6 +391,34 @@ function NovoEmprestimoInner() {
                             </p>
                           </div>
                         </div>
+
+                        {mensalRolavel && periodo === "MENSAL" && (
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 mt-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-800">Dia de Vencimento Fixo</p>
+                                <p className="text-xs text-slate-500">Mudar o dia em que todas as parcelas vencem</p>
+                              </div>
+                              <input
+                                type="number"
+                                value={diaVencimento}
+                                onChange={(e) => setDiaVencimento(Number(e.target.value))}
+                                className="w-20 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                min={1}
+                                max={31}
+                              />
+                            </div>
+                            <label className="flex items-center gap-2 cursor-pointer mt-1">
+                              <input
+                                type="checkbox"
+                                checked={vencimentoDiaUtil}
+                                onChange={(e) => setVencimentoDiaUtil(e.target.checked)}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                              />
+                              <span className="text-sm font-medium text-slate-700">Considerar como Dia Útil (Ex: 5º dia útil)</span>
+                            </label>
+                          </div>
+                        )}
                       </div>
                     )}
 
