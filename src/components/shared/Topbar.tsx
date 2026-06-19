@@ -79,10 +79,10 @@ export function Topbar() {
         <Image
           src="/logo-zap-semfundo.png"
           alt="Zap Empréstimos"
-          width={200}
-          height={60}
+          width={250}
+          height={80}
           priority
-          className="h-10 w-auto object-contain"
+          className="h-12 w-auto object-contain scale-110 ml-2"
         />
       </Link>
       <div className="flex items-center gap-2">

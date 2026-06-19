@@ -58,15 +58,15 @@ export function Sidebar() {
       )}
     >
       {/* Logo + toggle */}
-      <div className="flex h-16 items-center border-b border-slate-100 px-3 gap-2 justify-between">
+      <div className="flex h-16 items-center border-b border-slate-100 px-3 gap-2 justify-between overflow-hidden">
         <Link href="/dashboard" className="flex items-center justify-center flex-1">
           <Image
             src="/logo-icon.png"
             alt="Zap"
-            width={64}
-            height={64}
+            width={128}
+            height={128}
             priority
-            className="h-12 w-12 object-contain shrink-0"
+            className="h-16 w-16 object-contain shrink-0 scale-150"
           />
         </Link>
         <button
