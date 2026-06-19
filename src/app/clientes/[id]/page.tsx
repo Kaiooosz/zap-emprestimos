@@ -58,12 +58,17 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/clientes"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-slate-400 hover:text-slate-700 transition-colors">
-          <ArrowLeft size={15} />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/clientes"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-slate-400 hover:text-slate-700 transition-colors">
+            <ArrowLeft size={15} />
+          </Link>
+          <h1 className="text-base font-semibold text-slate-900">Perfil do Cliente</h1>
+        </div>
+        <Link href={`/clientes/${id}/editar`} className="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
+          Editar Perfil
         </Link>
-        <h1 className="text-base font-semibold text-slate-900">Perfil do Cliente</h1>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
