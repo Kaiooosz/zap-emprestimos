@@ -237,6 +237,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const idTransferencia = `TXN-${id.slice(-8).toUpperCase()}-${hoje.toISOString().slice(0, 10).replace(/-/g, "")}`;
+    
+    try {
+      const formatoMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorPago);
+      const msgStatus = novoStatus === "PAGO" ? "pagou" : "pagou parcialmente";
+      await prisma.auditLog.create({
+        data: {
+          userNome: operadorNome,
+          acao: "PAGAMENTO_RECEBIDO",
+          detalhes: `O cliente ${parcela.emprestimo.cliente.nome} ${msgStatus} a parcela #${parcela.numero} no valor de ${formatoMoeda}.`,
+        }
+      });
+    } catch (err) {
+      console.error("Erro ao gerar audit log:", err);
+    }
+
     return NextResponse.json({
       ...updated,
       jurosAtraso,
