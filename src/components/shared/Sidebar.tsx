@@ -58,20 +58,20 @@ export function Sidebar() {
       )}
     >
       {/* Logo + toggle */}
-      <div className="flex h-16 items-center border-b border-slate-100 px-3 gap-2 justify-between overflow-hidden">
-        <Link href="/dashboard" className="flex items-center justify-center flex-1">
+      <div className="flex h-16 items-center border-b border-slate-100 justify-between overflow-hidden relative">
+        <Link href="/dashboard" className="flex items-center pl-1">
           <Image
             src="/logo-icon.png"
             alt="Zap"
             width={128}
             height={128}
             priority
-            className="h-16 w-16 object-contain shrink-0 scale-150"
+            className="h-16 w-16 object-contain shrink-0 scale-[1.7] origin-left ml-2"
           />
         </Link>
         <button
           onClick={toggle}
-          className="shrink-0 text-slate-400 hover:text-slate-700 transition-colors"
+          className="shrink-0 text-slate-400 hover:text-slate-700 transition-colors mr-4 z-10 relative"
           title={collapsed ? "Expandir menu" : "Recolher menu"}
         >
           {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
