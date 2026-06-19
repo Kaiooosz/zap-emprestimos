@@ -74,9 +74,16 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
+    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
       <Link href="/dashboard" className="flex items-center">
-        <span className="text-lg font-bold text-slate-900 tracking-tight">Zap Empréstimos</span>
+        <Image
+          src="/logo-zap-semfundo.png"
+          alt="Zap Empréstimos"
+          width={200}
+          height={60}
+          priority
+          className="h-10 w-auto object-contain"
+        />
       </Link>
       <div className="flex items-center gap-2">
         {/* Menu de Notificacoes Sino */}
