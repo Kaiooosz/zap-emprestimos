@@ -61,7 +61,7 @@ export function Sidebar() {
       <div className={cn("flex h-16 items-center border-b border-slate-100 overflow-hidden relative", collapsed ? "justify-center" : "justify-between")}>
         {collapsed ? (
           <button onClick={toggle} className="w-16 h-16 flex items-center justify-center hover:bg-slate-50 transition-colors" title="Expandir menu">
-            <Image src="/logo-icon.png" alt="Zap" width={64} height={64} priority className="h-10 w-10 object-contain" />
+            <Image src="/logo-icon.png" alt="Zap" width={128} height={128} priority className="h-16 w-16 object-contain shrink-0 scale-[1.7]" />
           </button>
         ) : (
           <>

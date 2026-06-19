@@ -75,14 +75,14 @@ export function Topbar() {
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
-      <Link href="/dashboard" className="flex items-center overflow-hidden w-[180px] h-12">
+      <Link href="/dashboard" className="flex items-center">
         <Image
-          src="/logo-zap-semfundo.png"
+          src="/logo-zap-text-only.png"
           alt="Zap Empréstimos"
-          width={250}
-          height={80}
+          width={180}
+          height={60}
           priority
-          className="h-12 w-auto max-w-none object-contain -ml-16 scale-[1.15] origin-right"
+          className="h-10 w-auto object-contain"
         />
       </Link>
       <div className="flex items-center gap-2">
