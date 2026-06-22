@@ -12,6 +12,7 @@ interface Evento {
   acao: string;
   detalhes: string;
   createdAt: string;
+  href?: string;
 }
 
 export function Topbar() {
