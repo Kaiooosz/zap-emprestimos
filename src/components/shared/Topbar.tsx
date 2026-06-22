@@ -120,22 +120,39 @@ export function Topbar() {
                   {eventos.length === 0 ? (
                     <p className="text-[11px] text-slate-400 text-center py-6">Sem atividades recentes no momento.</p>
                   ) : (
-                    eventos.map((ev) => (
-                      <div key={ev.id} className="text-[11px] pt-2 first:pt-0">
-                        <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className="font-bold text-slate-950 truncate max-w-[150px]">
-                            {ev.userNome || "Sistema"}
+                    eventos.map((ev) => {
+                      const content = (
+                        <>
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="font-bold text-slate-950 truncate max-w-[150px]">
+                              {ev.userNome || "Sistema"}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-medium whitespace-nowrap">
+                              {formatarTempo(ev.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-slate-700 leading-normal font-medium">{ev.detalhes}</p>
+                          <span className={`inline-block mt-1 text-[8px] uppercase tracking-wider font-bold px-1 rounded ${ev.href ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {ev.acao.replace(/_/g, " ")}
                           </span>
-                          <span className="text-[9px] text-slate-400 font-medium whitespace-nowrap">
-                            {formatarTempo(ev.createdAt)}
-                          </span>
+                        </>
+                      );
+
+                      return ev.href ? (
+                        <Link 
+                          key={ev.id} 
+                          href={ev.href}
+                          onClick={() => setDropdownOpen(false)}
+                          className="block text-[11px] pt-2 pb-2 first:pt-0 hover:bg-slate-50 transition-colors px-2 -mx-2 rounded-lg cursor-pointer"
+                        >
+                          {content}
+                        </Link>
+                      ) : (
+                        <div key={ev.id} className="text-[11px] pt-2 pb-2 first:pt-0 px-2 -mx-2">
+                          {content}
                         </div>
-                        <p className="text-slate-700 leading-normal font-medium">{ev.detalhes}</p>
-                        <span className="inline-block mt-1 text-[8px] uppercase tracking-wider font-bold bg-slate-100 text-slate-600 px-1 rounded">
-                          {ev.acao.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 

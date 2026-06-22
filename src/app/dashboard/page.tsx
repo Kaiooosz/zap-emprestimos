@@ -275,44 +275,66 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* KPIs — 4 cards */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {[
-          { label: "Na Rua",      value: formatarMoeda(data.capitalNaRua),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: trendNaRua,     up: !trendNaRua.startsWith("-") },
-          { label: "Recebido",    value: formatarMoeda(data.recebidoMes),   sub: "Este período",                          icon: Banknote,      trend: trendRecebido,   up: !trendRecebido.startsWith("-") },
-          { label: "Lucro Líquido", value: formatarMoeda(data.lucroLiquido), sub: `Bruto: ${formatarMoeda(data.lucroMes)} | Despesas: ${formatarMoeda(data.totalDespesas)}`, icon: TrendingUp, trend: trendLucro, up: !trendLucro.startsWith("-") },
-          { label: "Atrasadas",   value: String(data.parcelasAtrasadas),    sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? trendAtrasadas : null, up: trendAtrasadas.startsWith("-") },
-        ].map(({ label, value, sub, icon: Icon, trend, up }) => (
-          <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
-              <div className="h-6 w-6 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                <Icon size={11} className="text-slate-400" />
+          { label: "Na Rua",      value: formatarMoeda(data.capitalNaRua),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: trendNaRua,     up: !trendNaRua.startsWith("-"), href: "/emprestimos" },
+          { label: "Recebido",    value: formatarMoeda(data.recebidoMes),   sub: "Este período",                          icon: Banknote,      trend: trendRecebido,   up: !trendRecebido.startsWith("-"), href: "/relatorios" },
+          { label: "Lucro Líquido", value: formatarMoeda(data.lucroLiquido), sub: `Bruto: ${formatarMoeda(data.lucroMes)} | Despesas: ${formatarMoeda(data.totalDespesas)}`, icon: TrendingUp, trend: trendLucro, up: !trendLucro.startsWith("-"), href: "/relatorios" },
+          { label: "Atrasadas",   value: String(data.parcelasAtrasadas),    sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? trendAtrasadas : null, up: trendAtrasadas.startsWith("-"), href: "/cobrancas" },
+        ].map(({ label, value, sub, icon: Icon, trend, up, href }) => {
+          const content = (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+                <div className="h-6 w-6 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                  <Icon size={11} className="text-slate-400" />
+                </div>
               </div>
+              <p className="text-base sm:text-xl font-black text-slate-900 leading-none tabular-nums">{value}</p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-[10px] text-slate-400 leading-tight truncate">{sub}</p>
+                {trend && (
+                  <span className={`flex items-center gap-0.5 text-[10px] font-bold shrink-0 ${up ? "text-emerald-600" : "text-red-500"}`}>
+                    {up ? <ArrowUpRight size={9}/> : <ArrowDownRight size={9}/>}{trend}
+                  </span>
+                )}
+              </div>
+            </>
+          );
+          return href ? (
+            <Link key={label} href={href} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer block group">
+              {content}
+            </Link>
+          ) : (
+            <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              {content}
             </div>
-            <p className="text-base sm:text-xl font-black text-slate-900 leading-none tabular-nums">{value}</p>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-[10px] text-slate-400 leading-tight truncate">{sub}</p>
-              {trend && (
-                <span className={`flex items-center gap-0.5 text-[10px] font-bold shrink-0 ${up ? "text-emerald-600" : "text-red-500"}`}>
-                  {up ? <ArrowUpRight size={9}/> : <ArrowDownRight size={9}/>}{trend}
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Projecoes financeiras — 3 cards */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: "L. Previsto",  value: formatarMoeda(data.projecoes.lucroPrevisto),          sub: "Juros futuros" },
-          { label: "Em Risco",     value: formatarMoeda(data.projecoes.capitalEmRisco),          sub: "Inadimplentes" },
-          { label: "Ontem",        value: formatarMoeda(data.projecoes.recebidoOntem),           sub: `Med. ${formatarMoeda(data.projecoes.mediaRecebimentoDiario)}/d` },
-        ].map(({ label, value, sub }) => (
-          <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{label}</p>
-            <p className="text-sm sm:text-base font-black text-slate-900 tabular-nums">{value}</p>
-            <p className="text-[10px] text-slate-400 mt-1 truncate">{sub}</p>
-          </div>
-        ))}
+          { label: "L. Previsto",  value: formatarMoeda(data.projecoes.lucroPrevisto),          sub: "Juros futuros", href: "/relatorios" },
+          { label: "Em Risco",     value: formatarMoeda(data.projecoes.capitalEmRisco),          sub: "Inadimplentes", href: "/cobrancas" },
+          { label: "Ontem",        value: formatarMoeda(data.projecoes.recebidoOntem),           sub: `Med. ${formatarMoeda(data.projecoes.mediaRecebimentoDiario)}/d`, href: "/relatorios" },
+        ].map(({ label, value, sub, href }) => {
+          const content = (
+            <>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{label}</p>
+              <p className="text-sm sm:text-base font-black text-slate-900 tabular-nums">{value}</p>
+              <p className="text-[10px] text-slate-400 mt-1 truncate">{sub}</p>
+            </>
+          );
+          return href ? (
+            <Link key={label} href={href} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer block group">
+              {content}
+            </Link>
+          ) : (
+            <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              {content}
+            </div>
+          );
+        })}
       </div>
 
       {/* Linha 2 — 3+2 colunas */}
