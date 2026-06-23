@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, User, MessageCircle, Eye, AlertTriangle, Search } from "lucide-react";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
@@ -25,7 +26,17 @@ interface ClienteListado {
 }
 
 export function ClientesClient({ clientesInicial }: { clientesInicial: ClienteListado[] }) {
-  const [busca, setBusca] = useState("");
+  const searchParams = useSearchParams();
+  const buscaInicial = searchParams.get("busca") || "";
+  const [busca, setBusca] = useState(buscaInicial);
+
+  // Se a URL mudar, atualiza a busca (útil se o usuário usar o Topbar na mesma página)
+  useEffect(() => {
+    const q = searchParams.get("busca");
+    if (q !== null) {
+      setBusca(q);
+    }
+  }, [searchParams]);
 
   const clientesFiltrados = clientesInicial.filter((c) =>
     c.nome.toLowerCase().includes(busca.toLowerCase()) || 

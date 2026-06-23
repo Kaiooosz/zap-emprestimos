@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Plus, User, MessageCircle, Eye, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -89,7 +90,9 @@ export default async function ClientesPage() {
           </Link>
         </div>
       </div>
-      <ClientesClient clientesInicial={clientes} />
+      <Suspense fallback={<div className="py-10 text-center text-sm text-slate-400">Carregando lista de clientes...</div>}>
+        <ClientesClient clientesInicial={clientes} />
+      </Suspense>
     </div>
   );
 }

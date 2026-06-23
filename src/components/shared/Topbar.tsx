@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Bell, LogOut, X, User, Menu } from "lucide-react";
+import { Plus, Bell, LogOut, X, User, Menu, Search } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { allLinks } from "./Sidebar";
@@ -113,6 +113,20 @@ export function Topbar() {
           />
         </Link>
       </div>
+
+      {/* Barra de Pesquisa Global (Desktop) */}
+      <div className="flex flex-1 items-center justify-end px-4 md:px-8">
+        <form onSubmit={(e) => { 
+          e.preventDefault(); 
+          const v = (e.currentTarget.elements.namedItem('q') as HTMLInputElement).value; 
+          if (v) router.push(`/clientes?busca=${encodeURIComponent(v)}`); 
+        }} className="relative w-full max-w-md hidden md:block">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input name="q" type="text" placeholder="Pesquisar clientes no sistema..." 
+            className="w-full pl-9 pr-4 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all" />
+        </form>
+      </div>
+
       <div className="flex items-center gap-2">
         {/* Menu de Notificacoes Sino */}
         <div className="relative">
