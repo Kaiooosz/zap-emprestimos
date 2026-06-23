@@ -88,6 +88,11 @@ export function ClientesClient({ clientesInicial }: { clientesInicial: ClienteLi
                     {c.emprestimosAtivos} contrato{c.emprestimosAtivos !== 1 ? "s" : ""} ativo{c.emprestimosAtivos !== 1 ? "s" : ""}
                   </span>
                 )}
+                {c.proximaParcelaVenc && (
+                  <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
+                    Venc: {new Date(c.proximaParcelaVenc).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+                  </span>
+                )}
                 {c.temJurosDiario && (
                   <span className="text-[10px] text-blue-600 font-semibold">
                     +{c.taxaAtrasoDiario}%/dia
@@ -153,9 +158,14 @@ export function ClientesClient({ clientesInicial }: { clientesInicial: ClienteLi
                       )}
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="text-xs text-slate-700">
+                      <span className="text-xs text-slate-700 block">
                         {c.emprestimosAtivos}a / {c.totalEmprestimos}t
                       </span>
+                      {c.proximaParcelaVenc && (
+                        <span className="text-[10px] text-slate-400 mt-0.5 block">
+                          Venc: {new Date(c.proximaParcelaVenc).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3.5">
                       {c.statusFinanceiro === "INADIMPLENTE" ? (
