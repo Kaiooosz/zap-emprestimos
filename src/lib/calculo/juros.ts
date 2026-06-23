@@ -273,9 +273,9 @@ export function calcularJurosAtraso(
 
   const diasAtraso = Math.max(0, Math.floor((hoje.getTime() - venc.getTime()) / 86400000));
   const jurosAtraso = tipoTaxa === "VALOR"
-    ? arred(taxaDiariaPct * diasAtraso)
-    : arred(valorBase * (taxaDiariaPct / 100) * diasAtraso);
-  const valorAtualizado = arred(valorBase + jurosAtraso);
+    ? arred(Number(taxaDiariaPct) * Number(diasAtraso))
+    : arred(Number(valorBase) * (Number(taxaDiariaPct) / 100) * Number(diasAtraso));
+  const valorAtualizado = arred(Number(valorBase) + Number(jurosAtraso));
 
   return {
     diasAtraso,

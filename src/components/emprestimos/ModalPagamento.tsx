@@ -105,13 +105,13 @@ export function ModalPagamento({
     [parcela, dataInicioPeriodo, taxaJuros, podeAntecipar]
   );
 
-  const jurosCalculados = atraso && cobrarJuros ? atraso.valorAtualizado - parcela.valorDevido : 0;
+  const jurosCalculados = atraso && cobrarJuros ? Number(atraso.valorAtualizado) - Number(parcela.valorDevido) : 0;
   const valorQuitacao = Math.round(saldoDevedor * (1 - desconto / 100) * 100) / 100;
   const valorFinal =
-    modo === "SOMENTE_JUROS"  ? parcela.valorJuros :
-    modo === "ANTECIPADO"     ? (antecipado?.valorComDesconto ?? parcela.valorDevido) :
+    modo === "SOMENTE_JUROS"  ? Number(parcela.valorJuros) :
+    modo === "ANTECIPADO"     ? (antecipado?.valorComDesconto ?? Number(parcela.valorDevido)) :
     modo === "QUITACAO_TOTAL" ? valorQuitacao :
-    atraso                    ? (parcela.valorDevido + jurosCalculados) : parcela.valorDevido;
+    atraso                    ? (Number(parcela.valorDevido) + Number(jurosCalculados)) : Number(parcela.valorDevido);
 
   const [prevValorFinal, setPrevValorFinal] = useState(valorFinal);
   if (valorFinal !== prevValorFinal) {

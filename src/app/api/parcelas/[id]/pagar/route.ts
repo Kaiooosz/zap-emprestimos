@@ -111,6 +111,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       operador: operadorNome,
       formas: formasPagamento,
       modo,
+      valoresAnteriores: {
+        valorPrincipal: Number(parcela.valorPrincipal),
+        valorJuros: Number(parcela.valorJuros),
+        valorDevido: Number(parcela.valorDevido),
+        status: parcela.status,
+      }
     };
     const entradasAtualizadas = [...entradasAntigas, novaEntrada];
 
@@ -241,8 +247,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       formasPagamento,
       entradas: entradasAtualizadas,
     });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Erro ao registrar pagamento." }, { status: 500 });
+  } catch (e: any) {
+    console.error("Erro no pagamento da parcela:", e);
+    return NextResponse.json({ error: `Erro ao registrar pagamento: ${e?.message || String(e)}` }, { status: 500 });
   }
 }

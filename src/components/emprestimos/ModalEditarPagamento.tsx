@@ -98,6 +98,32 @@ export function ModalEditarPagamento({ parcela, onClose }: Props) {
     }
   }
 
+  async function handleDelete() {
+    if (!confirm("Tem certeza que deseja estornar (excluir) este pagamento? A parcela voltará a ficar em aberto e os saldos originais serão restaurados.")) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/parcelas/${parcela.id}/editar-pagamento`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro ao estornar pagamento");
+      }
+
+      router.refresh();
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Ocorreu um erro ao estornar o pagamento.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -206,14 +232,25 @@ export function ModalEditarPagamento({ parcela, onClose }: Props) {
             </span>
           </div>
 
-          <button
-            onClick={handleSave}
-            disabled={loading || diferenca > 0.01}
-            className="w-full flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors"
-          >
-            <Save size={16} />
-            {loading ? "Salvando..." : "Salvar Alterações"}
-          </button>
+          <div className="flex gap-2.5">
+            <button
+              onClick={handleDelete}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50 py-3 cursor-pointer"
+            >
+              <Trash2 size={13} />
+              Estornar
+            </button>
+
+            <button
+              onClick={handleSave}
+              disabled={loading || diferenca > 0.01}
+              className="flex-[2] flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors text-xs cursor-pointer"
+            >
+              <Save size={14} />
+              {loading ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
