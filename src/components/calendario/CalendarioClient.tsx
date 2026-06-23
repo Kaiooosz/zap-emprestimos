@@ -112,13 +112,13 @@ export function CalendarioClient({ parcelas, clientes, despesas = [] }: Props) {
   // Resumo do mês
   const resumo = useMemo(() => ({
     total:     parcelasMes.length,
-    pendente:  parcelasMes.filter(p => p.status === "PENDENTE").reduce((s, p) => s + p.valorDevido, 0),
-    atrasado:  parcelasMes.filter(p => p.status === "ATRASADO").reduce((s, p) => s + p.valorDevido, 0),
+    pendente:  parcelasMes.filter(p => p.status === "PENDENTE" || (p.status === "ATRASADO" && obterMeiaNoiteBR(p.dataVencimento).getTime() === hoje.getTime())).reduce((s, p) => s + p.valorDevido, 0),
+    atrasado:  parcelasMes.filter(p => p.status === "ATRASADO" && obterMeiaNoiteBR(p.dataVencimento) < hoje).reduce((s, p) => s + p.valorDevido, 0),
     pago:      parcelasMes.filter(p => p.status === "PAGO").reduce((s, p) => s + (p.valorDevido), 0),
     totalValor:parcelasMes.reduce((s, p) => s + p.valorDevido, 0),
     countPago: parcelasMes.filter(p => p.status === "PAGO").length,
-    countAtraso:parcelasMes.filter(p => p.status === "ATRASADO").length,
-  }), [parcelasMes]);
+    countAtraso:parcelasMes.filter(p => p.status === "ATRASADO" && obterMeiaNoiteBR(p.dataVencimento) < hoje).length,
+  }), [parcelasMes, hoje]);
 
   // Grid do calendário
   const primeiroDia = new Date(ano, mes, 1).getDay();
@@ -247,8 +247,8 @@ export function CalendarioClient({ parcelas, clientes, despesas = [] }: Props) {
               const isHoje = dia === hoje.getDate() && mes === hoje.getMonth() && ano === hoje.getFullYear();
               const isSel  = dia === diaSelecionado;
 
-              const temAtraso   = parcs.some(p => p.status === "ATRASADO");
-              const temPendente = parcs.some(p => p.status === "PENDENTE");
+              const temAtraso   = parcs.some(p => p.status === "ATRASADO" && obterMeiaNoiteBR(p.dataVencimento) < hoje);
+              const temPendente = parcs.some(p => p.status === "PENDENTE" || (p.status === "ATRASADO" && obterMeiaNoiteBR(p.dataVencimento).getTime() === hoje.getTime()));
               const temPago     = parcs.some(p => p.status === "PAGO");
               const temDespesa  = desps.length > 0;
 

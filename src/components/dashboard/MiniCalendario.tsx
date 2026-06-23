@@ -1,13 +1,14 @@
 "use client";
 
 import { Parcela } from "@/lib/store";
+import { obterMeiaNoiteBR } from "@/lib/utils";
 
 interface MiniCalendarioProps {
   parcelas: Parcela[];
 }
 
 export function MiniCalendario({ parcelas }: MiniCalendarioProps) {
-  const hoje = new Date();
+  const hoje = obterMeiaNoiteBR();
   const ano  = hoje.getFullYear();
   const mes  = hoje.getMonth();
 
@@ -18,10 +19,10 @@ export function MiniCalendario({ parcelas }: MiniCalendarioProps) {
   // Mapeia status por dia
   const statusPorDia: Record<number, string> = {};
   parcelas.forEach((p) => {
-    const d = new Date(p.dataVencimento);
+    const d = obterMeiaNoiteBR(p.dataVencimento);
     if (d.getFullYear() === ano && d.getMonth() === mes) {
       const dia = d.getDate();
-      if (!statusPorDia[dia] || p.status === "ATRASADO") {
+      if (!statusPorDia[dia] || p.status === "ATRASADO" || (statusPorDia[dia] === "PAGO" && p.status !== "PAGO")) {
         statusPorDia[dia] = p.status;
       }
     }
@@ -55,17 +56,18 @@ export function MiniCalendario({ parcelas }: MiniCalendarioProps) {
           let text = "text-slate-600";
           let dot = "";
 
-          if (isHoje) { bg = "bg-slate-900"; text = "text-white"; }
-          else if (status === "ATRASADO") dot = "bg-red-400";
+          if (status === "ATRASADO") dot = "bg-red-400";
           else if (status === "PENDENTE") dot = "bg-blue-400";
           else if (status === "PAGO")    dot = "bg-emerald-400";
+
+          if (isHoje) { bg = "bg-slate-900"; text = "text-white"; }
 
           return (
             <div key={dia}
               className={`relative flex h-7 w-full items-center justify-center rounded-lg text-xs font-medium transition-colors cursor-default ${bg} ${text}`}>
               {dia}
-              {dot && !isHoje && (
-                <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full ${dot}`} />
+              {dot && (
+                <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full ${isHoje ? "bg-white" : dot}`} />
               )}
             </div>
           );
