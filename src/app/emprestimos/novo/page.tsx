@@ -35,14 +35,26 @@ function calcJuros(p: number, taxa: number, n: number, mod: Modalidade, rola?: b
   return { totalJuros, total, parcela };
 }
 
-function gerarCalendario(n: number, inicio: string, intervalo: number, rola?: boolean) {
+function gerarCalendario(n: number, inicio: string, intervalo: number, rola?: boolean, diaVencimentoFixo?: number) {
   return Array.from({ length: n }, (_, i) => {
-    const d = new Date(inicio);
+    // Usar T12:00:00 para evitar shift de fuso horário
+    const d = new Date(inicio + "T12:00:00");
     if (rola || intervalo === 30) {
-      d.setMonth(d.getMonth() + (i + 1));
-      const day = new Date(inicio).getDate();
-      if (d.getDate() !== day) {
-        d.setDate(0);
+      d.setDate(1); // Evitar overflow
+      d.setMonth(new Date(inicio + "T12:00:00").getMonth() + (i + 1));
+      if (diaVencimentoFixo) {
+        const targetMonth = d.getMonth();
+        d.setDate(diaVencimentoFixo);
+        if (d.getMonth() !== targetMonth) {
+          d.setDate(0);
+        }
+      } else {
+        const targetMonth = d.getMonth();
+        const day = new Date(inicio + "T12:00:00").getDate();
+        d.setDate(day);
+        if (d.getMonth() !== targetMonth) {
+          d.setDate(0);
+        }
       }
     } else {
       d.setDate(d.getDate() + intervalo * (i + 1));
@@ -190,8 +202,8 @@ function NovoEmprestimoInner() {
   const calendario = useMemo(() => {
     const n = (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") ? 12 : nParcelas;
     const d = (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") ? 30 : dias;
-    return gerarCalendario(n, dataInicio, d, isRola);
-  }, [tipoOp, nParcelas, dataInicio, dias, isRola]);
+    return gerarCalendario(n, dataInicio, d, isRola, (periodo === "MENSAL" || tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") ? diaVencimento : undefined);
+  }, [tipoOp, nParcelas, dataInicio, dias, isRola, periodo, diaVencimento]);
 
   async function submit() {
     if (!clienteId) return alert("Selecione um cliente");
@@ -217,8 +229,8 @@ function NovoEmprestimoInner() {
         taxaRenovacao: tipoOp === "RENOVACAO" ? taxaRenovacao : undefined,
         custo: tipoOp === "VENDA" ? custo : undefined,
         descricaoProduto: tipoOp === "VENDA" ? descProduto : undefined,
-        diaVencimento: (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA" || (tipoOp === "EMPRESTIMO" && isRola)) ? diaVencimento : undefined,
-        vencimentoDiaUtil: (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA" || (tipoOp === "EMPRESTIMO" && isRola)) ? vencimentoDiaUtil : undefined,
+        diaVencimento: (periodo === "MENSAL" || tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") ? diaVencimento : undefined,
+        vencimentoDiaUtil: (periodo === "MENSAL" || tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") ? vencimentoDiaUtil : undefined,
         semDataFim: (tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") ? semDataFim : undefined,
       };
 
@@ -406,12 +418,12 @@ function NovoEmprestimoInner() {
                           </div>
                         </div>
 
-                        {mensalRolavel && periodo === "MENSAL" && (
+                        {periodo === "MENSAL" && (
                           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 mt-3">
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-sm font-semibold text-slate-800">Dia de Vencimento Fixo</p>
-                                <p className="text-xs text-slate-500">Mudar o dia em que todas as parcelas vencem</p>
+                                <p className="text-xs text-slate-500">Todo dia {diaVencimento} do mês</p>
                               </div>
                               <input
                                 type="number"
@@ -429,7 +441,7 @@ function NovoEmprestimoInner() {
                                 onChange={(e) => setVencimentoDiaUtil(e.target.checked)}
                                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                               />
-                              <span className="text-sm font-medium text-slate-700">Considerar como Dia Útil (Ex: 5º dia útil)</span>
+                              <span className="text-sm font-medium text-slate-700">Mover para dia útil (Ex: se cair no fds)</span>
                             </label>
                           </div>
                         )}

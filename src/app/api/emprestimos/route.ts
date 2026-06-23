@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         diaVencimento: diaVencimento ? Number(diaVencimento) : undefined,
         vencimentoDiaUtil: vencimentoDiaUtil ?? false
       },
-      new Date(dataInicio),
+      new Date(dataInicio + "T12:00:00"),
       intervalo
     );
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         totalJuros:         resultado.totalJuros,
         valorTotal:         resultado.valorTotal,
         numParcelas:        resultado.numParcelas,
-        dataInicio:         new Date(dataInicio),
+        dataInicio:         new Date(dataInicio + "T12:00:00"),
         dataVencimento:     new Date(dataVenc),
         observacoes:        observacoes   || null,
         temGarantia:        temGarantia   ?? false,

@@ -36,7 +36,9 @@ export interface ResultadoEmprestimo {
 function obterDataVencimento(dataInicio: Date, i: number, intervaloEmDias: number, params?: ParamsEmprestimo): Date {
   const venc = new Date(dataInicio);
   if (intervaloEmDias === 30) {
-    venc.setMonth(venc.getMonth() + (i + 1));
+    venc.setDate(1); // Evitar overflow
+    venc.setMonth(dataInicio.getMonth() + (i + 1));
+
     if (params?.vencimentoDiaUtil && params.diaVencimento) {
       venc.setDate(1);
       let count = 0;
@@ -56,8 +58,10 @@ function obterDataVencimento(dataInicio: Date, i: number, intervaloEmDias: numbe
         venc.setDate(0);
       }
     } else {
+      const targetMonth = venc.getMonth();
       const day = dataInicio.getDate();
-      if (venc.getDate() !== day) {
+      venc.setDate(day);
+      if (venc.getMonth() !== targetMonth) {
         venc.setDate(0);
       }
     }
