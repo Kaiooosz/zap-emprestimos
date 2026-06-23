@@ -6,6 +6,7 @@ import { MessageCircle, DollarSign, CheckCircle, Banknote, Smartphone } from "lu
 import { Parcela } from "@/lib/store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ModalPagamento } from "@/components/emprestimos/ModalPagamento";
+import { ModalEditarPagamento } from "@/components/emprestimos/ModalEditarPagamento";
 import { formatarMoeda, formatarData } from "@/lib/utils";
 
 interface Props {
@@ -43,6 +44,7 @@ export function DetalheEmprestimoClient({
   parcelas, saldoDevedor, clientePhone, clienteNome, taxaJuros, dataInicio, regraAtraso, taxaAtraso, tipoTaxaAtraso
 }: Props) {
   const [modalParcela, setModalParcela] = useState<Parcela | null>(null);
+  const [modalEditarParcela, setModalEditarParcela] = useState<Parcela | null>(null);
   const router = useRouter();
 
   function buildMsg(p: Parcela) {
@@ -158,6 +160,14 @@ export function DetalheEmprestimoClient({
                     )}
                   </div>
                 )}
+                {!pendente && (
+                  <div className="mt-4 flex justify-end">
+                    <button onClick={() => setModalEditarParcela(p)}
+                      className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 transition-all">
+                      Editar
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -236,6 +246,13 @@ export function DetalheEmprestimoClient({
                             <MessageCircle size={11}/>
                           </a>
                         )}
+                        {!pendente && (
+                          <button onClick={() => setModalEditarParcela(p)}
+                            title="Editar pagamento"
+                            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-bold text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 transition-all whitespace-nowrap">
+                            Editar
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -245,6 +262,13 @@ export function DetalheEmprestimoClient({
           </table>
         </div>
       </div>
+
+      {modalEditarParcela && (
+        <ModalEditarPagamento
+          parcela={modalEditarParcela}
+          onClose={() => setModalEditarParcela(null)}
+        />
+      )}
     </>
   );
 }
