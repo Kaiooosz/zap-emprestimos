@@ -17,7 +17,7 @@ const STEPS: Step[] = [
   },
   {
     title: "Dashboard e Indicadores Principais",
-    description: "No painel geral você acompanha métricas cruciais em tempo real. 'Na Rua' exibe o capital total ativo emprestado. 'Recebido' e 'Lucro' mostram o faturamento e os juros coletados de acordo com o período selecionado.",
+    description: "No painel geral você acompanha métricas cruciais em tempo real. 'Capital Investido' exibe o capital total ativo emprestado. 'Recebido' e 'Lucro' mostram o faturamento e os juros coletados de acordo com o período selecionado.",
   },
   {
     title: "Duas Modalidades Financeiras",

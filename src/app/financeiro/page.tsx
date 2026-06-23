@@ -61,8 +61,8 @@ export default async function FinanceiroPage() {
       </div>
 
       {/* Tabela */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
+        <table className="w-full text-sm min-w-[600px]">
           <thead>
             <tr className="border-b border-slate-200">
               {["Descricao", "Categoria", "Valor", "Vencimento", "Status", "Acao"].map((h) => (

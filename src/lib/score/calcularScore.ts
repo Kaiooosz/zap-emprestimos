@@ -85,11 +85,12 @@ export function calcularScoreCompleto(
   const parcelasAtrasadas = parcelas.filter((p) => p.status === "ATRASADO");
   for (const p of parcelasAtrasadas) {
     const venc = new Date(p.dataVencimento);
-    const hoje = new Date();
-    const diffDias = Math.floor((hoje.getTime() - venc.getTime()) / 86400000);
+    const agora = new Date();
+    const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    const diffDias = Math.floor((inicioHoje.getTime() - venc.getTime()) / 86400000);
     const pontos = diffDias > 30 ? PONTOS.ATRASO_GRAVE : diffDias > 7 ? PONTOS.ATRASO_MODERADO : PONTOS.ATRASO_LEVE;
     score += pontos;
-    eventos.push({ tipo: "ATRASADO", pontos, descricao: `Parcela ${p.numero} em atraso há ${diffDias} dias`, data: hoje.toISOString() });
+    eventos.push({ tipo: "ATRASADO", pontos, descricao: `Parcela ${p.numero} em atraso há ${diffDias} dias`, data: agora.toISOString() });
   }
 
   // Bonus: empréstimos quitados

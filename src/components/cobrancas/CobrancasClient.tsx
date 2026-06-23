@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { 
   MessageSquare, Send, CheckSquare, Square, AlertTriangle, 
   Clock, Wifi, WifiOff, Bell, Save, Loader2, ArrowLeft,
-  ChevronLeft, ChevronRight, FileText, CheckCircle, X, Plus
+  ChevronLeft, ChevronRight, FileText, CheckCircle, X, Plus, Search
 } from "lucide-react";
 import Link from "next/link";
 import { TemplateMsg } from "@/lib/store";
@@ -140,6 +140,8 @@ export function CobrancasClient({
 
   // --- Estados Aba Disparos ---
   const [filtro, setFiltro] = useState<"todos" | "atrasado" | "pendente">("todos");
+  const [buscaNome, setBuscaNome] = useState("");
+  const [diaVencimento, setDiaVencimento] = useState("");
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   
   // Filtramos apenas os templates ativos para os disparos
@@ -254,8 +256,20 @@ export function CobrancasClient({
   }
 
   const lista = useMemo(() =>
-    pendentes.filter((p) => filtro === "todos" || p.status === filtro.toUpperCase()),
-    [pendentes, filtro]
+    pendentes.filter((p) => {
+      const pData = new Date(p.dataVencimento);
+      const matchFiltro = filtro === "todos" 
+        ? true 
+        : filtro === "atrasado" 
+          ? p.status === "ATRASADO" 
+          : p.status === "PENDENTE";
+
+      const matchNome = p.clienteNome.toLowerCase().includes(buscaNome.toLowerCase());
+      const matchDia = diaVencimento ? pData.getDate().toString() === diaVencimento : true;
+
+      return matchFiltro && matchNome && matchDia;
+    }),
+    [pendentes, filtro, buscaNome, diaVencimento]
   );
 
   const template = templatesAtivos.find((t) => t.id === templateId);
@@ -514,6 +528,27 @@ export function CobrancasClient({
                 </div>
                 
                 <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por nome..."
+                      value={buscaNome}
+                      onChange={(e) => setBuscaNome(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-slate-400 w-36"
+                    />
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="Dia venc."
+                    value={diaVencimento}
+                    onChange={(e) => setDiaVencimento(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs focus:outline-none focus:border-slate-400 w-24"
+                    title="Filtrar por dia de vencimento"
+                  />
+
                   <select
                     value={templateId}
                     onChange={(e) => setTemplateId(e.target.value)}

@@ -239,6 +239,39 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     periodo === "semana" || periodo === "hoje" ? "Últimos 7 dias" :
     periodo === "ano" ? "Meses do ano" : "Últimos 6 meses";
 
+  // Novas métricas de Projeção
+  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const inicioAmanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  const fimMesAtual = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
+  const fimTrimestre = new Date(hoje.getFullYear(), hoje.getMonth() + 3, 0, 23, 59, 59);
+  const fimSemestre = new Date(hoje.getFullYear(), hoje.getMonth() + 6, 0, 23, 59, 59);
+  const fimAno = new Date(hoje.getFullYear() + 1, hoje.getMonth(), 0, 23, 59, 59);
+
+  const parcelasAbertas = parcelasRaw.filter((p) => ["PENDENTE", "PARCIAL", "ATRASADO"].includes(p.status));
+  
+  const jurosAReceber = {
+    mensal: parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimMesAtual).reduce((s, p) => s + toN(p.valorJuros), 0),
+    trimestral: parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimTrimestre).reduce((s, p) => s + toN(p.valorJuros), 0),
+    semestral: parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimSemestre).reduce((s, p) => s + toN(p.valorJuros), 0),
+    anual: parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimAno).reduce((s, p) => s + toN(p.valorJuros), 0)
+  };
+
+  const capitalAReceberMensal = parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimMesAtual).reduce((s, p) => s + toN(p.valorPrincipal), 0);
+
+  const parcelasVenceHoje = parcelasAbertas.filter((p) => {
+    const v = new Date(p.dataVencimento);
+    return v >= inicioHoje && v < inicioAmanha;
+  });
+
+  const capitalAReceberTotal = parcelasAbertas.reduce((s, p) => s + toN(p.valorPrincipal), 0);
+  const capitalRecuperado = parcelasRaw
+    .filter((p) => p.status === "PAGO")
+    .reduce((s, p) => s + toN(p.valorPrincipal), 0);
+
+  const faturamentoTotal = parcelasRaw
+    .filter((p) => p.status === "PAGO")
+    .reduce((s, p) => s + toN(p.valorPago), 0);
+
   const data = {
     capitalNaRua,
     recebidoMes: recebidoPeriodo,
@@ -254,6 +287,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       capitalEmRisco:         carteira.atrasado,
       recebidoOntem,
       mediaRecebimentoDiario: recebidoPeriodo / Math.max(1, hoje.getDate()),
+      jurosAReceber,
+      capitalAReceberTotal,
+      capitalAReceberMensal,
+      capitalRecuperado,
+      venceHoje: {
+        count: parcelasVenceHoje.length,
+        valor: parcelasVenceHoje.reduce((s, p) => s + toN(p.valorDevido), 0),
+      },
+      capitalInvestidoVsRetorno: {
+        investido: capitalNaRua,
+        retorno: faturamentoTotal,
+      }
     },
   };
 
@@ -275,10 +320,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* KPIs — 4 cards */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {[
-          { label: "Na Rua",      value: formatarMoeda(data.capitalNaRua),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: trendNaRua,     up: !trendNaRua.startsWith("-"), href: "/emprestimos" },
+          { label: "Capital Investido", value: formatarMoeda(data.capitalNaRua),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: trendNaRua,     up: !trendNaRua.startsWith("-"), href: "/emprestimos" },
           { label: "Recebido",    value: formatarMoeda(data.recebidoMes),   sub: "Este período",                          icon: Banknote,      trend: trendRecebido,   up: !trendRecebido.startsWith("-"), href: "/relatorios" },
           { label: "Lucro Líquido", value: formatarMoeda(data.lucroLiquido), sub: `Bruto: ${formatarMoeda(data.lucroMes)} | Despesas: ${formatarMoeda(data.totalDespesas)}`, icon: TrendingUp, trend: trendLucro, up: !trendLucro.startsWith("-"), href: "/relatorios" },
-          { label: "Atrasadas",   value: String(data.parcelasAtrasadas),    sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? trendAtrasadas : null, up: trendAtrasadas.startsWith("-"), href: "/cobrancas" },
+          { label: "Inadimplência",   value: String(data.parcelasAtrasadas),    sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? trendAtrasadas : null, up: trendAtrasadas.startsWith("-"), href: "/cobrancas" },
         ].map(({ label, value, sub, icon: Icon, trend, up, href }) => {
           const content = (
             <>
@@ -300,23 +345,28 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </>
           );
           return href ? (
-            <Link key={label} href={href} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer block group">
+            <Link key={label} href={href} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer block group relative">
+              <div className="absolute top-3 right-3 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0">
+                <ArrowUpRight size={14} />
+              </div>
               {content}
             </Link>
           ) : (
-            <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative">
               {content}
             </div>
           );
         })}
       </div>
 
-      {/* Projecoes financeiras — 3 cards */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Novas Métricas */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-4">
         {[
-          { label: "L. Previsto",  value: formatarMoeda(data.projecoes.lucroPrevisto),          sub: "Juros futuros", href: "/relatorios" },
-          { label: "Em Risco",     value: formatarMoeda(data.projecoes.capitalEmRisco),          sub: "Inadimplentes", href: "/cobrancas" },
-          { label: "Ontem",        value: formatarMoeda(data.projecoes.recebidoOntem),           sub: `Med. ${formatarMoeda(data.projecoes.mediaRecebimentoDiario)}/d`, href: "/relatorios" },
+          { label: "Vence Hoje",          value: `${data.projecoes.venceHoje.count} parc.`,         sub: formatarMoeda(data.projecoes.venceHoje.valor), href: "/cobrancas" },
+          { label: "Capital a Receber (Mês)", value: formatarMoeda(data.projecoes.capitalAReceberMensal), sub: "Retorno do principal neste mês", href: "/relatorios" },
+          { label: "Capital a Receber (Total)", value: formatarMoeda(data.projecoes.capitalAReceberTotal), sub: "Total pendente do principal", href: "/relatorios" },
+          { label: "Capital Recuperado (Já voltou)",   value: formatarMoeda(data.projecoes.capitalRecuperado),    sub: "Total retornado do principal", href: "/relatorios" },
+          { label: "Retorno de Faturamento", value: formatarMoeda(data.projecoes.capitalInvestidoVsRetorno.retorno), sub: `vs ${formatarMoeda(data.projecoes.capitalInvestidoVsRetorno.investido)} invest.`, href: "/relatorios" },
         ].map(({ label, value, sub, href }) => {
           const content = (
             <>
@@ -326,15 +376,41 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </>
           );
           return href ? (
-            <Link key={label} href={href} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer block group">
+            <Link key={label} href={href} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer block group relative">
+              <div className="absolute top-3 right-3 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0">
+                <ArrowUpRight size={14} />
+              </div>
               {content}
             </Link>
           ) : (
-            <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative">
               {content}
             </div>
           );
         })}
+      </div>
+
+      {/* Juros a Receber Detalhado */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm mb-4">
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Juros a Receber (Projeção)</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <p className="text-[10px] text-slate-400 mb-0.5">Mensal</p>
+            <p className="text-base font-black text-slate-900 tabular-nums">{formatarMoeda(data.projecoes.jurosAReceber.mensal)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 mb-0.5">Trimestral</p>
+            <p className="text-base font-black text-slate-900 tabular-nums">{formatarMoeda(data.projecoes.jurosAReceber.trimestral)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 mb-0.5">Semestral</p>
+            <p className="text-base font-black text-slate-900 tabular-nums">{formatarMoeda(data.projecoes.jurosAReceber.semestral)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 mb-0.5">Anual</p>
+            <p className="text-base font-black text-emerald-600 tabular-nums">{formatarMoeda(data.projecoes.jurosAReceber.anual)}</p>
+          </div>
+        </div>
       </div>
 
       {/* Linha 2 — 3+2 colunas */}

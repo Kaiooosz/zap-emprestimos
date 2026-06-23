@@ -3,8 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Bell, LogOut, X, User } from "lucide-react";
+import { Plus, Bell, LogOut, X, User, Menu } from "lucide-react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { allLinks } from "./Sidebar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Evento {
   id: string;
@@ -20,6 +25,20 @@ export function Topbar() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [temNovidades, setTemNovidades] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const [role, setRole] = useState<string>("OPERADOR");
+
+  const hoje = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
+
+  useEffect(() => {
+    fetch("/api/perfil")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.role) setRole(data.role);
+      })
+      .catch(() => {});
+  }, []);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -75,17 +94,25 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
-      <Link href="/dashboard" className="flex items-center">
-        <Image
-          src="/logo-zap-text-only.png"
-          alt="Zap Empréstimos"
-          width={180}
-          height={60}
-          priority
-          className="h-10 w-auto object-contain"
-        />
-      </Link>
+    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6 relative z-50">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+        >
+          <Menu size={20} />
+        </button>
+        <Link href="/dashboard" className="flex items-center">
+          <Image
+            src="/logo-zap-text-only.png"
+            alt="Zap Empréstimos"
+            width={180}
+            height={60}
+            priority
+            className="h-9 w-auto object-contain"
+          />
+        </Link>
+      </div>
       <div className="flex items-center gap-2">
         {/* Menu de Notificacoes Sino */}
         <div className="relative">
@@ -205,6 +232,62 @@ export function Topbar() {
           <LogOut size={15} />
         </button>
       </div>
+
+      {/* Drawer Mobile */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[100] flex">
+          {/* Overlay */}
+          <div 
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          
+          {/* Drawer Content */}
+          <div className="relative w-4/5 max-w-sm bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-left duration-200">
+            <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100">
+              <Image src="/logo-zap-text-only.png" alt="Zap" width={120} height={40} className="h-8 w-auto object-contain" />
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <nav className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">
+              <p className="px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Menu Completo</p>
+              {allLinks.map(({ href, label, icon: Icon, adminOnly }) => {
+                if (adminOnly && role !== "ADMIN") return null;
+                const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
+                      active
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    )}
+                  >
+                    <Icon size={18} strokeWidth={active ? 2.5 : 2} className={active ? "text-blue-600" : "text-slate-400"} />
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="p-4 border-t border-slate-100">
+              <button
+                onClick={logout}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut size={18} strokeWidth={2} className="text-red-500" />
+                Sair do sistema
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

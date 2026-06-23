@@ -295,8 +295,8 @@ export default function ImportarPlanilhaPage() {
               </div>
 
               {/* Tabela de Preview */}
-              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm max-h-96 overflow-y-auto">
-                <table className="w-full text-[11px] text-left text-slate-700">
+              <div className="rounded-xl border border-slate-200 bg-white overflow-x-auto overflow-y-auto shadow-sm max-h-96">
+                <table className="w-full text-[11px] text-left text-slate-700 min-w-[600px]">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold sticky top-0 bg-white">
                     <tr>
                       {Object.keys(parsedData[0] || {}).map((col) => (

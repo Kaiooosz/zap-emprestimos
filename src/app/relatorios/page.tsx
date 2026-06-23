@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function RelatoriosPage() {
   const hoje = new Date();
+  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
   const mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const em7dias = new Date(hoje.getTime() + 7 * 86_400_000);
 
@@ -142,7 +143,7 @@ export default async function RelatoriosPage() {
     
     parcelasAtivas.forEach((p) => {
       const venc = new Date(p.dataVencimento);
-      const isAtrasada = p.status === "ATRASADO" || (["PENDENTE", "PARCIAL"].includes(p.status) && venc < hoje);
+      const isAtrasada = p.status === "ATRASADO" || (["PENDENTE", "PARCIAL"].includes(p.status) && venc < inicioHoje);
       if (isAtrasada) {
         temAtrasada = true;
         totalAtrasado += Number(p.valorDevido);
@@ -194,7 +195,7 @@ export default async function RelatoriosPage() {
       <div>
         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Métricas Gerais Consolidadas</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <KPI label="Capital na Rua"     value={formatarMoeda(capitalNaRua)}   icon={DollarSign}  accent />
+          <KPI label="Capital Investido"     value={formatarMoeda(capitalNaRua)}   icon={DollarSign}  accent />
           <KPI label="Recebido no Mês"    value={formatarMoeda(recebidoMes)}    icon={CheckCircle2} />
           <KPI label="Despesas no Mês"    value={formatarMoeda(despesasMes)}    icon={AlertCircle} negative />
           <KPI label="Lucro Líquido"      value={formatarMoeda(lucroLiquidoMes)} icon={TrendingUp} positive={lucroLiquidoMes > 0} negative={lucroLiquidoMes < 0} />
@@ -261,7 +262,7 @@ export default async function RelatoriosPage() {
               <p className="text-[10px] text-slate-500 mt-0.5">Retorno sobre o capital total alocado em contratos parcelados</p>
             </div>
             <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex justify-between text-[10px] text-slate-500">
-              <span>Principal na Rua: <strong className="text-slate-900 font-semibold">{formatarMoeda(capitalPendenteP)}</strong></span>
+              <span>Principal Investido: <strong className="text-slate-900 font-semibold">{formatarMoeda(capitalPendenteP)}</strong></span>
               <span>Lucro Estimado: <strong className="text-emerald-600 font-semibold">{formatarMoeda(lucroPendenteP)}</strong></span>
             </div>
           </div>

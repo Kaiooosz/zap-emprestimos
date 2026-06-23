@@ -5,10 +5,11 @@ export const dynamic = "force-dynamic";
 
 export default async function CalendarioPage() {
   const hoje = new Date();
+  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
 
   // Marca atrasadas
   await prisma.parcela.updateMany({
-    where: { status: "PENDENTE", dataVencimento: { lt: hoje } },
+    where: { status: "PENDENTE", dataVencimento: { lt: inicioHoje } },
     data:  { status: "ATRASADO" },
   });
 

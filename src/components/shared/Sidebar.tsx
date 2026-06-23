@@ -10,7 +10,7 @@ import { PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const allLinks = [
+export const allLinks = [
   { href: "/dashboard",     label: "Dashboard",   icon: LayoutDashboard },
   { href: "/emprestimos",   label: "Contratos",   icon: HandCoins },
   { href: "/clientes",      label: "Clientes",    icon: Users },

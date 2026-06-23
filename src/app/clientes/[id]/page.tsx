@@ -334,25 +334,50 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
               <div className="divide-y divide-slate-50">
                 {emprestimos.map((e) => {
                   const pagas = store.parcelas.list(e.id).filter((p) => p.status === "PAGO").length;
+                  const valorPago = store.parcelas.list(e.id).filter((p) => p.status === "PAGO").reduce((s, p) => s + p.valorDevido, 0);
+                  const saldoContrato = store.parcelas.list(e.id).filter((p) => ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status)).reduce((s, p) => s + p.valorDevido, 0);
                   const pct   = e.numParcelas > 0 ? (pagas / e.numParcelas) * 100 : 0;
                   return (
                     <Link key={e.id} href={`/emprestimos/${e.id}`}
-                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                      className="flex items-start gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
+                        <div className="flex items-center gap-2 mb-2">
                           <StatusBadge status={e.status}/>
-                          <span className="text-xs text-slate-400">{formatarData(e.dataInicio)}</span>
+                          <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-full">{formatarData(e.dataInicio)}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mb-2">
                           <span className="text-sm font-bold text-slate-900">{formatarMoeda(e.valorTotal)}</span>
-                          <span className="text-xs text-slate-400">{e.taxaJuros}% · {e.numParcelas}x</span>
+                          <span className="text-xs text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">{e.taxaJuros}% · {e.numParcelas}x</span>
+                        </div>
+                        <div className="flex items-center gap-4 flex-wrap mt-2">
+                          <div>
+                            <p className="text-[10px] text-slate-400">Capital Emprestado</p>
+                            <p className="text-xs font-semibold text-slate-700">{formatarMoeda(e.valorPrincipal)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-400">Total de Juros</p>
+                            <p className="text-xs font-semibold text-slate-700">{formatarMoeda(e.totalJuros)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-400">Já Recebido</p>
+                            <p className="text-xs font-semibold text-emerald-600">{formatarMoeda(valorPago)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-400">Saldo Devedor</p>
+                            <p className="text-xs font-semibold text-red-600">{formatarMoeda(saldoContrato)}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0 w-20">
+                      <div className="text-right shrink-0 w-24">
                         <p className="text-xs text-slate-500 mb-1">{pagas}/{e.numParcelas} pagas</p>
-                        <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden">
-                          <div className="h-full rounded-full bg-slate-400 transition-all" style={{ width: `${pct}%` }}/>
+                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mb-1">
+                          <div className="h-full rounded-full bg-slate-800 transition-all" style={{ width: `${pct}%` }}/>
                         </div>
+                        {e.status === "CONCLUIDO" && (
+                          <p className="text-[10px] font-bold text-emerald-500 mt-2 flex items-center justify-end gap-1">
+                            <CheckCircle size={10} /> Concluído
+                          </p>
+                        )}
                       </div>
                     </Link>
                   );

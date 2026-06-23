@@ -222,39 +222,48 @@ export function ModalPagamento({
     const formasFinal = meios.filter(m => Number(m.valor) > 0);
 
     const whatsMsg = () => {
-      const dataRef = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-      let msg = `Olá, ${clienteNome}.\n\n`;
-      msg += `✅ *Confirmamos o recebimento do seu pagamento!*\n`;
-      msg += `Valor: *${formatarMoeda(valorPagoFinal)}*\n`;
-      msg += `Data: ${dataRef}\n\n`;
+      const dataFormatada = (retornoAPI?.dataPagamento ? new Date(retornoAPI.dataPagamento) : new Date()).toLocaleString('pt-BR');
+      
+      let msg = `📄 *RECIBO DIGITAL DE PAGAMENTO* 📄\n`;
+      msg += `===============================\n\n`;
+      msg += `Olá, *${clienteNome}*!\n`;
+      msg += `Confirmamos o recebimento do seu pagamento.\n\n`;
+      msg += `🔹 *Detalhes da Operação*\n`;
+      msg += `*Data/Hora:* ${dataFormatada}\n`;
+      msg += `*Contrato ID:* ${parcela.emprestimoId.slice(0,8).toUpperCase()}\n`;
+      msg += `*Parcela:* Nº ${parcela.numero}\n`;
+      msg += `*Valor Recebido:* ${formatarMoeda(valorPagoFinal)}\n\n`;
 
-      if (formasFinal.length > 0) {
-        msg += `*Forma(s) de Pagamento:*\n`;
-        for (const f of formasFinal) {
-          const label = MEIOS_CONFIG[f.tipo]?.label ?? f.tipo;
-          msg += `- ${label}${f.descricao ? ` (${f.descricao})` : ""}: ${formatarMoeda(Number(f.valor))}\n`;
+      if (detalhado) {
+        msg += `📊 *Composição do Valor*\n`;
+        msg += `Capital: ${formatarMoeda(Number(vPrincipalPago))}\n`;
+        msg += `Juros: ${formatarMoeda(Number(vJurosPago))}\n`;
+        if (Number(vJurosAtrasoPago) > 0) {
+          msg += `Atraso: ${formatarMoeda(Number(vJurosAtrasoPago))}\n`;
+        }
+        msg += `\n`;
+      } else {
+        msg += `📊 *Status da Parcela*\n`;
+        if (isParcial) {
+          msg += `Situação: Pagamento Parcial (${destinoAbatimento === "PRINCIPAL" ? "Abatimento no Capital" : "Abatimento nos Juros"})\n`;
+          msg += `Saldo Restante: *${formatarMoeda(saldoRestante)}*\n`;
+        } else {
+          msg += `Situação: *Quitada* ✅\n`;
         }
         msg += `\n`;
       }
 
-      msg += `*Parcela:* ${parcela.numero}\n`;
-      if (detalhado) {
-        msg += `- Capital: ${formatarMoeda(Number(vPrincipalPago))}\n`;
-        msg += `- Juros: ${formatarMoeda(Number(vJurosPago))}\n`;
-        if (Number(vJurosAtrasoPago) > 0) msg += `- Juros Atraso: ${formatarMoeda(Number(vJurosAtrasoPago))}\n`;
-        msg += saldoRestante > 0 ? `- Saldo Restante: *${formatarMoeda(saldoRestante)}*\n` : `- Status: *Parcela Quitada* ✓\n`;
-      } else {
-        if (jurosCalculados > 0) msg += `- Juros de Atraso: ${formatarMoeda(jurosCalculados)}\n`;
-        if (isParcial) {
-          msg += `- Tipo: Pagamento Parcial\n`;
-          msg += `- Saldo Restante: *${formatarMoeda(saldoRestante)}*\n`;
-        } else {
-          msg += `- Status: *Parcela Quitada* ✓\n`;
-        }
-      }
-      msg += `\n*ID de Transferência:* \`${idTransferencia}\``;
-      msg += `\n*Confirmado por:* Equipe Zap Empréstimos`;
-      msg += `\n\nQualquer dúvida, estamos à disposição.`;
+      msg += `💳 *Meio(s) de Pagamento*\n`;
+      formasFinal.forEach(f => {
+         const cfg = MEIOS_CONFIG[f.tipo];
+         msg += `${cfg.label}${f.descricao ? ' ('+f.descricao+')' : ''}: ${formatarMoeda(Number(f.valor))}\n`;
+      });
+      msg += `\n`;
+
+      msg += `===============================\n`;
+      msg += `*ID da Transação:* \`${idTransferencia}\`\n`;
+      msg += `*Operador:* ${operadorNome || 'Equipe'}\n\n`;
+      msg += `A equipe Zap Empréstimos agradece a sua preferência! Qualquer dúvida, estamos à disposição.`;
       return msg;
     };
 
@@ -547,15 +556,15 @@ export function ModalPagamento({
             <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4 shadow-sm">
               <p className="text-xs font-bold text-slate-700 border-b border-slate-100 pb-2">Valores Individuais Recebidos</p>
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Principal (Capital) Pago (Max: {formatarMoeda(parcela.valorPrincipal)})</label>
-                <input type="number" step="0.01" min="0" max={Number(parcela.valorPrincipal)}
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Principal (Capital) Pago</label>
+                <input type="number" step="0.01" min="0"
                   value={vPrincipalPago} onChange={(e) => setVPrincipalPago(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors font-bold"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Juros da Parcela Pago (Max: {formatarMoeda(parcela.valorJuros)})</label>
-                <input type="number" step="0.01" min="0" max={Number(parcela.valorJuros)}
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Juros da Parcela Pago</label>
+                <input type="number" step="0.01" min="0"
                   value={vJurosPago} onChange={(e) => setVJurosPago(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors font-bold"
                 />
