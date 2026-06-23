@@ -79,7 +79,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   };
   const totalCarteira = carteira.ativo + carteira.atrasado + carteira.parcial;
 
-  const capitalNaRua = emps.filter((e) => e.status === "ATIVO")
+  const capital = emps.filter((e) => e.status === "ATIVO")
     .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status)))
     .reduce((s, p) => s + toN(p.valorDevido), 0);
 
@@ -138,7 +138,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const dataInicioAnterior = new Date(dataInicioFiltro.getTime() - diffTime - 1000);
   const dataFimAnterior = new Date(dataFimFiltro.getTime() - diffTime - 1000);
 
-  const capitalNaRuaAnterior = empsRaw
+  const capitalAnterior = empsRaw
     .filter((e) => e.status === "ATIVO")
     .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && new Date(p.dataVencimento) <= dataFimAnterior))
     .reduce((s, p) => s + toN(p.valorDevido), 0);
@@ -170,7 +170,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     return `${sinal}${Math.round(diff)}%`;
   };
 
-  const trendNaRua = calcularCrescimento(capitalNaRua, capitalNaRuaAnterior);
+  const trendCapital = calcularCrescimento(capital, capitalAnterior);
   const trendRecebido = calcularCrescimento(recebidoPeriodo, recebidoPeriodoAnterior);
   const trendLucro = calcularCrescimento(lucroLiquido, lucroLiquidoAnterior);
   const trendAtrasadas = calcularCrescimento(parcelasAtrasadas.length, parcelasAtrasadasAnterior);
@@ -273,7 +273,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .reduce((s, p) => s + toN(p.valorPago), 0);
 
   const data = {
-    capitalNaRua,
+    capital,
     recebidoMes: recebidoPeriodo,
     lucroMes: lucroPeriodo,
     lucroLiquido,
@@ -296,7 +296,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         valor: parcelasVenceHoje.reduce((s, p) => s + toN(p.valorDevido), 0),
       },
       capitalInvestidoVsRetorno: {
-        investido: capitalNaRua,
+        investido: capital,
         retorno: faturamentoTotal,
       }
     },
@@ -320,7 +320,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* KPIs — 4 cards */}
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {[
-          { label: "Capital Investido", value: formatarMoeda(data.capitalNaRua),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: trendNaRua,     up: !trendNaRua.startsWith("-"), href: "/emprestimos" },
+          { label: "Capital", value: formatarMoeda(data.capital),   sub: `${data.totalClientesAtivos} ativos`,   icon: DollarSign,    trend: trendCapital,     up: !trendCapital.startsWith("-"), href: "/emprestimos" },
           { label: "Recebido",    value: formatarMoeda(data.recebidoMes),   sub: "Este período",                          icon: Banknote,      trend: trendRecebido,   up: !trendRecebido.startsWith("-"), href: "/relatorios" },
           { label: "Lucro Líquido", value: formatarMoeda(data.lucroLiquido), sub: `Bruto: ${formatarMoeda(data.lucroMes)} | Despesas: ${formatarMoeda(data.totalDespesas)}`, icon: TrendingUp, trend: trendLucro, up: !trendLucro.startsWith("-"), href: "/relatorios" },
           { label: "Inadimplência",   value: String(data.parcelasAtrasadas),    sub: formatarMoeda(carteira.atrasado),        icon: AlertTriangle, trend: data.parcelasAtrasadas > 0 ? trendAtrasadas : null, up: trendAtrasadas.startsWith("-"), href: "/cobrancas" },

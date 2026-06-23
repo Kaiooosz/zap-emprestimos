@@ -20,7 +20,7 @@ export async function GET() {
         new Date(p.dataVencimento) < inicioHoje
       );
     });
-    const capitalNaRua    = ativos
+    const capital         = ativos
       .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO","PARCIAL"].includes(p.status)))
       .reduce((s, p) => s + Number(p.valorDevido), 0);
 
@@ -74,7 +74,7 @@ export async function GET() {
       .reduce((s, p) => s + Number(p.valorPago), 0);
 
     return NextResponse.json({
-      capitalNaRua,
+      capital,
       recebidoMes,
       lucroMes,
       parcelasAtrasadas:    parcelasAtrasadas.length,
@@ -93,7 +93,7 @@ export async function GET() {
           valor: venceHoje.reduce((s, p) => s + Number(p.valorDevido), 0),
         },
         capitalInvestidoVsRetorno: {
-          investido: capitalNaRua,
+          investido: capital,
           retorno: faturamentoTotal,
         }
       },

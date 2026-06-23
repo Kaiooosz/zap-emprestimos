@@ -591,7 +591,7 @@ export const store = {
       const inicioSemana = new Date(hoje); inicioSemana.setDate(hoje.getDate() - hoje.getDay() + 1);
       const fimSemana    = new Date(inicioSemana); fimSemana.setDate(inicioSemana.getDate() + 6);
 
-      const capitalNaRua = _parcelas
+      const capital = _parcelas
         .filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && _emprestimos.find((e) => e.id === p.emprestimoId && e.status === "ATIVO"))
         .reduce((s, p) => s + p.valorDevido, 0);
 
@@ -664,7 +664,7 @@ export const store = {
         mediaRecebimentoDiario,
       };
 
-      return { capitalNaRua, recebidoMes, lucroMes: Math.round(lucroMes * 100) / 100, parcelasAtrasadas, totalClientesAtivos, lucroVendas: 0, totalSemana, parcelasHoje, evolucaoMensal, projecoes };
+      return { capital, recebidoMes, lucroMes: Math.round(lucroMes * 100) / 100, parcelasAtrasadas, totalClientesAtivos, lucroVendas: 0, totalSemana, parcelasHoje, evolucaoMensal, projecoes };
     },
   },
 };

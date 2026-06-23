@@ -1,5 +1,5 @@
 export interface DashboardData {
-  capitalNaRua: number;
+  capital: number;
   recebidoMes: number;
   lucroMes: number;
   parcelasAtrasadas: number;

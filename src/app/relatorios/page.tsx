@@ -39,8 +39,8 @@ export default async function RelatoriosPage() {
     valorTotal:     Number(e.valorTotal),
   }));
 
-  // Capital na rua = soma dos valorDevido das parcelas em aberto de contratos ativos
-  const capitalNaRua = parcelas
+  // Capital = soma dos valorDevido das parcelas em aberto de contratos ativos
+  const capital = parcelas
     .filter((p) => ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status))
     .reduce((s, p) => s + Number(p.valorDevido), 0);
 
@@ -195,7 +195,7 @@ export default async function RelatoriosPage() {
       <div>
         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Métricas Gerais Consolidadas</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <KPI label="Capital Investido"     value={formatarMoeda(capitalNaRua)}   icon={DollarSign}  accent />
+          <KPI label="Capital"     value={formatarMoeda(capital)}   icon={DollarSign}  accent />
           <KPI label="Recebido no Mês"    value={formatarMoeda(recebidoMes)}    icon={CheckCircle2} />
           <KPI label="Despesas no Mês"    value={formatarMoeda(despesasMes)}    icon={AlertCircle} negative />
           <KPI label="Lucro Líquido"      value={formatarMoeda(lucroLiquidoMes)} icon={TrendingUp} positive={lucroLiquidoMes > 0} negative={lucroLiquidoMes < 0} />

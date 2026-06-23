@@ -25,7 +25,7 @@ export default async function EmprestimosPage() {
   }));
 
   const ativos = emprestimos.filter((e) => e.status === "ATIVO").length;
-  const capitalNaRua = emprestimos
+  const capital = emprestimos
     .filter((e) => e.status === "ATIVO")
     .flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status)))
     .reduce((s, p) => s + Number(p.valorDevido), 0);
@@ -36,7 +36,7 @@ export default async function EmprestimosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-bold text-slate-900 tracking-tight">Emprestimos</h1>
-          <p className="text-xs text-slate-400 mt-0.5">{ativos} ativos · {formatarMoeda(capitalNaRua)} investido</p>
+          <p className="text-xs text-slate-400 mt-0.5">{ativos} ativos · {formatarMoeda(capital)} investido</p>
         </div>
         {/* Só aparece no desktop — mobile usa o + da topbar */}
         <Link href="/emprestimos/novo" className="hidden md:flex items-center gap-1.5 rounded-xl bg-blue-700 border border-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 transition-colors">
