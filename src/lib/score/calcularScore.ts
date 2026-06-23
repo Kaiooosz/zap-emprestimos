@@ -1,4 +1,5 @@
 import { Parcela, Emprestimo } from "@/lib/store";
+import { obterMeiaNoiteBR } from "@/lib/utils";
 
 export type ScoreFaixa = "MUITO_ALTO_RISCO" | "ALTO_RISCO" | "REGULAR" | "BOM" | "EXCELENTE";
 
@@ -84,13 +85,12 @@ export function calcularScoreCompleto(
   // Parcelas atrasadas (não pagas ainda)
   const parcelasAtrasadas = parcelas.filter((p) => p.status === "ATRASADO");
   for (const p of parcelasAtrasadas) {
-    const venc = new Date(p.dataVencimento);
-    const agora = new Date();
-    const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    const venc = obterMeiaNoiteBR(p.dataVencimento);
+    const inicioHoje = obterMeiaNoiteBR();
     const diffDias = Math.floor((inicioHoje.getTime() - venc.getTime()) / 86400000);
     const pontos = diffDias > 30 ? PONTOS.ATRASO_GRAVE : diffDias > 7 ? PONTOS.ATRASO_MODERADO : PONTOS.ATRASO_LEVE;
     score += pontos;
-    eventos.push({ tipo: "ATRASADO", pontos, descricao: `Parcela ${p.numero} em atraso há ${diffDias} dias`, data: agora.toISOString() });
+    eventos.push({ tipo: "ATRASADO", pontos, descricao: `Parcela ${p.numero} em atraso há ${diffDias} dias`, data: new Date().toISOString() });
   }
 
   // Bonus: empréstimos quitados

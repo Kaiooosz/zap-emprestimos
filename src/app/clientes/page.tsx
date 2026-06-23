@@ -3,15 +3,14 @@ import Link from "next/link";
 import { Plus, User, MessageCircle, Eye, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
-import { formatarData, formatarMoeda } from "@/lib/utils";
+import { formatarData, formatarMoeda, obterMeiaNoiteBR } from "@/lib/utils";
 import { decryptCliente } from "@/lib/crypto";
 import { ClientesClient } from "@/components/clientes/ClientesClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
-  const agora = new Date();
-  const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+  const inicioHoje = obterMeiaNoiteBR();
 
   const raw = await prisma.cliente.findMany({
     orderBy: { nome: "asc" },
@@ -42,13 +41,13 @@ export default async function ClientesPage() {
         taxaAtrasoDiario = Number(e.taxaAtraso);
       }
       e.parcelas.forEach((p: any) => {
-        const venc = new Date(p.dataVencimento);
+        const venc = obterMeiaNoiteBR(p.dataVencimento);
         const atrasada = p.status === "ATRASADO" || venc < inicioHoje;
         if (atrasada) {
           parcelasAtrasadasCount++;
           totalAtrasado += Number(p.valorDevido);
         }
-        if (!proximaParcela || new Date(p.dataVencimento) < new Date(proximaParcela.dataVencimento)) {
+        if (!proximaParcela || obterMeiaNoiteBR(p.dataVencimento) < obterMeiaNoiteBR(proximaParcela.dataVencimento)) {
           proximaParcela = p;
         }
       });

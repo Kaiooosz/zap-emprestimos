@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { CobrancasClient } from "@/components/cobrancas/CobrancasClient";
+import { obterMeiaNoiteBR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function CobrancasPage() {
-  const agora = new Date();
-  const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+  const inicioHoje = obterMeiaNoiteBR();
 
   // Marca parcelas vencidas como ATRASADO (1 dia após o vencimento)
   await prisma.parcela.updateMany({
@@ -23,7 +23,7 @@ export default async function CobrancasPage() {
   });
 
   const pendentes = parcelas.map((p) => {
-    const venc       = new Date(p.dataVencimento);
+    const venc       = obterMeiaNoiteBR(p.dataVencimento);
     const diasAtraso = p.status === "ATRASADO"
       ? Math.max(0, Math.floor((inicioHoje.getTime() - venc.getTime()) / 86400000))
       : 0;

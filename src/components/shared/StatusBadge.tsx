@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type Status = "ATIVO" | "QUITADO" | "INADIMPLENTE" | "CANCELADO" | "PENDENTE" | "PAGO" | "ATRASADO" | "PARCIAL" | "ATIVA" | "SUSPENSA";
+type Status = "ATIVO" | "QUITADO" | "INADIMPLENTE" | "CANCELADO" | "PENDENTE" | "PAGO" | "ATRASADO" | "PARCIAL" | "ATIVA" | "SUSPENSA" | "DIA_DE_PAGAR";
 
 // Paleta neutra: sem cores saturadas, apenas texto+borda discretos
 const config: Record<Status, { label: string; className: string }> = {
@@ -14,6 +14,7 @@ const config: Record<Status, { label: string; className: string }> = {
   ATRASADO:     { label: "Atrasado",    className: "bg-red-50 text-red-700 border-red-200" },
   PARCIAL:      { label: "Parcial",     className: "bg-amber-50 text-amber-700 border-amber-200" },
   SUSPENSA:     { label: "Suspensa",    className: "bg-slate-50 text-slate-500 border-slate-200" },
+  DIA_DE_PAGAR: { label: "Dia de Pagar",className: "bg-blue-50 text-blue-700 border-blue-200" },
 };
 
 export function StatusBadge({ status }: { status: Status }) {

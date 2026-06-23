@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { DollarSign, TrendingUp, AlertTriangle, Banknote, Calendar, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { formatarMoeda, formatarData } from "@/lib/utils";
+import { formatarMoeda, formatarData, obterMeiaNoiteBR } from "@/lib/utils";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { GraficoBarras } from "@/components/dashboard/GraficoBarras";
 import { MiniCalendario } from "@/components/dashboard/MiniCalendario";
@@ -25,7 +25,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const status = resolvedParams.status ?? "todos";
   const isNew = resolvedParams.new === "true";
 
-  const hoje    = new Date();
+  const hoje    = obterMeiaNoiteBR();
   const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate() + 7);
 
   const [parcelasRaw, empsRaw, clientesRaw, despesasRaw] = await Promise.all([
@@ -99,11 +99,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const lucroLiquido = lucroPeriodo - totalDespesas;
 
   const parcelasAtrasadas = parcelas.filter((p) =>
-    p.status === "ATRASADO" || (["PENDENTE","PARCIAL"].includes(p.status) && new Date(p.dataVencimento) < hoje)
+    p.status === "ATRASADO" || (["PENDENTE","PARCIAL"].includes(p.status) && obterMeiaNoiteBR(p.dataVencimento) < hoje)
   );
 
   const totalSemana = parcelas
-    .filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && new Date(p.dataVencimento) >= hoje && new Date(p.dataVencimento) <= em7dias)
+    .filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && obterMeiaNoiteBR(p.dataVencimento) >= hoje && obterMeiaNoiteBR(p.dataVencimento) <= em7dias)
     .reduce((s, p) => s + toN(p.valorDevido), 0);
 
   const topClientes = clientes.map((c) => {
@@ -122,12 +122,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .map((p) => ({ ...p, valorDevido: toN(p.valorDevido), valorPago: p.valorPago ? toN(p.valorPago) : undefined, clienteNome: p.emprestimo.cliente?.nome ?? "—" }));
 
   const proxVenc = parcelas
-    .filter((p) => { const v = new Date(p.dataVencimento); return v >= hoje && v <= em7dias && ["PENDENTE","ATRASADO"].includes(p.status); })
+    .filter((p) => { const v = obterMeiaNoiteBR(p.dataVencimento); return v >= hoje && v <= em7dias && ["PENDENTE","ATRASADO"].includes(p.status); })
     .sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime())
     .slice(0, 5)
     .map((p) => ({ ...p, valorDevido: toN(p.valorDevido), clienteNome: p.emprestimo.cliente?.nome ?? "—" }));
 
-  const parcelasVencidas = parcelas.filter((p) => new Date(p.dataVencimento) <= hoje);
+  const parcelasVencidas = parcelas.filter((p) => obterMeiaNoiteBR(p.dataVencimento) < hoje);
   const parcelasPagasCount = parcelasVencidas.filter((p) => p.status === "PAGO").length;
   const adimplencia = parcelasVencidas.length > 0
     ? Math.round((parcelasPagasCount / parcelasVencidas.length) * 100)
@@ -159,8 +159,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const lucroLiquidoAnterior = lucroPeriodoAnterior - totalDespesasAnterior;
 
   const parcelasAtrasadasAnterior = parcelas.filter((p) => {
-    const venc = new Date(p.dataVencimento);
-    return venc <= dataFimAnterior && (p.status === "ATRASADO" || (["PENDENTE","PARCIAL"].includes(p.status) && venc < new Date(dataFimAnterior)));
+    const venc = obterMeiaNoiteBR(p.dataVencimento);
+    return venc <= dataFimAnterior && (p.status === "ATRASADO" || (["PENDENTE","PARCIAL"].includes(p.status) && venc < dataFimAnterior));
   }).length;
 
   const calcularCrescimento = (atual: number, anterior: number) => {
@@ -240,8 +240,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     periodo === "ano" ? "Meses do ano" : "Últimos 6 meses";
 
   // Novas métricas de Projeção
-  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  const inicioAmanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  const inicioHoje = hoje;
+  const inicioAmanha = new Date(hoje.getTime() + 86400000);
   const fimMesAtual = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
   const fimTrimestre = new Date(hoje.getFullYear(), hoje.getMonth() + 3, 0, 23, 59, 59);
   const fimSemestre = new Date(hoje.getFullYear(), hoje.getMonth() + 6, 0, 23, 59, 59);
@@ -250,17 +250,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const parcelasAbertas = parcelasRaw.filter((p) => ["PENDENTE", "PARCIAL", "ATRASADO"].includes(p.status));
   
   const jurosAReceber = {
-    mensal: parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimMesAtual).reduce((s, p) => s + toN(p.valorJuros), 0),
-    trimestral: parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimTrimestre).reduce((s, p) => s + toN(p.valorJuros), 0),
-    semestral: parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimSemestre).reduce((s, p) => s + toN(p.valorJuros), 0),
-    anual: parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimAno).reduce((s, p) => s + toN(p.valorJuros), 0)
+    mensal: parcelasAbertas.filter((p) => obterMeiaNoiteBR(p.dataVencimento) <= fimMesAtual).reduce((s, p) => s + toN(p.valorJuros), 0),
+    trimestral: parcelasAbertas.filter((p) => obterMeiaNoiteBR(p.dataVencimento) <= fimTrimestre).reduce((s, p) => s + toN(p.valorJuros), 0),
+    semestral: parcelasAbertas.filter((p) => obterMeiaNoiteBR(p.dataVencimento) <= fimSemestre).reduce((s, p) => s + toN(p.valorJuros), 0),
+    anual: parcelasAbertas.filter((p) => obterMeiaNoiteBR(p.dataVencimento) <= fimAno).reduce((s, p) => s + toN(p.valorJuros), 0)
   };
 
-  const capitalAReceberMensal = parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimMesAtual).reduce((s, p) => s + toN(p.valorPrincipal), 0);
+  const capitalAReceberMensal = parcelasAbertas.filter((p) => obterMeiaNoiteBR(p.dataVencimento) <= fimMesAtual).reduce((s, p) => s + toN(p.valorPrincipal), 0);
 
   const parcelasVenceHoje = parcelasAbertas.filter((p) => {
-    const v = new Date(p.dataVencimento);
-    return v >= inicioHoje && v < inicioAmanha;
+    const v = obterMeiaNoiteBR(p.dataVencimento);
+    return v.getTime() === inicioHoje.getTime();
   });
 
   const capitalAReceberTotal = parcelasAbertas.reduce((s, p) => s + toN(p.valorPrincipal), 0);

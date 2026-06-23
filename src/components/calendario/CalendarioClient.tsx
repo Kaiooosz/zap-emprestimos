@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Search, X, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { formatarMoeda } from "@/lib/utils";
+import { formatarMoeda, obterMeiaNoiteBR } from "@/lib/utils";
 
 interface ParcelaCalendario {
   id: string;
@@ -40,7 +40,7 @@ const MESES = [
 ];
 
 export function CalendarioClient({ parcelas, clientes, despesas = [] }: Props) {
-  const hoje = new Date();
+  const hoje = obterMeiaNoiteBR();
   const [ano,  setAno]        = useState(hoje.getFullYear());
   const [mes,  setMes]        = useState(hoje.getMonth());
   const [clienteFiltro, setClienteFiltro] = useState("");
@@ -127,9 +127,10 @@ export function CalendarioClient({ parcelas, clientes, despesas = [] }: Props) {
   function getDotColor(p: ParcelaCalendario) {
     if (p.status === "ATRASADO") return "bg-red-500";
     if (p.status === "PAGO")     return "bg-slate-300";
-    const d = new Date(p.dataVencimento);
+    const d = obterMeiaNoiteBR(p.dataVencimento);
     const diff = Math.floor((d.getTime() - hoje.getTime()) / 86400000);
-    if (diff <= 2) return "bg-amber-500";
+    if (diff === 0) return "bg-blue-500";
+    if (diff <= 2 && diff > 0) return "bg-amber-500";
     return "bg-blue-500";
   }
 
@@ -329,12 +330,12 @@ export function CalendarioClient({ parcelas, clientes, despesas = [] }: Props) {
               parcelasDia
                 .sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime())
                 .map((p) => {
-                  const venc = new Date(p.dataVencimento);
+                  const venc = obterMeiaNoiteBR(p.dataVencimento);
                   const diasAtraso = p.status === "ATRASADO"
-                    ? Math.floor((Date.now() - venc.getTime()) / 86400000)
+                    ? Math.floor((hoje.getTime() - venc.getTime()) / 86400000)
                     : 0;
-                  const diasAte = p.status === "PENDENTE"
-                    ? Math.max(0, Math.floor((venc.getTime() - Date.now()) / 86400000))
+                  const diasAte = ["PENDENTE","PARCIAL"].includes(p.status)
+                    ? Math.max(0, Math.floor((venc.getTime() - hoje.getTime()) / 86400000))
                     : 0;
 
                   return (
@@ -346,7 +347,7 @@ export function CalendarioClient({ parcelas, clientes, despesas = [] }: Props) {
                             className="text-sm font-semibold text-slate-800 hover:text-slate-900 transition-colors truncate">
                             {p.clienteNome}
                           </Link>
-                          <StatusBadge status={p.status as any}/>
+                          <StatusBadge status={(p.status === "PAGO" ? "PAGO" : (obterMeiaNoiteBR(p.dataVencimento).getTime() === hoje.getTime() ? "DIA_DE_PAGAR" : p.status)) as any}/>
                         </div>
                         <div className="flex items-center gap-3 text-slate-400 text-[10px]">
                           <span>Parcela {p.numero}</span>

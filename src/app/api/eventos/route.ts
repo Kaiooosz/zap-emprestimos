@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { obterMeiaNoiteBR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +10,11 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   try {
-    const hoje = new Date();
-    const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0);
-    const fimHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+    const inicioHoje = obterMeiaNoiteBR();
+    const fimHoje = new Date(inicioHoje.getTime() + 86399999);
 
-    const inicioAmanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1, 0, 0, 0);
-    const fimAmanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1, 23, 59, 59);
+    const inicioAmanha = new Date(inicioHoje.getTime() + 86400000);
+    const fimAmanha = new Date(inicioAmanha.getTime() + 86399999);
 
     // Consultas paralelas para performance
     const [

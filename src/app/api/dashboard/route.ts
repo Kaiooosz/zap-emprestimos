@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { obterMeiaNoiteBR } from "@/lib/utils";
 
 export async function GET() {
   try {
-    const hoje  = new Date();
-    const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const hoje = obterMeiaNoiteBR();
     const mesInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const semInicio = new Date(hoje); semInicio.setDate(hoje.getDate() - 7);
+
 
     const [emprestimos, parcelas] = await Promise.all([
       prisma.emprestimo.findMany({ include: { parcelas: true } }),
@@ -17,7 +17,7 @@ export async function GET() {
     const parcelasAtrasadas = parcelas.filter((p) => {
       return p.status === "ATRASADO" || (
         ["PENDENTE","PARCIAL"].includes(p.status) &&
-        new Date(p.dataVencimento) < inicioHoje
+        obterMeiaNoiteBR(p.dataVencimento) < hoje
       );
     });
     const capital         = ativos
@@ -29,7 +29,7 @@ export async function GET() {
       .reduce((s, p) => s + Number(p.valorPago ?? 0), 0);
 
     const totalSemana = parcelas
-      .filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && new Date(p.dataVencimento) >= inicioHoje && new Date(p.dataVencimento) <= new Date(inicioHoje.getTime() + 7 * 86400000))
+      .filter((p) => ["PENDENTE","ATRASADO"].includes(p.status) && obterMeiaNoiteBR(p.dataVencimento) >= hoje && obterMeiaNoiteBR(p.dataVencimento) <= new Date(hoje.getTime() + 7 * 86400000))
       .reduce((s, p) => s + Number(p.valorDevido), 0);
 
     const lucroMes = emprestimos
@@ -63,10 +63,10 @@ export async function GET() {
 
     const capitalAReceberMensal = parcelasAbertas.filter((p) => new Date(p.dataVencimento) <= fimMesAtual).reduce((s, p) => s + Number(p.valorPrincipal), 0);
 
-    const inicioAmanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+    const inicioAmanha = new Date(hoje.getTime() + 86400000);
     const venceHoje = parcelasAbertas.filter((p) => {
-      const v = new Date(p.dataVencimento);
-      return v >= inicioHoje && v < inicioAmanha;
+      const v = obterMeiaNoiteBR(p.dataVencimento);
+      return v.getTime() === hoje.getTime();
     });
 
     const faturamentoTotal = parcelas
@@ -84,7 +84,7 @@ export async function GET() {
       projecoes: {
         lucroPrevisto:           ativos.flatMap((e) => e.parcelas.filter((p) => p.status === "PENDENTE")).reduce((s, p) => s + Number(p.valorJuros), 0),
         capitalEmRisco:          emprestimos.filter((e) => e.status === "INADIMPLENTE").flatMap((e) => e.parcelas.filter((p) => ["PENDENTE","ATRASADO"].includes(p.status))).reduce((s, p) => s + Number(p.valorDevido), 0),
-        recebidoOntem:           parcelas.filter((p) => p.status === "PAGO" && p.dataPagamento && new Date(p.dataPagamento).toDateString() === new Date(hoje.getTime() - 86400000).toDateString()).reduce((s, p) => s + Number(p.valorPago ?? 0), 0),
+        recebidoOntem:           parcelas.filter((p) => p.status === "PAGO" && p.dataPagamento && obterMeiaNoiteBR(p.dataPagamento).getTime() === new Date(hoje.getTime() - 86400000).getTime()).reduce((s, p) => s + Number(p.valorPago ?? 0), 0),
         mediaRecebimentoDiario:  recebidoMes / Math.max(1, hoje.getDate()),
         jurosAReceber,
         capitalAReceberMensal,

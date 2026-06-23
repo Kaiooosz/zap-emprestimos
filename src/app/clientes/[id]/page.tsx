@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreGauge } from "@/components/clientes/ScoreGauge";
-import { formatarMoeda, formatarData } from "@/lib/utils";
+import { formatarMoeda, formatarData, obterMeiaNoiteBR } from "@/lib/utils";
 import { getPontosLabel, getFaixa } from "@/lib/score/calcularScore";
 import { decryptCliente } from "@/lib/crypto";
 
@@ -33,8 +33,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
 
   const c = { ...decryptCliente(rawC), emprestimos: rawC.emprestimos, scoreHistorico: rawC.scoreHistorico };
 
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  const hoje = obterMeiaNoiteBR();
 
   const emprestimos = c.emprestimos.map(e => ({
     ...e,
@@ -68,8 +67,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
             valorPrincipal: Number(pRaw.valorPrincipal),
             valorJuros: Number(pRaw.valorJuros),
           };
-          const venc = new Date(p.dataVencimento);
-          venc.setHours(0, 0, 0, 0);
+          const venc        = obterMeiaNoiteBR(p.dataVencimento);
           const diff        = Math.floor((venc.getTime() - hoje.getTime()) / 86400000);
           const diasAtraso  = diff < 0 ? Math.abs(diff) : 0;
           const taxaDiaria  = Number(e.taxaAtraso ?? TAXA_DIARIA_ATRASO);
@@ -321,7 +319,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          <StatusBadge status={p.status as any}/>
+                          <StatusBadge status={(p.status === "PAGO" ? "PAGO" : (isHoje ? "DIA_DE_PAGAR" : p.status)) as any}/>
                           {c.phone && (
                             <a href={`https://wa.me/${c.phone.replace(/\D/g,"")}?text=${waMsg}`}
                               target="_blank" rel="noopener noreferrer"

@@ -1,13 +1,13 @@
 import { BarChart3, TrendingUp, DollarSign, Users, CalendarDays, AlertCircle, CheckCircle2, Clock, Presentation } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { formatarMoeda, formatarData } from "@/lib/utils";
+import { formatarMoeda, formatarData, obterMeiaNoiteBR } from "@/lib/utils";
 import { PainelAnalitico } from "@/components/relatorios/PainelAnalitico";
 
 export const dynamic = "force-dynamic";
 
 export default async function RelatoriosPage() {
-  const hoje = new Date();
-  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const hoje = obterMeiaNoiteBR();
+  const inicioHoje = hoje;
   const mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const em7dias = new Date(hoje.getTime() + 7 * 86_400_000);
 
@@ -142,7 +142,7 @@ export default async function RelatoriosPage() {
     let diasAtrasoMax = 0;
     
     parcelasAtivas.forEach((p) => {
-      const venc = new Date(p.dataVencimento);
+      const venc = obterMeiaNoiteBR(p.dataVencimento);
       const isAtrasada = p.status === "ATRASADO" || (["PENDENTE", "PARCIAL"].includes(p.status) && venc < inicioHoje);
       if (isAtrasada) {
         temAtrasada = true;

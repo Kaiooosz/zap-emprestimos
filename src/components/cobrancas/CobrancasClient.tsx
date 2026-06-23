@@ -10,7 +10,7 @@ import Link from "next/link";
 import { TemplateMsg } from "@/lib/store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
-import { formatarMoeda, formatarData } from "@/lib/utils";
+import { formatarMoeda, formatarData, obterMeiaNoiteBR } from "@/lib/utils";
 import { ModalPagamento } from "../emprestimos/ModalPagamento";
 
 type Tab = "disparos" | "notificacoes" | "templates";
@@ -689,7 +689,7 @@ export function CobrancasClient({
                             {/* Valor e StatusBadge */}
                             <div className="text-left sm:text-right space-y-0.5">
                               <p className="text-sm sm:text-base font-black text-slate-900 tabular-nums">{formatarMoeda(totalComJuros)}</p>
-                              <StatusBadge status={p.status as any}/>
+                              <StatusBadge status={(p.status === "PAGO" ? "PAGO" : (obterMeiaNoiteBR(p.dataVencimento).getTime() === obterMeiaNoiteBR().getTime() ? "DIA_DE_PAGAR" : p.status)) as any}/>
                             </div>
 
                             {/* Vencimento e Botão Dar Baixa */}
@@ -699,6 +699,12 @@ export function CobrancasClient({
                                   <Clock size={11} className="shrink-0"/>
                                   <span className="whitespace-nowrap">{formatarData(p.dataVencimento)}</span>
                                 </div>
+                                {obterMeiaNoiteBR(p.dataVencimento).getTime() === obterMeiaNoiteBR().getTime() && (
+                                  <div className="flex items-center gap-1 text-[9px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded mt-0.5 shrink-0">
+                                    <Clock size={9} className="shrink-0"/>
+                                    <span>Vence Hoje</span>
+                                  </div>
+                                )}
                                 {p.diasAtraso > 0 && (
                                   <div className="flex items-center gap-1 text-[9px] text-red-500 font-bold bg-red-50 px-1 py-0.5 rounded mt-0.5 shrink-0">
                                     <AlertTriangle size={9} className="shrink-0"/>

@@ -7,7 +7,7 @@ import { Parcela } from "@/lib/store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ModalPagamento } from "@/components/emprestimos/ModalPagamento";
 import { ModalEditarPagamento } from "@/components/emprestimos/ModalEditarPagamento";
-import { formatarMoeda, formatarData } from "@/lib/utils";
+import { formatarMoeda, formatarData, obterMeiaNoiteBR } from "@/lib/utils";
 
 interface Props {
   parcelas: Parcela[];
@@ -96,8 +96,8 @@ export function DetalheEmprestimoClient({
         <div className="sm:hidden divide-y divide-slate-100">
           {parcelas.map((p) => {
             const pendente = ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status);
-            const hoje = new Date();
-            const venc  = new Date(p.dataVencimento);
+            const hoje = obterMeiaNoiteBR();
+            const venc  = obterMeiaNoiteBR(p.dataVencimento);
             const diasAnte = Math.max(0, Math.floor((venc.getTime() - hoje.getTime()) / 86400000));
             const formas: any[] = JSON.parse((p as any).formasPagamento ?? "[]");
             const labelModo = modoLabel(p.modoPagamento);
@@ -109,7 +109,7 @@ export function DetalheEmprestimoClient({
                     <span className="h-6 w-6 rounded-full bg-slate-100 inline-flex items-center justify-center text-[10px] font-bold text-slate-600">
                       {p.numero}
                     </span>
-                    <StatusBadge status={p.status} />
+                    <StatusBadge status={(p.status === "PAGO" ? "PAGO" : (venc.getTime() === hoje.getTime() ? "DIA_DE_PAGAR" : p.status)) as any} />
                     {labelModo && (
                       <span className="text-[10px] text-slate-400 font-medium">{labelModo}</span>
                     )}
@@ -186,8 +186,8 @@ export function DetalheEmprestimoClient({
             <tbody className="divide-y divide-slate-50">
               {parcelas.map((p) => {
                 const pendente = ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status);
-                const hoje = new Date();
-                const venc  = new Date(p.dataVencimento);
+                const hoje = obterMeiaNoiteBR();
+                const venc  = obterMeiaNoiteBR(p.dataVencimento);
                 const diasAnte = Math.max(0, Math.floor((venc.getTime() - hoje.getTime()) / 86400000));
                 const formas: any[] = JSON.parse((p as any).formasPagamento ?? "[]");
                 const labelModo = modoLabel(p.modoPagamento);
@@ -227,7 +227,7 @@ export function DetalheEmprestimoClient({
                       <p className="text-xs text-slate-500">{p.dataPagamento ? formatarData(p.dataPagamento) : "—"}</p>
                       {labelModo && <p className="text-[10px] text-slate-400">{labelModo}</p>}
                     </td>
-                    <td className="px-3 py-3"><StatusBadge status={p.status}/></td>
+                    <td className="px-3 py-3"><StatusBadge status={(p.status === "PAGO" ? "PAGO" : (venc.getTime() === hoje.getTime() ? "DIA_DE_PAGAR" : p.status)) as any}/></td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-1">
                         {pendente && (

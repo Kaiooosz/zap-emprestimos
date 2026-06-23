@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { CalendarioClient } from "@/components/calendario/CalendarioClient";
+import { obterMeiaNoiteBR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function CalendarioPage() {
-  const hoje = new Date();
-  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const inicioHoje = obterMeiaNoiteBR();
 
   // Marca atrasadas
   await prisma.parcela.updateMany({
