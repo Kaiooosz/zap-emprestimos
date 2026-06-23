@@ -95,8 +95,8 @@ export default function NovoClientePage() {
         {/* Dados pessoais */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dados {tipo === "PESSOA_FISICA" ? "Pessoais" : "da Empresa"}</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="col-span-1 sm:col-span-2">
               <F label={tipo === "PESSOA_FISICA" ? "Nome completo *" : "Razão Social *"} value={form.nome} onChange={(v) => set("nome", v)} required />
             </div>
             {tipo === "PESSOA_FISICA" ? (
@@ -112,12 +112,12 @@ export default function NovoClientePage() {
                 <F label="Renda Mensal (R$)" value={form.rendaMensal} onChange={(v) => set("rendaMensal", v)} type="number" />
               </>
             )}
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <F label="Endereço" value={form.endereco} onChange={(v) => set("endereco", v)} />
             </div>
             <F label="Cidade" value={form.cidade} onChange={(v) => set("cidade", v)} />
             <F label="Estado" value={form.estado} onChange={(v) => set("estado", v)} placeholder="SP" />
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <F label="Referência / Fiador" value={form.referencia} onChange={(v) => set("referencia", v)} placeholder="Nome e telefone do fiador ou referência" />
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function NovoClientePage() {
           </div>
 
           {garantia && (
-            <div className="grid grid-cols-2 gap-4 pt-2 pl-4 border-l-2 border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 pl-4 border-l-2 border-slate-200">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Tipo de Garantia</label>
                 <select value={form.tipoGarantia} onChange={(e) => set("tipoGarantia", e.target.value)}
@@ -161,7 +161,7 @@ export default function NovoClientePage() {
                 </select>
               </div>
               <F label="Valor da Garantia (R$)" value={form.valorGarantia} onChange={(v) => set("valorGarantia", v)} type="number" />
-              <div className="col-span-2">
+              <div className="col-span-1 sm:col-span-2">
                 <F label="Descrição da Garantia" value={form.descricaoGarantia} onChange={(v) => set("descricaoGarantia", v)} placeholder="Ex: Honda Civic 2022, placa XYZ-1234" />
               </div>
             </div>

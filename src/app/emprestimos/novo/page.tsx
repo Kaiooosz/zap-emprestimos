@@ -371,7 +371,7 @@ function NovoEmprestimoInner() {
                 {/* EMPRESTIMO / DIARIO */}
                 {(tipoOp === "EMPRESTIMO" || tipoOp === "DIARIO" || tipoOp === "RENOVACAO") && (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Num label="Valor Principal (R$)" value={valor} onChange={setValor} step={100} min={100} />
                       <Num label="Taxa de Juros (%)" value={taxa} onChange={setTaxa} step={0.5} min={0.1} />
                       <div className={isRola ? "hidden" : "block"}>
@@ -381,7 +381,7 @@ function NovoEmprestimoInner() {
                     </div>
 
                     {/* Parcela Alvo (meta) */}
-                    <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-3">
                       <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1.5">Meta de Parcela (Alvo - R$)</label>
                         <input type="number" value={parcelaAlvo === "" || parcelaAlvo === undefined ? "" : String(Number(parcelaAlvo))} onChange={(e) => handleParcelaAlvoChange(e.target.value === "" ? "" : Number(e.target.value))}
@@ -531,7 +531,7 @@ function NovoEmprestimoInner() {
                     </div>
 
                     {tipoOp === "RENOVACAO" && (
-                      <div className="border-t border-slate-200 pt-4 grid grid-cols-2 gap-4">
+                      <div className="border-t border-slate-200 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Num label="Taxa de Renovação (%)" value={taxaRenovacao} onChange={setTaxaRenovacao} step={0.5} min={0} />
                         <Num label="Parcelas Adicionais" value={parcelasAdicionais} onChange={setParcelasAdicionais} step={1} min={1} />
                       </div>
@@ -543,7 +543,7 @@ function NovoEmprestimoInner() {
                 {tipoOp === "VENDA" && (
                   <>
                     <Inp label="Produto / Descrição *" value={descProduto} onChange={setDescProduto} placeholder="Ex: Honda Biz 2023, Notebook Dell..." />
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Num label="Custo do Produto (R$)" value={custo} onChange={setCusto} step={100} min={0} />
                       <Num label="Preço de Venda (R$)" value={valor} onChange={setValor} step={100} min={0} />
                       <Num label="Taxa de Juros (%)" value={taxa} onChange={setTaxa} step={0.5} min={0} />
@@ -563,9 +563,9 @@ function NovoEmprestimoInner() {
 
                 {/* ALUGUEL / ASSINATURA */}
                 {(tipoOp === "ALUGUEL" || tipoOp === "ASSINATURA") && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {tipoOp === "ASSINATURA" && (
-                      <div className="col-span-2">
+                      <div className="col-span-1 sm:col-span-2">
                         <Inp label="Plano / Descrição" value={plano} onChange={setPlano} placeholder="Ex: Premium, Basic..." />
                       </div>
                     )}
@@ -610,7 +610,7 @@ function NovoEmprestimoInner() {
               </div>
 
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button type="button" onClick={() => setTemGarantia(false)}
                     className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${!temGarantia ? "bg-slate-100 border-slate-900" : "border-slate-200 hover:border-slate-400"}`}>
                     <span className={`text-xs font-semibold ${!temGarantia ? "text-slate-900" : "text-slate-700"}`}>Não Deixou Garantias</span>
@@ -625,7 +625,7 @@ function NovoEmprestimoInner() {
               </div>
 
               {temGarantia && (
-                <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4 border-l-2 border-slate-200">
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">Tipo de Garantia</label>
                     <select value={tipoGarantia} onChange={(e) => setTipoGarantia(e.target.value)}

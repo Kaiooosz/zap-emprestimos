@@ -576,25 +576,27 @@ export function CobrancasClient({
             {/* Lista de devedores */}
             <div className="lg:col-span-2 space-y-3">
               {/* Filtros + Seleção de Template */}
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 gap-0.5">
-                  {[["todos","Todos"],["atrasado","Atrasados"],["pendente","Pendentes"]].map(([v,l]) => (
-                    <button key={v} onClick={() => setFiltro(v as any)}
-                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${filtro===v ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"}`}>
-                      {l}
-                    </button>
-                  ))}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 gap-0.5">
+                    {[["todos","Todos"],["atrasado","Atrasados"],["pendente","Pendentes"]].map(([v,l]) => (
+                      <button key={v} onClick={() => setFiltro(v as any)}
+                        className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${filtro===v ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"}`}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <div className="relative">
+                <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 w-full">
+                  <div className="relative col-span-2 sm:col-span-1">
                     <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Buscar por nome..."
                       value={buscaNome}
                       onChange={(e) => setBuscaNome(e.target.value)}
-                      className="rounded-lg border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-slate-400 w-36"
+                      className="rounded-lg border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-slate-400 w-full sm:w-36"
                     />
                   </div>
                   <input
@@ -604,14 +606,14 @@ export function CobrancasClient({
                     placeholder="Dia venc."
                     value={diaVencimento}
                     onChange={(e) => setDiaVencimento(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs focus:outline-none focus:border-slate-400 w-24"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs focus:outline-none focus:border-slate-400 w-full sm:w-24"
                     title="Filtrar por dia de vencimento"
                   />
 
                   <select
                     value={templateId}
                     onChange={(e) => setTemplateId(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-slate-400 cursor-pointer"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-slate-400 cursor-pointer w-full sm:w-auto"
                   >
                     {templatesAtivos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
                     {templatesAtivos.length === 0 && <option value="">Sem templates ativos</option>}
@@ -620,7 +622,7 @@ export function CobrancasClient({
                   <button
                     onClick={disparar}
                     disabled={!selecionados.size || disparando || whatsappStatus !== "CONECTADO"}
-                    className="flex items-center gap-1.5 rounded-lg bg-blue-700 border border-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 rounded-lg bg-blue-700 border border-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer w-full"
                   >
                     <Send size={12}/>
                     {disparando ? "Disparando..." : `Disparar (${selecionados.size})`}
@@ -648,62 +650,69 @@ export function CobrancasClient({
                       return (
                         <div key={p.id}
                           onClick={() => setPreview(p)}
-                          className={`flex items-center gap-3 px-5 py-3.5 cursor-pointer transition-colors ${
+                          className={`flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5 cursor-pointer transition-colors ${
                             preview?.id === p.id ? "bg-blue-50/20" :
                             disparados.has(p.id) ? "opacity-45 bg-slate-50/50" :
                             "hover:bg-slate-50/40"
                           }`}
                         >
-                          <button onClick={(e) => { e.stopPropagation(); toggleSel(p.id); }} className="text-slate-500 hover:text-slate-700 shrink-0 cursor-pointer">
-                            {selecionados.has(p.id) ? <CheckSquare size={15} className="text-blue-700"/> : <Square size={15}/>}
-                          </button>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <p className="text-sm font-semibold text-slate-900 truncate">{p.clienteNome}</p>
-                              {disparados.has(p.id) && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md shrink-0">Enviado</span>}
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <ScoreBadge score={p.score}/>
-                              <span className="text-xs text-slate-400 tabular-nums">{p.clientePhone}</span>
-                            </div>
-                            
-                            {p.diasAtraso > 0 && (() => {
-                              const juros = calcJuros(p);
-                              return (
-                                <div className="mt-1 flex items-center gap-2 flex-wrap text-[10px]">
-                                  <span className="text-slate-400">Orig: {formatarMoeda(p.valorDevido)}</span>
-                                  <span className="text-red-500 font-bold">Juros (+{p.diasAtraso}d): +{formatarMoeda(juros)}</span>
-                                </div>
-                              );
-                            })()}
-                          </div>
-
-                          {/* Valor da cobrança atualizado com juros (sem toggle) */}
-                          <div className="text-right shrink-0 space-y-1">
-                            <p className="text-sm font-black text-slate-900 tabular-nums">{formatarMoeda(totalComJuros)}</p>
-                            <StatusBadge status={p.status as any}/>
-                          </div>
-
-                          <div className="text-right shrink-0 w-28">
-                            <div className="flex flex-col items-end gap-0.5 mb-1.5">
-                              <div className="flex items-center justify-end gap-1 text-xs font-semibold text-slate-600">
-                                <Clock size={11}/>
-                                {formatarData(p.dataVencimento)}
-                              </div>
-                              {p.diasAtraso > 0 && (
-                                <div className="flex items-center justify-end gap-1 text-[10px] text-red-500 font-bold bg-red-50 px-1.5 py-0.5 rounded">
-                                  <AlertTriangle size={10}/>
-                                  {p.diasAtraso}d atraso
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setParcelaParaPagar(p); }}
-                              className="w-full rounded bg-blue-50 border border-blue-200 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
-                            >
-                              Dar Baixa
+                          {/* Nome e Info do Cliente */}
+                          <div className="flex items-start gap-3 w-full sm:w-auto flex-1 min-w-0">
+                            <button onClick={(e) => { e.stopPropagation(); toggleSel(p.id); }} className="text-slate-500 hover:text-slate-700 shrink-0 cursor-pointer mt-1 sm:mt-0">
+                              {selecionados.has(p.id) ? <CheckSquare size={15} className="text-blue-700"/> : <Square size={15}/>}
                             </button>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="text-sm font-semibold text-slate-900 truncate">{p.clienteNome}</p>
+                                {disparados.has(p.id) && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md shrink-0">Enviado</span>}
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <ScoreBadge score={p.score}/>
+                                <span className="text-xs text-slate-400 tabular-nums">{p.clientePhone}</span>
+                              </div>
+                              
+                              {p.diasAtraso > 0 && (() => {
+                                const juros = calcJuros(p);
+                                return (
+                                  <div className="mt-1 flex items-center gap-2 flex-wrap text-[10px]">
+                                    <span className="text-slate-400">Orig: {formatarMoeda(p.valorDevido)}</span>
+                                    <span className="text-red-500 font-bold">Juros (+{p.diasAtraso}d): +{formatarMoeda(juros)}</span>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* Seção de Valor, Vencimento e Ações */}
+                          <div className="flex sm:flex-row justify-between items-center sm:items-center w-full sm:w-auto shrink-0 gap-3 pt-2.5 sm:pt-0 border-t border-slate-100 sm:border-t-0">
+                            {/* Valor e StatusBadge */}
+                            <div className="text-left sm:text-right space-y-0.5">
+                              <p className="text-sm sm:text-base font-black text-slate-900 tabular-nums">{formatarMoeda(totalComJuros)}</p>
+                              <StatusBadge status={p.status as any}/>
+                            </div>
+
+                            {/* Vencimento e Botão Dar Baixa */}
+                            <div className="text-right flex items-center sm:flex-col gap-2 sm:gap-1.5 w-auto sm:w-28">
+                              <div className="flex flex-col items-end shrink-0">
+                                <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
+                                  <Clock size={11} className="shrink-0"/>
+                                  <span className="whitespace-nowrap">{formatarData(p.dataVencimento)}</span>
+                                </div>
+                                {p.diasAtraso > 0 && (
+                                  <div className="flex items-center gap-1 text-[9px] text-red-500 font-bold bg-red-50 px-1 py-0.5 rounded mt-0.5 shrink-0">
+                                    <AlertTriangle size={9} className="shrink-0"/>
+                                    <span>{p.diasAtraso}d atraso</span>
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setParcelaParaPagar(p); }}
+                                className="rounded bg-blue-50 border border-blue-200 px-3 py-1 sm:py-1.5 sm:w-full text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer whitespace-nowrap"
+                              >
+                                Dar Baixa
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );

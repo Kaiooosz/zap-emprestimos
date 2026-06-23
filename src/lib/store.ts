@@ -90,6 +90,8 @@ export interface Parcela {
   diasAntecipados?: number;    // quantos dias antes do vencimento foi pago
   jurosAtrasoAcumulado?: number; // juros de atraso calculados no momento do pagamento
   principalAbatido?: number;     // quanto do principal foi abatido neste pagamento
+  formasPagamento?: string | null;
+  entradas?: string | null;
 }
 
 // ─── Perfil Financeiro ────────────────────────────────────────────────────────

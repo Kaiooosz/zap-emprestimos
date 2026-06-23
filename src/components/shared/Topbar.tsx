@@ -26,6 +26,7 @@ export function Topbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [temNovidades, setTemNovidades] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const pathname = usePathname();
   const [role, setRole] = useState<string>("OPERADOR");
 
@@ -91,6 +92,39 @@ export function Topbar() {
 
     const diffDias = Math.floor(diffHoras / 24);
     return `${diffDias}d atrás`;
+  }
+
+  if (mobileSearchOpen) {
+    return (
+      <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 relative z-50">
+        <form onSubmit={(e) => { 
+          e.preventDefault(); 
+          const v = (e.currentTarget.elements.namedItem('q-mobile') as HTMLInputElement).value; 
+          if (v) {
+            router.push(`/clientes?busca=${encodeURIComponent(v)}`); 
+            setMobileSearchOpen(false);
+          }
+        }} className="relative flex-1 flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input 
+              name="q-mobile" 
+              type="text" 
+              autoFocus
+              placeholder="Pesquisar no sistema..." 
+              className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all" 
+            />
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setMobileSearchOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </form>
+      </header>
+    );
   }
 
   return (
@@ -212,6 +246,15 @@ export function Topbar() {
           )}
         </div>
 
+        {/* Mobile: icone de busca */}
+        <button
+          onClick={() => setMobileSearchOpen(true)}
+          className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+          title="Pesquisar"
+        >
+          <Search size={16} />
+        </button>
+
         {/* Mobile: so icone */}
         <Link
           href="/emprestimos/novo"
@@ -266,6 +309,20 @@ export function Topbar() {
               >
                 <X size={20} />
               </button>
+            </div>
+            <div className="px-3 pt-2 pb-3 border-b border-slate-100">
+              <form onSubmit={(e) => { 
+                e.preventDefault(); 
+                const v = (e.currentTarget.elements.namedItem('q-drawer') as HTMLInputElement).value; 
+                if (v) {
+                  router.push(`/clientes?busca=${encodeURIComponent(v)}`); 
+                  setMobileMenuOpen(false);
+                }
+              }} className="relative w-full">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input name="q-drawer" type="text" placeholder="Pesquisar clientes..." 
+                  className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all" />
+              </form>
             </div>
             <nav className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">
               <p className="px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Menu Completo</p>

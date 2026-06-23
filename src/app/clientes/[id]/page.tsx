@@ -214,7 +214,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
 
           {/* NEGOCIAÇÕES EM ABERTO */}
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+            <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">Negociações em Aberto</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -224,7 +224,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                   )}
                 </p>
               </div>
-              <div className="flex items-center gap-4 text-right shrink-0">
+              <div className="flex items-center gap-4 text-left sm:text-right flex-wrap sm:flex-nowrap">
                 <div>
                   <p className="text-[10px] text-slate-400">Parcelas</p>
                   <p className="text-sm font-bold text-slate-900 tabular-nums">{formatarMoeda(totalParcelasBase)}</p>
@@ -379,7 +379,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                   const pct   = e.numParcelas > 0 ? (pagas / e.numParcelas) * 100 : 0;
                   return (
                     <Link key={e.id} href={`/emprestimos/${e.id}`}
-                      className="flex items-start gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
+                      className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <StatusBadge status={e.status as any}/>
@@ -389,7 +389,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                           <span className="text-sm font-bold text-slate-900">{formatarMoeda(e.valorTotal)}</span>
                           <span className="text-xs text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">{e.taxaJuros}% · {e.numParcelas}x</span>
                         </div>
-                        <div className="flex items-center gap-4 flex-wrap mt-2">
+                        <div className="grid grid-cols-2 xs:flex xs:items-center gap-4 mt-2">
                           <div>
                             <p className="text-[10px] text-slate-400">Capital Emprestado</p>
                             <p className="text-xs font-semibold text-slate-700">{formatarMoeda(e.valorPrincipal)}</p>
@@ -408,13 +408,15 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                           </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0 w-24">
-                        <p className="text-xs text-slate-500 mb-1">{pagas}/{e.numParcelas} pagas</p>
-                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mb-1">
-                          <div className="h-full rounded-full bg-slate-800 transition-all" style={{ width: `${pct}%` }}/>
+                      <div className="text-left sm:text-right shrink-0 w-full sm:w-24 pt-3 sm:pt-0 border-t border-slate-50 sm:border-t-0 flex flex-row sm:flex-col items-center justify-between sm:justify-start gap-2">
+                        <div className="w-full sm:w-auto">
+                          <p className="text-xs text-slate-500 mb-1">{pagas}/{e.numParcelas} pagas</p>
+                          <div className="h-1.5 w-full sm:w-24 rounded-full bg-slate-100 overflow-hidden mb-1">
+                            <div className="h-full rounded-full bg-slate-800 transition-all" style={{ width: `${pct}%` }}/>
+                          </div>
                         </div>
                         {e.status === "QUITADO" && (
-                          <p className="text-[10px] font-bold text-emerald-500 mt-2 flex items-center justify-end gap-1">
+                          <p className="text-[10px] font-bold text-emerald-500 flex items-center justify-end gap-1 shrink-0 mt-2">
                             <CheckCircle size={10} /> Quitado
                           </p>
                         )}
