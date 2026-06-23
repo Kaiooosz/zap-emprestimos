@@ -2,14 +2,38 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, DollarSign, CheckCircle, Banknote, Smartphone } from "lucide-react";
+import { MessageCircle, DollarSign, CheckCircle, Banknote, Smartphone, Edit2 } from "lucide-react";
 import { Parcela } from "@/lib/store";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ModalPagamento } from "@/components/emprestimos/ModalPagamento";
 import { ModalEditarPagamento } from "@/components/emprestimos/ModalEditarPagamento";
+import { ModalEditarContrato } from "@/components/emprestimos/ModalEditarContrato";
 import { formatarMoeda, formatarData, obterMeiaNoiteBR } from "@/lib/utils";
 
+interface ParcelaData {
+  id: string;
+  numero: number;
+  valorDevido: number;
+  dataVencimento: string;
+  status: string;
+}
+
+interface EmprestimoData {
+  id: string;
+  status: string;
+  dataInicio: string;
+  dataVencimento: string;
+  taxaJuros: number;
+  taxaAtraso: number;
+  valorPrincipal: number;
+  valorTotal: number;
+  numParcelas: number;
+  observacoes?: string | null;
+  parcelas: ParcelaData[];
+}
+
 interface Props {
+  emprestimo: EmprestimoData;
   parcelas: Parcela[];
   saldoDevedor: number;
   clientePhone: string;
@@ -41,10 +65,11 @@ function iconMeio(tipo: string) {
 }
 
 export function DetalheEmprestimoClient({
-  parcelas, saldoDevedor, clientePhone, clienteNome, taxaJuros, dataInicio, regraAtraso, taxaAtraso, tipoTaxaAtraso
+  emprestimo, parcelas, saldoDevedor, clientePhone, clienteNome, taxaJuros, dataInicio, regraAtraso, taxaAtraso, tipoTaxaAtraso
 }: Props) {
   const [modalParcela, setModalParcela] = useState<Parcela | null>(null);
   const [modalEditarParcela, setModalEditarParcela] = useState<Parcela | null>(null);
+  const [showEditContrato, setShowEditContrato] = useState(false);
   const router = useRouter();
 
   function buildMsg(p: Parcela) {
@@ -85,8 +110,17 @@ export function DetalheEmprestimoClient({
       )}
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">Parcelas</h2>
+        <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">Parcelas</h2>
+            <button
+              onClick={() => setShowEditContrato(true)}
+              className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-slate-600 hover:border-slate-300 hover:text-slate-800 transition-all cursor-pointer"
+            >
+              <Edit2 size={10} />
+              Editar Contrato
+            </button>
+          </div>
           <span className="text-xs text-slate-500">
             Saldo: <span className="font-bold text-slate-900">{formatarMoeda(saldoDevedor)}</span>
           </span>
@@ -267,6 +301,13 @@ export function DetalheEmprestimoClient({
         <ModalEditarPagamento
           parcela={modalEditarParcela}
           onClose={() => setModalEditarParcela(null)}
+        />
+      )}
+
+      {showEditContrato && (
+        <ModalEditarContrato
+          emprestimo={emprestimo}
+          onClose={() => setShowEditContrato(false)}
         />
       )}
     </>

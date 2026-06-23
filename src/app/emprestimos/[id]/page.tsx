@@ -66,6 +66,26 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
     .filter((p) => ["PENDENTE","ATRASADO","PARCIAL"].includes(p.status))
     .reduce((s, p) => s + p.valorDevido, 0);
 
+  const emprestimoObj = {
+    id: e.id,
+    status: e.status,
+    dataInicio: e.dataInicio instanceof Date ? e.dataInicio.toISOString() : String(e.dataInicio),
+    dataVencimento: e.dataVencimento instanceof Date ? e.dataVencimento.toISOString() : String(e.dataVencimento),
+    taxaJuros: e.taxaJuros,
+    taxaAtraso: e.taxaAtraso,
+    valorPrincipal: e.valorPrincipal,
+    valorTotal: e.valorTotal,
+    numParcelas: e.numParcelas,
+    observacoes: e.observacoes,
+    parcelas: parcelas.map((p) => ({
+      id: p.id,
+      numero: p.numero,
+      valorDevido: p.valorDevido,
+      dataVencimento: p.dataVencimento,
+      status: p.status,
+    })),
+  };
+
   const infoCards = [
     { label: "Tipo de Operação",  value: tipoProdutoLabel[e.tipoProduto] ?? e.tipoProduto },
     { label: "Modalidade de Juros", value: modalidadeLabel[e.modalidadeJuros] ?? e.modalidadeJuros },
@@ -126,6 +146,7 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
 
           {/* Parcelas — client component para o modal */}
           <DetalheEmprestimoClient
+            emprestimo={emprestimoObj}
             parcelas={parcelas}
             saldoDevedor={saldoDevedor}
             clientePhone={cliente?.phone ?? ""}

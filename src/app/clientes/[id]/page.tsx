@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreGauge } from "@/components/clientes/ScoreGauge";
 import { formatarMoeda, formatarData, obterMeiaNoiteBR } from "@/lib/utils";
 import { getPontosLabel, getFaixa } from "@/lib/score/calcularScore";
+import { ContratosListClient } from "@/components/clientes/ContratosListClient";
 import { decryptCliente } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +41,20 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
     valorPrincipal: Number(e.valorPrincipal),
     valorTotal: Number(e.valorTotal),
     taxaJuros: Number(e.taxaJuros),
+    taxaAtraso: Number(e.taxaAtraso),
     totalJuros: Number(e.totalJuros),
     valorGarantia: e.valorGarantia ? Number(e.valorGarantia) : null,
+    dataInicio: e.dataInicio.toISOString(),
+    dataVencimento: e.dataVencimento.toISOString(),
+    parcelas: e.parcelas.map(p => ({
+      ...p,
+      valorDevido: Number(p.valorDevido),
+      valorPago: p.valorPago ? Number(p.valorPago) : 0,
+      valorPrincipal: Number(p.valorPrincipal),
+      valorJuros: Number(p.valorJuros),
+      dataVencimento: p.dataVencimento.toISOString(),
+      dataPagamento: p.dataPagamento ? p.dataPagamento.toISOString() : null,
+    })),
   }));
 
   const scoreData = {
@@ -369,60 +382,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
             {emprestimos.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-8">Nenhum contrato</p>
             ) : (
-              <div className="divide-y divide-slate-50">
-                {emprestimos.map((e) => {
-                  const pagas = e.parcelas.filter((p) => p.status === "PAGO").length;
-                  const valorPago = e.parcelas.filter((p) => p.status === "PAGO").reduce((s, p) => s + Number(p.valorDevido), 0);
-                  const saldoContrato = e.parcelas.filter((p) => ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status)).reduce((s, p) => s + Number(p.valorDevido), 0);
-                  const pct   = e.numParcelas > 0 ? (pagas / e.numParcelas) * 100 : 0;
-                  return (
-                    <Link key={e.id} href={`/emprestimos/${e.id}`}
-                      className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <StatusBadge status={e.status as any}/>
-                          <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-full">{formatarData(e.dataInicio)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-sm font-bold text-slate-900">{formatarMoeda(e.valorTotal)}</span>
-                          <span className="text-xs text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">{e.taxaJuros}% · {e.numParcelas}x</span>
-                        </div>
-                        <div className="grid grid-cols-2 xs:flex xs:items-center gap-4 mt-2">
-                          <div>
-                            <p className="text-[10px] text-slate-400">Capital Emprestado</p>
-                            <p className="text-xs font-semibold text-slate-700">{formatarMoeda(e.valorPrincipal)}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-slate-400">Total de Juros</p>
-                            <p className="text-xs font-semibold text-slate-700">{formatarMoeda(e.totalJuros)}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-slate-400">Já Recebido</p>
-                            <p className="text-xs font-semibold text-emerald-600">{formatarMoeda(valorPago)}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-slate-400">Saldo Devedor</p>
-                            <p className="text-xs font-semibold text-red-600">{formatarMoeda(saldoContrato)}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-left sm:text-right shrink-0 w-full sm:w-24 pt-3 sm:pt-0 border-t border-slate-50 sm:border-t-0 flex flex-row sm:flex-col items-center justify-between sm:justify-start gap-2">
-                        <div className="w-full sm:w-auto">
-                          <p className="text-xs text-slate-500 mb-1">{pagas}/{e.numParcelas} pagas</p>
-                          <div className="h-1.5 w-full sm:w-24 rounded-full bg-slate-100 overflow-hidden mb-1">
-                            <div className="h-full rounded-full bg-slate-800 transition-all" style={{ width: `${pct}%` }}/>
-                          </div>
-                        </div>
-                        {e.status === "QUITADO" && (
-                          <p className="text-[10px] font-bold text-emerald-500 flex items-center justify-end gap-1 shrink-0 mt-2">
-                            <CheckCircle size={10} /> Quitado
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
+              <ContratosListClient emprestimos={emprestimos as any} />
             )}
           </div>
 
