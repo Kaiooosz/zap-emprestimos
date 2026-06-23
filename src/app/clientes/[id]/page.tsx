@@ -1,46 +1,83 @@
 import Link from "next/link";
 import { ArrowLeft, Phone, Mail, MapPin, Plus, ArrowUp, ArrowDown, MessageCircle, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { notFound } from "next/navigation";
-import { store } from "@/lib/store";
+import { prisma } from "@/lib/prisma";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreGauge } from "@/components/clientes/ScoreGauge";
 import { formatarMoeda, formatarData } from "@/lib/utils";
 import { getPontosLabel, getFaixa } from "@/lib/score/calcularScore";
-import { decryptCliente } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 
-const TAXA_DIARIA_ATRASO = 1; // 1% ao dia
+const TAXA_DIARIA_ATRASO = 1; // 1% ao dia (fallback, o ideal é puxar da config, mas mantendo a lógica da tela)
 
 export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const cRaw = store.clientes.get(id);
-  if (!cRaw) notFound();
-  const c = decryptCliente(cRaw);
+
+  const c = await prisma.cliente.findUnique({
+    where: { id },
+    include: {
+      emprestimos: {
+        where: { status: { not: "CANCELADO" } },
+        include: { parcelas: true },
+        orderBy: { createdAt: "desc" }
+      },
+      scoreHistorico: {
+        orderBy: { data: "desc" }
+      }
+    }
+  });
+
+  if (!c) notFound();
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  const emprestimos     = store.emprestimos.list(id);
-  const scoreData       = store.clientes.getScore(id);
+  const emprestimos = c.emprestimos.map(e => ({
+    ...e,
+    valorPrincipal: Number(e.valorPrincipal),
+    valorTotal: Number(e.valorTotal),
+    taxaJuros: Number(e.taxaJuros),
+    totalJuros: Number(e.totalJuros),
+    valorGarantia: e.valorGarantia ? Number(e.valorGarantia) : null,
+  }));
+
+  const scoreData = {
+    score: c.score,
+    eventos: c.scoreHistorico
+  };
+
   const totalEmprestado = emprestimos.reduce((s, e) => s + e.valorPrincipal, 0);
-  const parcelasPagas   = emprestimos.flatMap((e) => store.parcelas.list(e.id).filter((p) => p.status === "PAGO")).length;
-  const totalParcelas   = emprestimos.flatMap((e) => store.parcelas.list(e.id)).length;
+  const parcelasPagas   = emprestimos.flatMap((e) => e.parcelas.filter((p) => p.status === "PAGO")).length;
+  const totalParcelas   = emprestimos.flatMap((e) => e.parcelas).length;
   const adimplencia     = totalParcelas > 0 ? Math.round((parcelasPagas / totalParcelas) * 100) : 0;
 
   // Parcelas em aberto com juros de atraso calculados
   const parcelasAbertas = emprestimos
-    .filter((e) => e.status !== "CANCELADO")
     .flatMap((e) =>
-      store.parcelas.list(e.id)
+      e.parcelas
         .filter((p) => ["PENDENTE","ATRASADO","PARCIAL"].includes(p.status))
-        .map((p) => {
+        .map((pRaw) => {
+          const p = {
+            ...pRaw,
+            valorDevido: Number(pRaw.valorDevido),
+            valorPago: Number(pRaw.valorPago || 0),
+            valorPrincipal: Number(pRaw.valorPrincipal),
+            valorJuros: Number(pRaw.valorJuros),
+          };
           const venc = new Date(p.dataVencimento);
           venc.setHours(0, 0, 0, 0);
           const diff        = Math.floor((venc.getTime() - hoje.getTime()) / 86400000);
           const diasAtraso  = diff < 0 ? Math.abs(diff) : 0;
+          const taxaDiaria  = Number(e.taxaAtraso ?? TAXA_DIARIA_ATRASO);
+          const regra       = e.regraAtraso ?? "PARCELA";
+          
+          const baseCalculo = regra === "SALDO" 
+            ? Math.max(0, p.valorDevido - p.valorPago) 
+            : p.valorDevido;
+
           const jurosAtraso = diasAtraso > 0
-            ? Number((p.valorDevido * diasAtraso * TAXA_DIARIA_ATRASO / 100).toFixed(2))
+            ? Number((baseCalculo * diasAtraso * taxaDiaria / 100).toFixed(2))
             : 0;
           const totalComJuros = Number((p.valorDevido + jurosAtraso).toFixed(2));
           return { ...p, emprestimo: e, diff, diasAtraso, jurosAtraso, totalComJuros };
@@ -104,7 +141,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
               )}
               {c.email    && <div className="flex items-center gap-2 text-xs text-slate-500"><Mail   size={12} className="text-slate-400 shrink-0"/>{c.email}</div>}
               {c.cidade   && <div className="flex items-center gap-2 text-xs text-slate-500"><MapPin size={12} className="text-slate-400 shrink-0"/>{c.cidade}{c.estado ? `, ${c.estado}` : ""}</div>}
-              {c.profissao && <p className="text-xs text-slate-500">{c.profissao}{c.rendaMensal ? ` — ${formatarMoeda(c.rendaMensal)}/mês` : ""}</p>}
+              {c.profissao && <p className="text-xs text-slate-500">{c.profissao}{c.rendaMensal ? ` — ${formatarMoeda(Number(c.rendaMensal))}/mês` : ""}</p>}
             </div>
             <p className="text-[10px] text-slate-400 mt-3">Cliente desde {formatarData(c.createdAt)}</p>
           </div>
@@ -220,7 +257,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                           ? `Olá *${c.nome}*!\n\nSua parcela *${p.numero}/${p.emprestimo.numParcelas}* está em atraso há *${p.diasAtraso} dia${p.diasAtraso !== 1 ? "s" : ""}*.\n\n` +
                             `📋 *Detalhamento:*\n` +
                             `• Parcela original: *${formatarMoeda(p.valorDevido)}*\n` +
-                            `• Juros de atraso (${p.diasAtraso}d × ${TAXA_DIARIA_ATRASO}%/dia): *${formatarMoeda(p.jurosAtraso)}*\n` +
+                            `• Juros de atraso (${p.diasAtraso}d): *${formatarMoeda(p.jurosAtraso)}*\n` +
                             `• *Total a pagar: ${formatarMoeda(p.totalComJuros)}*\n\n` +
                             `Por favor, regularize o quanto antes.\n\n_Zap Empréstimos_`
                           : `Olá *${c.nome}*!\n\nSua parcela *${p.numero}/${p.emprestimo.numParcelas}* de *${formatarMoeda(p.valorDevido)}* vence ${isHoje ? "*hoje*" : `em *${diasAte} dia${diasAte !== 1 ? "s" : ""}*`} (${formatarData(p.dataVencimento)}).\n\nEvite atrasos e juros adicionais!\n\n_Zap Empréstimos_`
@@ -270,7 +307,7 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                               <>
                                 <span className="text-[10px] text-slate-400">+</span>
                                 <span className="text-xs text-slate-500">
-                                  Juros ({p.diasAtraso}d × {TAXA_DIARIA_ATRASO}%):&nbsp;
+                                  Juros atraso:&nbsp;
                                   <span className="font-semibold text-slate-700 tabular-nums">{formatarMoeda(p.jurosAtraso)}</span>
                                 </span>
                                 <span className="text-[10px] text-slate-400">=</span>
@@ -333,16 +370,16 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
             ) : (
               <div className="divide-y divide-slate-50">
                 {emprestimos.map((e) => {
-                  const pagas = store.parcelas.list(e.id).filter((p) => p.status === "PAGO").length;
-                  const valorPago = store.parcelas.list(e.id).filter((p) => p.status === "PAGO").reduce((s, p) => s + p.valorDevido, 0);
-                  const saldoContrato = store.parcelas.list(e.id).filter((p) => ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status)).reduce((s, p) => s + p.valorDevido, 0);
+                  const pagas = e.parcelas.filter((p) => p.status === "PAGO").length;
+                  const valorPago = e.parcelas.filter((p) => p.status === "PAGO").reduce((s, p) => s + Number(p.valorDevido), 0);
+                  const saldoContrato = e.parcelas.filter((p) => ["PENDENTE", "ATRASADO", "PARCIAL"].includes(p.status)).reduce((s, p) => s + Number(p.valorDevido), 0);
                   const pct   = e.numParcelas > 0 ? (pagas / e.numParcelas) * 100 : 0;
                   return (
                     <Link key={e.id} href={`/emprestimos/${e.id}`}
                       className="flex items-start gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <StatusBadge status={e.status}/>
+                          <StatusBadge status={e.status as any}/>
                           <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-full">{formatarData(e.dataInicio)}</span>
                         </div>
                         <div className="flex items-center gap-2 mb-2">
@@ -373,9 +410,9 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
                         <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mb-1">
                           <div className="h-full rounded-full bg-slate-800 transition-all" style={{ width: `${pct}%` }}/>
                         </div>
-                        {e.status === "CONCLUIDO" && (
+                        {e.status === "QUITADO" && (
                           <p className="text-[10px] font-bold text-emerald-500 mt-2 flex items-center justify-end gap-1">
-                            <CheckCircle size={10} /> Concluído
+                            <CheckCircle size={10} /> Quitado
                           </p>
                         )}
                       </div>
@@ -426,9 +463,9 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{c.tipoGarantia}</p>
-                  {c.descricaoGarantia && <p className="text-xs text-slate-500 mt-0.5">{c.descricaoGarantia}</p>}
+                  {c.descGarantia && <p className="text-xs text-slate-500 mt-0.5">{c.descGarantia}</p>}
                 </div>
-                {c.valorGarantia && <p className="text-sm font-bold text-slate-900 shrink-0">{formatarMoeda(c.valorGarantia)}</p>}
+                {c.valorGarantia && <p className="text-sm font-bold text-slate-900 shrink-0">{formatarMoeda(Number(c.valorGarantia))}</p>}
               </div>
             </div>
           )}

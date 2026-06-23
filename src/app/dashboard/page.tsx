@@ -264,12 +264,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   });
 
   const capitalAReceberTotal = parcelasAbertas.reduce((s, p) => s + toN(p.valorPrincipal), 0);
-  const capitalRecuperado = parcelasRaw
-    .filter((p) => p.status === "PAGO")
-    .reduce((s, p) => s + toN(p.valorPrincipal), 0);
+  
+  const totalPrincipalEmprestado = empsRaw.reduce((s, e) => s + toN(e.valorPrincipal), 0);
+  const capitalRecuperado = totalPrincipalEmprestado - capitalAReceberTotal;
 
   const faturamentoTotal = parcelasRaw
-    .filter((p) => p.status === "PAGO")
+    .filter((p) => p.status === "PAGO" || p.status === "PARCIAL")
     .reduce((s, p) => s + toN(p.valorPago), 0);
 
   const data = {
@@ -365,8 +365,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           { label: "Vence Hoje",          value: `${data.projecoes.venceHoje.count} parc.`,         sub: formatarMoeda(data.projecoes.venceHoje.valor), href: "/cobrancas" },
           { label: "Capital a Receber (Mês)", value: formatarMoeda(data.projecoes.capitalAReceberMensal), sub: "Retorno do principal neste mês", href: "/relatorios" },
           { label: "Capital a Receber (Total)", value: formatarMoeda(data.projecoes.capitalAReceberTotal), sub: "Total pendente do principal", href: "/relatorios" },
-          { label: "Capital Recuperado (Já voltou)",   value: formatarMoeda(data.projecoes.capitalRecuperado),    sub: "Total retornado do principal", href: "/relatorios" },
-          { label: "Retorno de Faturamento", value: formatarMoeda(data.projecoes.capitalInvestidoVsRetorno.retorno), sub: `vs ${formatarMoeda(data.projecoes.capitalInvestidoVsRetorno.investido)} invest.`, href: "/relatorios" },
+          { label: "Capital Recuperado",   value: formatarMoeda(data.projecoes.capitalRecuperado),    sub: "Valor investido que já retornou", href: "/relatorios" },
+          { label: "Faturamento Bruto", value: formatarMoeda(data.projecoes.capitalInvestidoVsRetorno.retorno), sub: "Total de tudo que já foi pago", href: "/relatorios" },
         ].map(({ label, value, sub, href }) => {
           const content = (
             <>

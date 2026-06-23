@@ -69,6 +69,7 @@ function NovoEmprestimoInner() {
   const [step,      setStep]      = useState(0);   // 0=tipo, 1=dados, 2=garantias, 3=revisão
   const [loading,   setLoading]   = useState(false);
   const [clientes,  setClientes]  = useState<Array<{ id: string; nome: string; score: number; phone: string; taxaPadrao?: number }>>([]);
+  const [buscaCliente, setBuscaCliente] = useState("");
 
   // Passo 0 — tipo
   const [tipoOp, setTipoOp] = useState<TipoOp>("EMPRESTIMO");
@@ -124,6 +125,12 @@ function NovoEmprestimoInner() {
   useEffect(() => {
     fetch("/api/clientes").then((r) => r.json()).then(setClientes);
   }, []);
+
+  const clientesFiltrados = useMemo(() => {
+    if (!buscaCliente.trim()) return clientes;
+    const term = buscaCliente.toLowerCase();
+    return clientes.filter(c => c.nome.toLowerCase().includes(term));
+  }, [clientes, buscaCliente]);
 
   // Recalcula o número de parcelas a partir da parcela alvo
   const handleParcelaAlvoChange = (val: number | "") => {
@@ -321,6 +328,13 @@ function NovoEmprestimoInner() {
               {/* Cliente */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cliente</p>
+                <input
+                  type="text"
+                  placeholder="Pesquisar cliente pelo nome..."
+                  value={buscaCliente}
+                  onChange={(e) => setBuscaCliente(e.target.value)}
+                  className="w-full mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-500"
+                />
                 <select value={clienteId} onChange={(e) => {
                   const cid = e.target.value;
                   setClienteId(cid);
@@ -331,7 +345,7 @@ function NovoEmprestimoInner() {
                 }} required
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-500">
                   <option value="">Selecione um cliente...</option>
-                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome} — Score {c.score} — {c.phone}</option>)}
+                  {clientesFiltrados.map((c) => <option key={c.id} value={c.id}>{c.nome} — Score {c.score} — {c.phone}</option>)}
                 </select>
                 <div className="mt-2 text-right">
                   <Link href="/clientes/novo" className="text-xs text-slate-500 hover:text-slate-900 underline">+ Cadastrar novo cliente</Link>

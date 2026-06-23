@@ -390,6 +390,65 @@ export function CobrancasClient({
     }
   }
 
+  async function novoTemplate() {
+    const nome = prompt("Nome do novo template:");
+    if (!nome) return;
+    try {
+      const res = await fetch("/api/configuracoes/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "CREATE", nome, conteudo: "Novo template..." }),
+      });
+      if (res.ok) {
+        const t = await res.json();
+        setTemplates(prev => [...prev, t]);
+        setTemplateSel(t.id);
+        setTemplateConteudo(t.conteudo);
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  async function renomearTemplate() {
+    if (!templateSel) return;
+    const t = templates.find(x => x.id === templateSel);
+    if (!t) return;
+    const nome = prompt("Novo nome:", t.nome);
+    if (!nome || nome === t.nome) return;
+    try {
+      const res = await fetch("/api/configuracoes/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "RENAME", id: templateSel, nome }),
+      });
+      if (res.ok) {
+        setTemplates(prev => prev.map(x => x.id === templateSel ? { ...x, nome } : x));
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  async function excluirTemplate() {
+    if (!templateSel) return;
+    if (!confirm("Tem certeza que deseja excluir este template?")) return;
+    try {
+      const res = await fetch("/api/configuracoes/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "DELETE", id: templateSel }),
+      });
+      if (res.ok) {
+        setTemplates(prev => prev.filter(x => x.id !== templateSel));
+        const rest = templates.filter(x => x.id !== templateSel);
+        if (rest.length > 0) {
+          setTemplateSel(rest[0].id);
+          setTemplateConteudo(rest[0].conteudo);
+        } else {
+          setTemplateSel("");
+          setTemplateConteudo("");
+        }
+      }
+    } catch (e) { console.error(e); }
+  }
+
   const atrasados = pendentes.filter((p) => p.status === "ATRASADO").length;
   const pendenteCount = pendentes.filter((p) => p.status === "PENDENTE").length;
 
@@ -626,21 +685,22 @@ export function CobrancasClient({
                             <StatusBadge status={p.status as any}/>
                           </div>
 
-                          <div className="text-right shrink-0 hidden sm:block w-24">
-                            {p.diasAtraso > 0 ? (
-                              <div className="flex items-center justify-end gap-1 text-xs text-red-500 font-semibold mb-1">
-                                <AlertTriangle size={11}/>
-                                {p.diasAtraso}d atraso
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-end gap-1 text-xs text-slate-500 mb-1">
+                          <div className="text-right shrink-0 w-28">
+                            <div className="flex flex-col items-end gap-0.5 mb-1.5">
+                              <div className="flex items-center justify-end gap-1 text-xs font-semibold text-slate-600">
                                 <Clock size={11}/>
                                 {formatarData(p.dataVencimento)}
                               </div>
-                            )}
+                              {p.diasAtraso > 0 && (
+                                <div className="flex items-center justify-end gap-1 text-[10px] text-red-500 font-bold bg-red-50 px-1.5 py-0.5 rounded">
+                                  <AlertTriangle size={10}/>
+                                  {p.diasAtraso}d atraso
+                                </div>
+                              )}
+                            </div>
                             <button
                               onClick={(e) => { e.stopPropagation(); setParcelaParaPagar(p); }}
-                              className="w-full rounded bg-blue-50 border border-blue-200 py-1 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+                              className="w-full rounded bg-blue-50 border border-blue-200 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
                             >
                               Dar Baixa
                             </button>
@@ -832,13 +892,28 @@ export function CobrancasClient({
               <p className="text-xs text-slate-400 mt-0.5">Customize e escreva os modelos de mensagem e cobrança</p>
             </div>
             
-            <select
-              value={templateSel}
-              onChange={(e) => onTemplateChange(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-slate-400 cursor-pointer"
-            >
-              {templates.map((t) => <option key={t.id} value={t.id}>{t.nome} {t.ativo ? "" : "(Inativo)"}</option>)}
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                value={templateSel}
+                onChange={(e) => onTemplateChange(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-slate-400 cursor-pointer w-48"
+              >
+                {templates.map((t) => <option key={t.id} value={t.id}>{t.nome} {t.ativo ? "" : "(Inativo)"}</option>)}
+              </select>
+              <button onClick={novoTemplate} className="rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors">
+                Novo
+              </button>
+              {templateSel && (
+                <>
+                  <button onClick={renomearTemplate} className="rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors">
+                    Renomear
+                  </button>
+                  <button onClick={excluirTemplate} className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
+                    Excluir
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

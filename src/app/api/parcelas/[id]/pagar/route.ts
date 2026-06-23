@@ -96,7 +96,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const operadorNome = session?.nome ?? "Sistema";
 
     // Acumula histórico de entradas parciais
-    const entradasAntigas: any[] = JSON.parse((parcela as any).entradas ?? "[]");
+    let entradasAntigas: any[] = [];
+    try {
+      if ((parcela as any).entradas) {
+        entradasAntigas = JSON.parse((parcela as any).entradas);
+      }
+    } catch (err) {
+      entradasAntigas = [];
+    }
     const novaEntrada = {
       id: `ENT-${Date.now()}`,
       valor: Number(valorPago.toFixed(2)),
@@ -106,6 +113,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       modo,
     };
     const entradasAtualizadas = [...entradasAntigas, novaEntrada];
+
+    // Lógica de Rolagem: Se pagou apenas juros, joga a parcela pra frente (mesmo se for parcelado)
+    let novaDataVencimento = parcela.dataVencimento;
+    if (modo === "SOMENTE_JUROS") {
+      const tipo = parcela.emprestimo.tipo; // DIARIO, SEMANAL, QUINZENAL, MENSAL
+      const proxVenc = new Date(parcela.dataVencimento);
+      if (tipo === "MENSAL") proxVenc.setMonth(proxVenc.getMonth() + 1);
+      else if (tipo === "QUINZENAL") proxVenc.setDate(proxVenc.getDate() + 15);
+      else if (tipo === "SEMANAL") proxVenc.setDate(proxVenc.getDate() + 7);
+      else if (tipo === "DIARIO") proxVenc.setDate(proxVenc.getDate() + 1);
+      
+      novaDataVencimento = proxVenc;
+      novoStatus = "PENDENTE"; // Volta a ser PENDENTE pois o prazo foi rolado
+    }
 
     // Atualiza parcela
     const updated = await prisma.parcela.update({
@@ -119,66 +140,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         valorPrincipal:  novoPrincipal,
         valorJuros:      novoJuros,
         valorDevido:     novoDevido,
+        dataVencimento:  novaDataVencimento, // Atualiza se rolou o juros
         formasPagamento: JSON.stringify(formasPagamento),
         entradas:        JSON.stringify(entradasAtualizadas),
       },
     });
 
-    // Se for rolável e pagou apenas juros, gera a próxima parcela pendente para renovação
+    // Se for rolável e pagou apenas juros, gera a próxima parcela pendente para renovação.
+    // Como agora empurramos a parcela atual pra frente (novaDataVencimento), no caso rolável podemos manter a mesma parcela, não precisamos criar uma duplicada, pois ela é 1/1.
+    // Mas para manter compatibilidade:
     if (isRolavel && modo === "SOMENTE_JUROS") {
-      const proxVenc = new Date(parcela.dataVencimento);
-      const tipo = parcela.emprestimo.tipo; // DIARIO, SEMANAL, QUINZENAL, MENSAL
-      
-      if (tipo === "MENSAL") {
-        proxVenc.setMonth(proxVenc.getMonth() + 1);
-        if (parcela.emprestimo.vencimentoDiaUtil && parcela.emprestimo.diaVencimento) {
-          proxVenc.setDate(1);
-          let count = 0;
-          while (count < parcela.emprestimo.diaVencimento) {
-            const dayOfWeek = proxVenc.getDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-              count++;
-            }
-            if (count < parcela.emprestimo.diaVencimento) {
-              proxVenc.setDate(proxVenc.getDate() + 1);
-            }
-          }
-        } else if (parcela.emprestimo.diaVencimento) {
-          const targetMonth = proxVenc.getMonth();
-          proxVenc.setDate(parcela.emprestimo.diaVencimento);
-          if (proxVenc.getMonth() !== targetMonth) {
-            proxVenc.setDate(0);
-          }
-        } else {
-          const day = new Date(parcela.dataVencimento).getDate();
-          if (proxVenc.getDate() !== day) {
-            proxVenc.setDate(0);
-          }
-        }
-      } else if (tipo === "QUINZENAL") {
-        proxVenc.setDate(proxVenc.getDate() + 15);
-      } else if (tipo === "SEMANAL") {
-        proxVenc.setDate(proxVenc.getDate() + 7);
-      } else if (tipo === "DIARIO") {
-        proxVenc.setDate(proxVenc.getDate() + 1);
-      }
-
-      await prisma.parcela.create({
-        data: {
-          emprestimoId:   parcela.emprestimoId,
-          numero:         parcela.numero + 1,
-          valorDevido:    parcela.valorDevido,
-          valorPrincipal: parcela.valorPrincipal,
-          valorJuros:     parcela.valorJuros,
-          status:         "PENDENTE",
-          dataVencimento: proxVenc,
-        },
-      });
-
       // Atualiza dataVencimento final do empréstimo para o novo vencimento
       await prisma.emprestimo.update({
         where: { id: parcela.emprestimoId },
-        data: { dataVencimento: proxVenc },
+        data: { dataVencimento: novaDataVencimento },
       });
     }
 

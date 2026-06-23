@@ -1,15 +1,38 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-/**
- * POST /api/configuracoes/templates
- * Propósito: Atualiza o conteúdo textual de um template de mensagem de cobrança persistido no banco de dados (tabela Template).
- * Recebe: { id: string, conteudo: string }
- */
 export async function POST(request: Request) {
   try {
-    const { id, conteudo } = await request.json();
+    const { action, id, conteudo, nome } = await request.json();
 
+    if (action === "CREATE") {
+      const newTemplate = await prisma.template.create({
+        data: {
+          id: `tpl_${Date.now()}`,
+          nome: nome || "Novo Template",
+          conteudo: conteudo || "",
+          ativo: true,
+        },
+      });
+      return NextResponse.json(newTemplate);
+    }
+
+    if (action === "RENAME") {
+      const template = await prisma.template.update({
+        where: { id },
+        data: { nome },
+      });
+      return NextResponse.json(template);
+    }
+
+    if (action === "DELETE") {
+      await prisma.template.delete({
+        where: { id },
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    // Default UPDATE
     if (!id || typeof conteudo !== "string") {
       return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
     }
