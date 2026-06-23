@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ScoreGauge } from "@/components/clientes/ScoreGauge";
 import { formatarMoeda, formatarData } from "@/lib/utils";
 import { getPontosLabel, getFaixa } from "@/lib/score/calcularScore";
+import { decryptCliente } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ const TAXA_DIARIA_ATRASO = 1; // 1% ao dia (fallback, o ideal é puxar da config
 export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const c = await prisma.cliente.findUnique({
+  const rawC = await prisma.cliente.findUnique({
     where: { id },
     include: {
       emprestimos: {
@@ -28,7 +29,9 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
     }
   });
 
-  if (!c) notFound();
+  if (!rawC) notFound();
+
+  const c = { ...decryptCliente(rawC), emprestimos: rawC.emprestimos, scoreHistorico: rawC.scoreHistorico };
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
