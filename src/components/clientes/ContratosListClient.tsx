@@ -11,7 +11,11 @@ interface ParcelaData {
   id: string;
   numero: number;
   valorDevido: number;
+  valorPrincipal: number;
+  valorJuros: number;
+  valorPago?: number | null;
   dataVencimento: string;
+  dataPagamento?: string | null;
   status: string;
 }
 

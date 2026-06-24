@@ -81,7 +81,11 @@ export default async function EmprestimoPage({ params }: { params: Promise<{ id:
       id: p.id,
       numero: p.numero,
       valorDevido: p.valorDevido,
+      valorPrincipal: p.valorPrincipal,
+      valorJuros: p.valorJuros,
+      valorPago: p.valorPago,
       dataVencimento: p.dataVencimento,
+      dataPagamento: p.dataPagamento,
       status: p.status,
     })),
   };
