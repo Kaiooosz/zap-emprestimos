@@ -65,7 +65,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: "Parcela não encontrada" }, { status: 404 });
     }
 
-    if (parcela.status === "PENDENTE" && (!parcela.valorPago || Number(parcela.valorPago) === 0)) {
+    if (!parcela.valorPago || Number(parcela.valorPago) === 0) {
       return NextResponse.json({ error: "Esta parcela não possui pagamentos para estornar." }, { status: 400 });
     }
 
@@ -89,6 +89,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     let novasEntradas: string | null = null;
     let novasFormasPagamento: string | null = parcela.formasPagamento;
     let valorEstornado = 0;
+    let novoVencimento = parcela.dataVencimento;
+    let dataVencimentoRestaurada: Date | null = null;
 
     if (entradas.length > 0) {
       const ultimaEntrada = entradas[entradas.length - 1];
@@ -100,6 +102,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         novoJuros = Number(ultimaEntrada.valoresAnteriores.valorJuros);
         novoDevido = Number(ultimaEntrada.valoresAnteriores.valorDevido);
         novoStatus = ultimaEntrada.valoresAnteriores.status;
+        if (ultimaEntrada.valoresAnteriores.dataVencimento) {
+          novoVencimento = new Date(ultimaEntrada.valoresAnteriores.dataVencimento);
+          dataVencimentoRestaurada = novoVencimento;
+        }
       } else {
         // Fallback para histórico antigo
         if (entradas.length === 1) {
@@ -164,6 +170,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         valorPrincipal: novoPrincipal,
         valorJuros: novoJuros,
         valorDevido: novoDevido,
+        dataVencimento: novoVencimento,
         formasPagamento: novasFormasPagamento,
         entradas: novasEntradas,
       },
@@ -174,6 +181,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       await prisma.emprestimo.update({
         where: { id: parcela.emprestimoId },
         data: { status: "ATIVO" },
+      });
+    }
+
+    // Se o vencimento foi restaurado e for empréstimo rolável (1 parcela), atualiza o vencimento do empréstimo também
+    if (parcela.emprestimo.numParcelas === 1 && dataVencimentoRestaurada) {
+      await prisma.emprestimo.update({
+        where: { id: parcela.emprestimoId },
+        data: { dataVencimento: dataVencimentoRestaurada },
       });
     }
 

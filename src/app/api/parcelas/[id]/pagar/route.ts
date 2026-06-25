@@ -116,6 +116,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         valorJuros: Number(parcela.valorJuros),
         valorDevido: Number(parcela.valorDevido),
         status: parcela.status,
+        dataVencimento: parcela.dataVencimento instanceof Date ? parcela.dataVencimento.toISOString() : new Date(parcela.dataVencimento).toISOString(),
       }
     };
     const entradasAtualizadas = [...entradasAntigas, novaEntrada];

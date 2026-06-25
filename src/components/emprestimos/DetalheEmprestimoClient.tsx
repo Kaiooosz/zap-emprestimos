@@ -182,7 +182,7 @@ export function DetalheEmprestimoClient({
                   </div>
                 )}
 
-                {pendente && (
+                {p.status !== "PAGO" && (
                   <div className="flex items-center gap-2">
                     <button onClick={() => setModalParcela(p)}
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all">
@@ -198,11 +198,11 @@ export function DetalheEmprestimoClient({
                     )}
                   </div>
                 )}
-                {!pendente && (
-                  <div className="mt-4 flex justify-end">
+                {Number(p.valorPago || 0) > 0 && (
+                  <div className={`flex justify-end ${p.status !== "PAGO" ? "mt-2" : "mt-4"}`}>
                     <button onClick={() => setModalEditarParcela(p)}
                       className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 transition-all">
-                      Editar
+                      Editar Pagamento
                     </button>
                   </div>
                 )}
@@ -268,7 +268,7 @@ export function DetalheEmprestimoClient({
                     <td className="px-3 py-3"><StatusBadge status={(p.status === "PAGO" ? "PAGO" : (venc.getTime() === hoje.getTime() ? "DIA_DE_PAGAR" : p.status)) as any}/></td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-1">
-                        {pendente && (
+                        {p.status !== "PAGO" && (
                           <button onClick={() => setModalParcela(p)}
                             title="Dar baixa / registrar pagamento"
                             className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-bold text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all whitespace-nowrap">
@@ -276,7 +276,7 @@ export function DetalheEmprestimoClient({
                             Baixa
                           </button>
                         )}
-                        {pendente && clientePhone && (
+                        {p.status !== "PAGO" && clientePhone && (
                           <a href={`https://wa.me/${clientePhone.replace(/\D/g, "")}?text=${buildMsg(p)}`}
                             target="_blank" rel="noopener noreferrer"
                             title="Cobrar via WhatsApp"
@@ -284,7 +284,7 @@ export function DetalheEmprestimoClient({
                             <MessageCircle size={11}/>
                           </a>
                         )}
-                        {!pendente && (
+                        {Number(p.valorPago || 0) > 0 && (
                           <button onClick={() => setModalEditarParcela(p)}
                             title="Editar pagamento"
                             className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-bold text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 transition-all whitespace-nowrap">

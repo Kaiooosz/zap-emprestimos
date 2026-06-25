@@ -17,14 +17,14 @@ export default async function CobrancasPage() {
   });
 
   const parcelas = await prisma.parcela.findMany({
-    where:   { status: { in: ["ATRASADO", "PENDENTE"] } },
+    where:   { status: { in: ["ATRASADO", "PENDENTE", "PARCIAL"] } },
     include: { emprestimo: { include: { cliente: true, parcelas: true } } },
     orderBy: { dataVencimento: "asc" },
   });
 
   const pendentes = parcelas.map((p) => {
     const venc       = obterMeiaNoiteBR(p.dataVencimento);
-    const diasAtraso = p.status === "ATRASADO"
+    const diasAtraso = (p.status === "ATRASADO" || (p.status === "PARCIAL" && inicioHoje.getTime() > venc.getTime()))
       ? Math.max(0, Math.floor((inicioHoje.getTime() - venc.getTime()) / 86400000))
       : 0;
     return {
